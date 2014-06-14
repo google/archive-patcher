@@ -1,0 +1,13 @@
+In this directory you can place extra libraries ("ext-lib") needed to compile
+the source code in the extra source ("../ext-src") directory.
+
+To add support for JxdDeltaGenerator and JxdDeltaApplier, you need to add the
+following libraries here:
+
+* javaxdelta-2.0.1.jar
+  Source: http://sourceforge.net/projects/javaxdelta/
+
+* trove-2.1.0.jar
+  Source: https://bitbucket.org/robeden/trove/
+  IMPORTANT: You must use 2.1.0; package names have changed in the 3.x branch
+  and javaxdelta will not resolve them properly at runtime if you use a 3.x JAR.
