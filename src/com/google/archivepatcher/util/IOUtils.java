@@ -21,35 +21,104 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 
+/**
+ * I/O utilities specifically designed for ZIP archive processing and
+ * manipulation in Java. Unless otherwise specified, all methods here process
+ * data in little-endian format because that is what the ZIP specification
+ * requires. Java is a big-endian virtual machine by definition, which requires
+ * manipulation of all multi-byte numeric values.
+ */
 public class IOUtils {
     private final static Charset UTF8 = Charset.forName("UTF-8");
 
-    public static String readUTF8(DataInput input, int length) throws IOException {
+    /**
+     * Reads a string as UTF-8.
+     * @param input the input source
+     * @param length the number of bytes to read
+     * @return the string that was read, or null if the length is zero
+     * @throws IOException if reading or conversion to UTF-8 fails.
+     */
+    public static String readUTF8(final DataInput input, final int length)
+        throws IOException {
+        if (length == 0) return null;
         byte[] buffer = new byte[length];
         input.readFully(buffer, 0, length);
         return new String(buffer, 0, length, UTF8);
     }
 
-    public static void writeUTF8(DataOutput out, String string) throws IOException {
+    /**
+     * Writes a UTF-8 string.
+     * @param out the output destination
+     * @param string the string to be written
+     * @throws IOException if unable to convert the string or write the bytes
+     */
+    public static void writeUTF8(final DataOutput out, final String string)
+        throws IOException {
         out.write(string.getBytes(UTF8));
     }
 
-    public static short readUnsignedByte(DataInput in) throws IOException {
+    /**
+     * Reads an unsigned 8-bit value and converts it to a 16-bit Java short
+     * whose value is always in the range [0, 0xFF].
+     * @param in the input source
+     * @return the value as described
+     * @throws IOException if unable to read the value
+     */
+    public static short readUnsignedByte(final DataInput in)
+        throws IOException {
         return (short) (in.readByte() & 0x000000ff);
     }
 
-    public static int readUnsignedShort(DataInput in) throws IOException {
+    /**
+     * Reads an unsigned 16-bit value and converts it to a 32-bit Java integer
+     * whose value is always in the range [0, 0xFFFF].
+     * @param in the input source
+     * @return the value as described
+     * @throws IOException if unable to read the value
+     */
+    public static int readUnsignedShort(final DataInput in) throws IOException {
         int value = readUnsignedByte(in);
         value |= readUnsignedByte(in) << 8;
         return value;
     }
 
-    public static void writeUnsignedShort(DataOutput out, int value) throws IOException {
+    /**
+     * Writes a 16-bit unsigned value to the specified destination.
+     * @param out the output destination
+     * @param value the value, which must be in the range [0, 0xFFFF]
+     * @throws IOException if unable to write the value
+     * @throws IllegalArgumentException if the value is outside the range
+     */
+    public static void writeUnsignedShort(final DataOutput out, final int value)
+        throws IOException {
+        if (value < 0 || value > 0xffff) {
+            throw new IllegalArgumentException(
+                "value must be in the range [0, 0xffff]: " + value);
+        }
+        writeRaw16Bit(out, value);
+    }
+
+    /**
+     * Writes a raw 16-bit value to the specified destination, ignoring the
+     * upper 16 bits of the specified value
+     * @param out the output destination
+     * @param value the value
+     * @throws IOException if unable to write the value
+     */
+    public static void writeRaw16Bit(final DataOutput out, final int value)
+        throws IOException {
         out.write(value);
         out.write(value >> 8);
     }
 
-    public static long readUnsignedInt(DataInput in) throws IOException {
+    /**
+     * Reads an unsigned 32-bit value and converts it to a 64-bit Java long
+     * whose value is always in the range [0, 0xFFFFFFFF].
+     * @param in the input source
+     * @return the value as described
+     * @throws IOException if unable to read the value
+     */
+    public static long readUnsignedInt(final DataInput in) throws IOException {
         long value = readUnsignedByte(in);
         value |= readUnsignedByte(in) << 8;
         value |= readUnsignedByte(in) << 16;
@@ -57,18 +126,49 @@ public class IOUtils {
         return value;
     }
 
-    public static void writeUnsignedInt(DataOutput out, long value) throws IOException {
-        value &= 0xffffffff;
-        int valueAsInt = (int) value;
+    /**
+     * Writes a 32-bit unsigned value to the specified destination.
+     * @param out the output destination
+     * @param value the value, which must be in the range [0, 0xFFFFFFFF]
+     * @throws IOException if unable to write the value
+     * @throws IllegalArgumentException if the value is outside the range
+     */
+    public static void writeUnsignedInt(final DataOutput out, final long value)
+        throws IOException {
+        if (value < 0L || value > 0xffffffffL) {
+            throw new IllegalArgumentException(
+                "value must be in the range [0, 0xffffffff]: " + value);
+        }
+        writeRaw32Bit(out, value);
+    }
+
+    /**
+     * Writes a raw 32-bit value to the specified destination, ignoring the
+     * upper 32 bits of the specified value.
+     * @param out the output destination
+     * @param value the value
+     * @throws IOException if unable to write the value
+     */
+    public static void writeRaw32Bit(final DataOutput out, final long value)
+        throws IOException {
+        final int valueAsInt = (int) (value & 0xFFFFFFFF);
         out.write(valueAsInt);
         out.write(valueAsInt >> 8);
         out.write(valueAsInt >> 16);
         out.write(valueAsInt >> 24);
     }
 
+    /**
+     * Consume all available bytes from the given source and return them as a
+     * byte array. This operation will block until the end of stream is reached
+     * and may exhaust system memory; use with caution.
+     * @param in the input source
+     * @return all remaining data from the input source
+     * @throws IOException if unable to complete the operation
+     */
     public static byte[] readAll(InputStream in) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        byte[] temp = new byte[4096];
+        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        final byte[] temp = new byte[4096];
         int numRead = 0;
         while ( (numRead = in.read(temp)) >= 0) {
             buffer.write(temp, 0, numRead);

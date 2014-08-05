@@ -31,6 +31,9 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+/**
+ * Tests for the {@link Archive} class.
+ */
 public class ArchiveTest {
     private final static String PATH1 = "file1.txt";
     private final static String PATH2 = "file2.txt";
@@ -41,6 +44,7 @@ public class ArchiveTest {
     private InputStream contentIn2;
     
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
         byte[] content1 = CONTENT_STRING1.getBytes(Charset.forName("UTF8"));
         contentIn1 = new ByteArrayInputStream(content1);
@@ -50,6 +54,7 @@ public class ArchiveTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteArchive_1File() throws IOException {
         final String ARCHIVE = "test/UNITTEST_1File.zip";
         SimpleArchive archive = new SimpleArchive();
@@ -70,6 +75,7 @@ public class ArchiveTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteArchive_2Files() throws IOException {
         final String ARCHIVE = "test/UNITTEST_2Files.zip";
         SimpleArchive archive = new SimpleArchive();

@@ -33,10 +33,35 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * A tool for generating and applying archive-based patches.
+ */
 public class ArchivePatcher extends AbstractArchiveTool {
 
+    /**
+     * Runs the standalone tool.
+     * @param args command line arguments
+     * @throws Exception if anything goes wrong
+     */
     public final static void main(String... args) throws Exception {
         new ArchivePatcher().run(args);
+    }
+
+    /**
+     * Used to pretty-print numbers.
+     */
+    private final NumberFormat prettyDecimalFormat =
+        NumberFormat.getNumberInstance(Locale.US);
+
+    /**
+     * Convenience method to pretty-format a number with decimal places and
+     * commas so that it appears in a human-friendly format.
+     * 
+     * @param number the number to be formatted
+     * @return the formatted numbers
+     */
+    private String f(Number number) {
+        return prettyDecimalFormat.format(number);
     }
 
     @Override
@@ -62,14 +87,26 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     DeltaApplier.class.getName());
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected final void run(MicroOptions options) throws Exception {
+        int numModeArgs = 0;
+        if (options.has("explain")) numModeArgs++;
+        if (options.has("makepatch")) numModeArgs++;
+        if (options.has("applypatch")) numModeArgs++;
+        if (numModeArgs != 1) {
+            throw new MicroOptions.OptionException(
+                "Must specify exactly one of the following options: " +
+                "--makepatch, --applypatch, --explain");
+        }
+
         if (options.has("explain")) {
             explain(options.getArg("old"),
                     options.getArg("new"),
                     options.getArg("patch"));
-        } else if (options.has("makepatch")) {
+            return;
+        }
+
+        if (options.has("makepatch")) {
             DeltaGenerator deltaGenerator = maybeCreateInstance(
                     options.getArg("deltaclass", null),
                     DeltaGenerator.class);
@@ -77,7 +114,10 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     options.getArg("new"),
                     options.getArg("patch"),
                     deltaGenerator);
-        } else if (options.has("applypatch")) {
+            return;
+        }
+
+        if (options.has("applypatch")) {
             DeltaApplier deltaApplier = maybeCreateInstance(
                     options.getArg("deltaclass", null),
                     DeltaApplier.class);
@@ -85,23 +125,30 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     options.getArg("new"),
                     options.getArg("patch"),
                     deltaApplier);
-        } else {
-            throw new MicroOptions.OptionException(
-                    "Must specify --makepatch, --applypatch or --explain");
+            return;
         }
     }
 
-    private static Class<?> loadRequiredClass(final String className,
+    /**
+     * Load a named class that is required, throwing an exception upon failure.
+     * 
+     * @param className the name of the class to load
+     * @param requiredInterface optionally, an interface that must be
+     * implemented by the class in order for loading to succeed
+     * @return the class object representing the named class
+     * @throws MicroOptions.OptionException if classloading fails or the
+     * required interface is not implemented
+     */
+    private static final Class<?> loadRequiredClass(final String className,
             final Class<?> requiredInterface)
                     throws MicroOptions.OptionException {
         try {
             Class<?> result = Class.forName(className);
-            if (!requiredInterface.isAssignableFrom(result)) {
-                throw new MicroOptions.OptionException(
-                        "class doesn't implement " +
-                        requiredInterface.getName());
-            }
-            return result;
+            if (requiredInterface == null) return result;
+            if (requiredInterface.isAssignableFrom(result)) return result;
+            throw new MicroOptions.OptionException(
+                    "class doesn't implement " +
+                    requiredInterface.getName());
         } catch (ClassNotFoundException e) {
             MicroOptions.OptionException error =
                     new MicroOptions.OptionException(
@@ -111,8 +158,19 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
     }
 
+    /**
+     * Load a named class and return an instance of it using the class'
+     * default no-arg public constructor.
+     * @param className the name of the class to load and instantiate
+     * @param requiredInterface optionally, an interface that must be
+     * implemented by the class in order for loading to succeed
+     * @return an instance of the specified class, that implements the
+     * specified interface
+     * @throws MicroOptions.OptionException  if classloading fails or the
+     * required interface is not implemented
+     */
     @SuppressWarnings("unchecked") // enforced by loadrequiredClass.
-    private static <T> T createRequiredInstance(final String className,
+    private static final <T> T createRequiredInstance(final String className,
             final Class<T> requiredInterface)
             throws MicroOptions.OptionException {
         Class<?> clazz = loadRequiredClass(className, requiredInterface);
@@ -127,14 +185,29 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
     }
 
-    private static <T> T maybeCreateInstance(final String className,
+    private static final <T> T maybeCreateInstance(final String className,
             final Class<T> requiredInterface)
             throws MicroOptions.OptionException {
         if (className == null) return null;
         return createRequiredInstance(className, requiredInterface);
     }
 
-    public void makePatch(String oldFile, String newFile, String patchFile, DeltaGenerator deltaGenerator) throws IOException {
+    /**
+     * Create a patch at the specified path (patchFile) that will transform
+     * one archive (oldFile) to another (newFile) when applied with
+     * {@link #applyPatch(String, String, String, DeltaApplier)} using a
+     * compatible {@link DeltaApplier}.
+     * 
+     * @param oldFile the file that the generated patch will transform from
+     * @param newFile the file that the generated patch will transform to
+     * @param patchFile the path to write the generated patch to
+     * @param deltaGenerator optionally, a {@link DeltaGenerator} that can
+     * produce efficient deltas for individual file resources that are found
+     * in both oldFile and newFile archives
+     * @throws IOException if there is a problem reading or writing
+     */
+    public void makePatch(String oldFile, String newFile, String patchFile,
+        DeltaGenerator deltaGenerator) throws IOException {
         if (isVerbose()) {
             log("generating patch");
             log("  old:             " + oldFile);
@@ -143,16 +216,41 @@ public class ArchivePatcher extends AbstractArchiveTool {
             log("  delta generator: " + (deltaGenerator == null ?
                     "none" : deltaGenerator.getClass().getName()));
         }
-        FileOutputStream out = new FileOutputStream(patchFile);
-        DataOutputStream dos = new DataOutputStream(out);
-        PatchGenerator generator = new PatchGenerator(oldFile, newFile, dos, deltaGenerator);
-        generator.generatePatch();
-        dos.flush();
-        out.flush();
-        out.close();
+        FileOutputStream out = null;
+        DataOutputStream dos = null;
+
+        try {
+            out = new FileOutputStream(patchFile);
+            dos = new DataOutputStream(out);
+            PatchGenerator generator = new PatchGenerator(
+                oldFile, newFile, dos, deltaGenerator);
+            generator.init();
+            generator.generateAll();
+        } finally {
+            if (dos != null) try {
+                dos.close(); // flushes and closes both streams
+            } catch (Exception discard) {}
+        }
     }
 
-    public void applyPatch(String oldFile, String newFile, String patchFile, DeltaApplier deltaApplier) throws IOException {
+    /**
+     * Apply a patch at the specified path (patchFile) to a specified input
+     * archive (oldFile) to generate a new, patched archive at the specified
+     * path (newFile) using an optional {@link DeltaApplier} to apply process
+     * deltas. The specified {@link DeltaApplier} must be compatible with the
+     * {@link DeltaGenerator} that was specified to
+     * {@link #makePatch(String, String, String, DeltaGenerator)}.
+     * 
+     * @param oldFile the archive to be patched
+     * @param newFile the path to which the new, patched archive will be written
+     * @param patchFile the path to the patch file that will be used
+     * @param deltaApplier optionally, a {@link DeltaApplier} that can
+     * apply deltas for individual file resources that were found in both
+     * oldFile and newFile archives when the patch was generated
+     * @throws IOException if there is a problem reading or writing
+     */
+    public void applyPatch(String oldFile, String newFile, String patchFile,
+        DeltaApplier deltaApplier) throws IOException {
         if (isVerbose()) {
             log("applying patch");
             log("  old:   " + oldFile);
@@ -167,38 +265,58 @@ public class ArchivePatcher extends AbstractArchiveTool {
         out.close();
     }
 
-    public void explain(String oldFile, String newFile, String patchFilePath) throws IOException {
+    /**
+     * Explain the patching process that would take place transforming the old
+     * archive (oldPath) to the new archive (newPath) in the form of a patch
+     * file (patchFilePath)
+     * @param oldFile
+     * @param newFile
+     * @param patchFile
+     * @throws IOException
+     */
+    public void explain(String oldFile, String newFile, String patchFile)
+        throws IOException {
         if (isVerbose()) {
             log("explain patch");
             log("  old:   " + oldFile);
             log("  new:   " + newFile);
-            log("  patch: " + patchFilePath);
+            log("  patch: " + patchFile);
         }
         Archive oldArchive = Archive.fromFile(oldFile);
         final Map<Integer, CentralDirectoryFile> oldCDFByOffset =
                 new HashMap<Integer, CentralDirectoryFile>();
-        for (CentralDirectoryFile entry : oldArchive.getCentralDirectory().entries()) {
-            oldCDFByOffset.put((int) entry.getRelativeOffsetOfLocalHeader_32bit(), entry);
+        List<CentralDirectoryFile> cdEntries =
+            oldArchive.getCentralDirectory().entries();
+        for (CentralDirectoryFile entry : cdEntries) {
+            int offset = (int) entry.getRelativeOffsetOfLocalHeader_32bit();
+            oldCDFByOffset.put(offset, entry);
         }
 
         Archive newArchive = Archive.fromFile(newFile);
         CentralDirectorySection patchCd = null;
-        File patchFile = new File(patchFilePath);
-        PatchParser parser = new PatchParser(patchFile);
+        File patch = new File(patchFile);
+        PatchParser parser = new PatchParser(patch);
         parser.init();
         int numCopy = 0;
-        int sizeOfCopyRecords = 0; // the records themselves, price paid in patch
-        int sizeOfDataSavedByCopy = 0; // the compressed data we avoided having to copy
+        // the records themselves, price paid in patch
+        int sizeOfCopyRecords = 0;
+        // the compressed data we avoided having to copy
+        int sizeOfDataSavedByCopy = 0;
         int numNew = 0;
-        int sizeOfNewRecords = 0; // the records themselves, price paid in patch
-        int sizeOfDataInNew = 0; // the compressed data we had to insert
+        // the records themselves, price paid in patch
+        int sizeOfNewRecords = 0;
+        // the compressed data we had to insert
+        int sizeOfDataInNew = 0;
         int numRefresh = 0;
-        int sizeOfRefreshRecords = 0; // the records themselves, price paid in patch
-        int sizeOfDataSavedByRefresh = 0; // the compressed data we avoided having to copy
+        // the records themselves, price paid in patch
+        int sizeOfRefreshRecords = 0;
+        // the compressed data we avoided having to copy
+        int sizeOfDataSavedByRefresh = 0;
         int numPatch = 0;
-        int sizeOfPatchRecords = 0; // the records themselves, price paid in patch
-        int sizeOfDataSavedByPatch = 0; // the size reduction from using delta instead of copy
-        NumberFormat pretty = NumberFormat.getNumberInstance(Locale.US);
+        // the records themselves, price paid in patch
+        int sizeOfPatchRecords = 0;
+        // the size reduction from using delta instead of copy
+        int sizeOfDataSavedByPatch = 0;
         PatchDirective directive = null;
         while( (directive = parser.read()) != null) {
             switch(directive.getCommand()) {
@@ -207,12 +325,14 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     break;
                 case COPY:
                     numCopy++;
-                    final CentralDirectoryFile copiedCdf = oldCDFByOffset.get(directive.getOffset());
-                    final int copiedSavings = (int) copiedCdf.getCompressedSize_32bit();
+                    final CentralDirectoryFile copiedCdf =
+                        oldCDFByOffset.get(directive.getOffset());
+                    final int copiedSavings =
+                        (int) copiedCdf.getCompressedSize_32bit();
                     if (isVerbose()) {
                         log("COPY " + copiedCdf.getFileName());
                         log("  cost:    5 bytes");
-                        log("  savings: " + pretty.format(copiedSavings) + " bytes");
+                        log("  savings: " + f(copiedSavings) + " bytes");
                     }
                     sizeOfCopyRecords += 1 + 4; // type + offset
                     sizeOfDataSavedByCopy += copiedSavings;
@@ -223,39 +343,53 @@ public class ArchivePatcher extends AbstractArchiveTool {
                             newArchive.getCentralDirectory().getByPath(
                                     oldCDFByOffset.get(directive.getOffset())
                                     .getFileName());
-                    final PatchMetadata patchMetadata = (PatchMetadata) directive.getPart();
-                    final int sizeOfPatchRecord = 1 + patchMetadata.getStructureLength();
-                    final int patchSavings = (int) patchedCdf.getCompressedSize_32bit(); // [cost - savings = delta versus new]
+                    final PatchMetadata patchMetadata =
+                        (PatchMetadata) directive.getPart();
+                    final int sizeOfPatchRecord =
+                        1 + patchMetadata.getStructureLength();
+                    // [cost - savings = delta versus new]
+                    final int patchSavings =
+                        (int) patchedCdf.getCompressedSize_32bit();
                     if (isVerbose()) {
                         log("PATCH " + patchedCdf.getFileName());
-                        log("  cost:    " + pretty.format(sizeOfPatchRecord) + " bytes");
-                        log("  savings: " + pretty.format(patchSavings) + " bytes");
+                        log("  cost:    " + f(sizeOfPatchRecord) + " bytes");
+                        log("  savings: " + f(patchSavings) + " bytes");
                     }
                     sizeOfPatchRecords += sizeOfPatchRecord;
                     sizeOfDataSavedByPatch += patchSavings;
                     break;
                 case NEW:
                     numNew++;
-                    final NewMetadata newMetadata = (NewMetadata) directive.getPart();
-                    final int sizeOfNewRecord = 1 + newMetadata.getStructureLength();
-                    final int sizeOfNewData = newMetadata.getFileDataPart().getStructureLength();
+                    final NewMetadata newMetadata =
+                        (NewMetadata) directive.getPart();
+                    final int sizeOfNewRecord =
+                        1 + newMetadata.getStructureLength();
+                    final int sizeOfNewData =
+                        newMetadata.getFileDataPart().getStructureLength();
                     if (isVerbose()) {
-                        log ("NEW " + newMetadata.getLocalFilePart().getFileName());
-                        log ("  cost:    " + pretty.format(sizeOfNewRecord) + " bytes (of which " + pretty.format(sizeOfNewData) + " was compressed data)");
+                        log ("NEW " +
+                            newMetadata.getLocalFilePart().getFileName());
+                        log ("  cost:    " + f(sizeOfNewRecord) +
+                            " bytes (of which " + f(sizeOfNewData) +
+                            " was compressed data)");
                     }
                     sizeOfNewRecords += sizeOfNewRecord;
                     sizeOfDataInNew += sizeOfNewData;
                     break;
                 case REFRESH:
                     numRefresh++;
-                    final CentralDirectoryFile refreshedCdf = oldCDFByOffset.get(directive.getOffset());
-                    final RefreshMetadata refreshMetadata = (RefreshMetadata) directive.getPart();
-                    final int sizeOfRefreshRecord = 1 + refreshMetadata.getStructureLength();
-                    final int refreshSavings = (int) refreshedCdf.getCompressedSize_32bit();
+                    final CentralDirectoryFile refreshedCdf =
+                        oldCDFByOffset.get(directive.getOffset());
+                    final RefreshMetadata refreshMetadata =
+                        (RefreshMetadata) directive.getPart();
+                    final int sizeOfRefreshRecord =
+                        1 + refreshMetadata.getStructureLength();
+                    final int refreshSavings =
+                        (int) refreshedCdf.getCompressedSize_32bit();
                     if (isVerbose()) {
                         log("REFRESH " + refreshedCdf.getFileName());
-                        log("  cost:    " + pretty.format(sizeOfRefreshRecord) + " bytes");
-                        log("  savings: " + pretty.format(refreshSavings) + " bytes");
+                        log("  cost:    " + f(sizeOfRefreshRecord) + " bytes");
+                        log("  savings: " + f(refreshSavings) + " bytes");
                     }
                     sizeOfRefreshRecords += sizeOfRefreshRecord;
                     sizeOfDataSavedByRefresh += refreshSavings;
@@ -264,7 +398,7 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
 
         // Output stats
-        final int patchSize = (int) patchFile.length();
+        final int patchSize = (int) patch.length();
         final List<CentralDirectoryFile> patchCdEntries = patchCd.entries();
         int patchCdSize = 0;
         int numPatchCdEntries = 0;
@@ -272,28 +406,42 @@ public class ArchivePatcher extends AbstractArchiveTool {
             patchCdSize += patchCdEntry.getStructureLength();
             numPatchCdEntries++;
         }
-        log("Patch size      : " + pretty.format(patchSize) + " bytes");
-        log("Patch EOCD size : " + pretty.format(patchCd.getEocd().getStructureLength()) + " bytes");
-        log("Patch CD size   : " + pretty.format(patchCdSize) + " bytes");
-        log("Patch CD entries: " + pretty.format(numPatchCdEntries));
+        log("Patch size      : " + f(patchSize) + " bytes");
+        log("Patch EOCD size : " + f(patchCd.getEocd().getStructureLength()) +
+            " bytes");
+        log("Patch CD size   : " + f(patchCdSize) + " bytes");
+        log("Patch CD entries: " + f(numPatchCdEntries));
         log("Totals:");
-        final int averageSizeOfCopyRecord = numCopy == 0 ? 0 : sizeOfCopyRecords / numCopy;
-        final int averageSizeOfDataSavedByCopy = numCopy == 0 ? 0 : sizeOfDataSavedByCopy / numCopy;
-        log("COPY (" + pretty.format(numCopy) + " entries):");
-        log("  cost:    " + pretty.format(sizeOfCopyRecords) + " bytes (average " + pretty.format(averageSizeOfCopyRecord) + ")");
-        log("  savings: " + pretty.format(sizeOfDataSavedByCopy) + " bytes (average " + pretty.format(averageSizeOfDataSavedByCopy) + ")");
-        final int averageSizeOfRefreshRecord = numRefresh == 0 ? 0 : sizeOfRefreshRecords / numRefresh;
-        final int averageSizeOfDataSavedByRefresh = numRefresh == 0 ? 0 : sizeOfDataSavedByRefresh / numRefresh;
-        log("REFRESH (" + pretty.format(numRefresh) + " entries):");
-        log("  cost:    " + pretty.format(sizeOfRefreshRecords) + " bytes (average " + pretty.format(averageSizeOfRefreshRecord) + ")");
-        log("  savings: " + pretty.format(sizeOfDataSavedByRefresh) + " bytes (average " + pretty.format(averageSizeOfDataSavedByRefresh) + ")");
-        final int averageSizeOfPatchRecord = numPatch == 0 ? 0 : sizeOfPatchRecords / numPatch;
-        final int averageSizeOfDataSavedByPatch = numPatch == 0 ? 0 : sizeOfDataSavedByPatch / numPatch;
-        log("PATCH (" + pretty.format(numPatch) + " entries):");
-        log("  cost:    " + pretty.format(sizeOfPatchRecords) + " bytes (average " + pretty.format(averageSizeOfPatchRecord) + ")");
-        log("  savings: " + pretty.format(sizeOfDataSavedByPatch) + " bytes (average " + pretty.format(averageSizeOfDataSavedByPatch) + ")");
+        final int averageSizeOfCopyRecord = numCopy == 0 ?
+            0 : sizeOfCopyRecords / numCopy;
+        final int averageSizeOfDataSavedByCopy = numCopy == 0 ?
+            0 : sizeOfDataSavedByCopy / numCopy;
+        final int averageSizeOfRefreshRecord = numRefresh == 0 ?
+            0 : sizeOfRefreshRecords / numRefresh;
+        final int averageSizeOfDataSavedByRefresh = numRefresh == 0
+            ? 0 : sizeOfDataSavedByRefresh / numRefresh;
+        final int averageSizeOfPatchRecord = numPatch == 0 ?
+            0 : sizeOfPatchRecords / numPatch;
+        final int averageSizeOfDataSavedByPatch = numPatch == 0 ?
+            0 : sizeOfDataSavedByPatch / numPatch;
+        log("COPY (" + f(numCopy) + " entries):");
+        log("  cost:    " + f(sizeOfCopyRecords) + " bytes (average " +
+            f(averageSizeOfCopyRecord) + ")");
+        log("  savings: " + f(sizeOfDataSavedByCopy) + " bytes (average " +
+            f(averageSizeOfDataSavedByCopy) + ")");
+        log("REFRESH (" + f(numRefresh) + " entries):");
+        log("  cost:    " + f(sizeOfRefreshRecords) + " bytes (average " +
+            f(averageSizeOfRefreshRecord) + ")");
+        log("  savings: " + f(sizeOfDataSavedByRefresh) + " bytes (average " +
+            f(averageSizeOfDataSavedByRefresh) + ")");
+        log("PATCH (" + f(numPatch) + " entries):");
+        log("  cost:    " + f(sizeOfPatchRecords) + " bytes (average " +
+            f(averageSizeOfPatchRecord) + ")");
+        log("  savings: " + f(sizeOfDataSavedByPatch) + " bytes (average " +
+            f(averageSizeOfDataSavedByPatch) + ")");
         log("NEW (" + numNew + " entries):");
-        log("  cost:    " + pretty.format(sizeOfNewRecords) + " bytes (of which " + pretty.format(sizeOfDataInNew) + " was compressed data)");
+        log("  cost:    " + f(sizeOfNewRecords) + " bytes (of which " +
+            f(sizeOfDataInNew) + " was compressed data)");
     }
 
 }

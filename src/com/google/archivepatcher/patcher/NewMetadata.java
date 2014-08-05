@@ -22,27 +22,55 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+/**
+ * The manifestation of a {@link PatchCommand#NEW} in a patch file, consisting
+ * of a {@link LocalFile}, {@link FileData} and optional {@link DataDescriptor}.
+ * When this part is written, it first writes the {@link LocalFile}, then
+ * the {@link DataDescriptor} (if present), and finally the {@link FileData}:
+ * <br>[Local File Record]
+ * <br>[Data Descriptor Record (if present)]
+ * <br>[File Data]
+ * <p>
+ * The reading and writing of the first two parts (the {@link LocalFile} and
+ * {@link DataDescriptor}) is done using the rules in {@link RefreshMetadata},
+ * from which this class is derived.
+ */
 public class NewMetadata extends RefreshMetadata {
+    /**
+     * The {@link FileData} part that is read or written by this object.
+     */
     private FileData fileDataPart;
 
+    /**
+     * Creates an empty object with no parts, suitable for reading.
+     */
     public NewMetadata() {
         this(null,null,null);
     }
-    public NewMetadata(LocalFile localFilePart,
-            FileData compressedDataPart,
-            DataDescriptor dataDescriptorPart) {
+
+    /**
+     * Creates a fully populated object, suitable for writing.
+     * 
+     * @param localFilePart the part to set
+     * @param compressedDataPart the part to set
+     * @param dataDescriptorPart the part to set (optional)
+     */
+    public NewMetadata(final LocalFile localFilePart,
+            final FileData compressedDataPart,
+            final DataDescriptor dataDescriptorPart) {
         super(localFilePart, dataDescriptorPart);
         this.fileDataPart = compressedDataPart;
     }
+
     @Override
-    public void read(DataInput input) throws IOException {
+    public void read(final DataInput input) throws IOException {
         super.read(input);
         fileDataPart = new FileData(getCompressedLength());
         fileDataPart.read(input);
     }
 
     @Override
-    public void write(DataOutput output) throws IOException {
+    public void write(final DataOutput output) throws IOException {
         super.write(output);
         fileDataPart.write(output);
     }
@@ -60,8 +88,9 @@ public class NewMetadata extends RefreshMetadata {
                 + ((fileDataPart == null) ? 0 : fileDataPart.hashCode());
         return result;
     }
+
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj)
             return true;
         if (!super.equals(obj))
@@ -76,11 +105,28 @@ public class NewMetadata extends RefreshMetadata {
             return false;
         return true;
     }
+
+    /**
+     * Returns the {@link FileData}.
+     * @return the {@link FileData}
+     */
     public FileData getFileDataPart() {
         return fileDataPart;
     }
-    public void setFileDataPart(FileData compressedDataPart) {
-        this.fileDataPart = compressedDataPart;
+
+    /**
+     * Sets the {@link FileData}.
+     * @param fileDataPart the part to set
+     */
+    public void setFileDataPart(final FileData fileDataPart) {
+        this.fileDataPart = fileDataPart;
     }
 
+    @Override
+    public String toString() {
+        return "NewMetadata [" +
+            "localFilePart=" + getLocalFilePart() +
+            ", dataDescriptorPart=" + getDataDescriptorPart() +
+            ", fileDataPart=" + fileDataPart + "]";
+    }
 }

@@ -49,18 +49,30 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Tests for a {@link PatchGenerator}.
+ */
 public class PatchGeneratorTest {
     private final static long NOWISH = System.currentTimeMillis();
+    @SuppressWarnings("javadoc")
     public final static String FILE1 = "file1";
+    @SuppressWarnings("javadoc")
     public final static String FILE2 = "file2";
+    @SuppressWarnings("javadoc")
     public final static String FILE3 = "file3";
+    @SuppressWarnings("javadoc")
     public final static String FILE4 = "file4";
 
+    @SuppressWarnings("javadoc")
     public final static byte[] CONTENT1 = "Have you ever considered an archive-aware patch system? Such a system could conceivably be much more efficient than vanilla diff.".getBytes(Charset.forName("UTF8"));
+    @SuppressWarnings("javadoc")
     public final static byte[] CONTENT2 = "Effectively, such a tool determines the differences between entries in an archive. Each entry is considered on its own.".getBytes(Charset.forName("UTF8"));
+    @SuppressWarnings("javadoc")
     public final static byte[] CONTENT3 = "In theory, this can lead to a very efficient binary patcher. By comparing data and metadata separately, such a patcher can even mitigate the effects of non-data changes in archives".getBytes(Charset.forName("UTF8"));
+    @SuppressWarnings("javadoc")
     public final static byte[] CONTENT4 = "By comparing CRC-32s, the patcher can even efficiently find possible candidates for renames and duplicate data within an archive, allowing a patch to capture renames and copies with very little cost.".getBytes(Charset.forName("UTF8"));
 
+    @SuppressWarnings("javadoc")
     public static class TrivialFile {
         public final String file;
         public final byte[] content;
@@ -73,16 +85,22 @@ public class PatchGeneratorTest {
         }
     }
 
+    @SuppressWarnings("javadoc")
     public final static TrivialFile TF1 = new TrivialFile(FILE1, CONTENT1);
+    @SuppressWarnings("javadoc")
     public final static TrivialFile TF2 = new TrivialFile(FILE2, CONTENT2);
+    @SuppressWarnings("javadoc")
     public final static TrivialFile TF3 = new TrivialFile(FILE3, CONTENT3);
+    @SuppressWarnings("javadoc")
     public final static TrivialFile TF4 = new TrivialFile(FILE4, CONTENT4);
 
-    // macro!
+    // it's like a macro!
+    @SuppressWarnings("javadoc")
     public static TrivialFile tf(String file, byte[] content) {
         return new TrivialFile(file, content);
     }
 
+    @SuppressWarnings("javadoc")
     public static Archive makeArchive(TrivialFile... files) throws IOException {
         SimpleArchive archive = new SimpleArchive();
         for (TrivialFile tf : files) {
@@ -98,6 +116,7 @@ public class PatchGeneratorTest {
     private List<PatchDirective> expectedDirectives;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() {
         expectedDirectives = new LinkedList<PatchDirective>();
         oldArchive = null;
@@ -109,7 +128,8 @@ public class PatchGeneratorTest {
         outBuffer = new ByteArrayOutputStream();
         DataOutput dataOut = new DataOutputStream(outBuffer);
         PatchGenerator generator = new PatchGenerator(oldArchive, newArchive, dataOut, null);
-        generator.generatePatch();
+        generator.init();
+        generator.generateAll();
     }
 
     private List<PatchDirective> getDirectives() throws IOException {
@@ -205,6 +225,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testCopyOne() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1);
@@ -215,6 +236,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testReplaceOne() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF2);
@@ -224,6 +246,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testDeleteFirst() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF2,TF3); // missing FIRST entry
@@ -234,6 +257,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testDeleteMiddle() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF1,TF3); // missing MIDDLE entry
@@ -244,6 +268,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testDeleteLast() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF1,TF2); // missing LAST entry
@@ -254,6 +279,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testCopyOutOfOrder() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3,TF4);
         newArchive = makeArchive(TF4,TF3,TF2,TF1);
@@ -266,6 +292,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testRefreshOne() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1);
@@ -278,6 +305,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testAppend() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1,TF2);
@@ -288,6 +316,7 @@ public class PatchGeneratorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testMixture() throws Exception {
         oldArchive = makeArchive(TF1, TF2, TF3);
         newArchive = makeArchive(TF2, TF3, TF4);

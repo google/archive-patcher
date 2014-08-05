@@ -17,36 +17,37 @@ package com.google.archivepatcher.patcher;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.google.archivepatcher.patcher.PatchCommand;
-import com.google.archivepatcher.patcher.PatchDirective;
-import com.google.archivepatcher.patcher.PatchMagic;
-import com.google.archivepatcher.patcher.PatchWriter;
-import com.google.archivepatcher.util.IOUtils;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.archivepatcher.util.IOUtils;
+
+/**
+ * Tests for the {@link PatchWriter} class.
+ */
 public class PatchWriterTest {
-    private final static BinaryPartForTest PART1 = new BinaryPartForTest("PART1");
 
     private ByteArrayOutputStream actualOutBuffer;
     private DataOutput actualOut;
     private PatchWriter pw;
     private ByteArrayOutputStream expectedOutBuffer;
     private DataOutput expectedOut;
+    private PatchTestData td;
 
     private byte[] getActualData() {
         return actualOutBuffer.toByteArray();
     }
+
     private byte[] getExpectedData() {
         return expectedOutBuffer.toByteArray();
     }
+
     private void assertOutputMatch() {
         byte[] expected = getExpectedData(); // declared for debugger's benefit
         byte[] actual = getActualData(); // declared for debugger's benefit
@@ -54,7 +55,9 @@ public class PatchWriterTest {
     }
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
+        td = new PatchTestData();
         actualOutBuffer = new ByteArrayOutputStream();
         actualOut = new DataOutputStream(actualOutBuffer);
         pw = new PatchWriter(actualOut);
@@ -65,65 +68,68 @@ public class PatchWriterTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testEmptyPatch() {
         assertOutputMatch();
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testCopy() throws IOException {
         assertEquals(5, pw.write(PatchDirective.COPY(1)));
-        expectedOut.write(PatchCommand.COPY.binaryFormat);
+        expectedOut.write(PatchCommand.COPY.signature);
         IOUtils.writeUnsignedInt(expectedOut, 1);
         assertOutputMatch();
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testNew() throws IOException {
-        assertEquals(1+4+PART1.getStructureLength(), pw.write(PatchDirective.NEW(PART1)));
-        expectedOut.write(PatchCommand.NEW.binaryFormat);
-        IOUtils.writeUnsignedInt(expectedOut, PART1.content.length);
-        expectedOut.write(PART1.content);
+        final NewMetadata part = new NewMetadata(td.lf, td.fd, null);
+        assertEquals(1+4+part.getStructureLength(),
+            pw.write(PatchDirective.NEW(part)));
+        expectedOut.write(PatchCommand.NEW.signature);
+        IOUtils.writeUnsignedInt(expectedOut, part.getStructureLength());
+        part.write(expectedOut);
         assertOutputMatch();
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testRefresh() throws IOException {
-        assertEquals(1+4+4+PART1.getStructureLength(), pw.write(PatchDirective.REFRESH(1, PART1)));
-        expectedOut.write(PatchCommand.REFRESH.binaryFormat);
+        final RefreshMetadata part = new RefreshMetadata(td.lf, null);
+        assertEquals(1+4+4+part.getStructureLength(),
+            pw.write(PatchDirective.REFRESH(1, part)));
+        expectedOut.write(PatchCommand.REFRESH.signature);
         IOUtils.writeUnsignedInt(expectedOut, 1);
-        IOUtils.writeUnsignedInt(expectedOut, PART1.content.length);
-        expectedOut.write(PART1.content);
+        IOUtils.writeUnsignedInt(expectedOut, part.getStructureLength());
+        part.write(expectedOut);
         assertOutputMatch();
     }
     
     @Test
-    public void testEnd() throws IOException {
-        assertEquals(1+4+PART1.getStructureLength(), pw.write(PatchDirective.BEGIN(PART1)));
-        expectedOut.write(PatchCommand.BEGIN.binaryFormat);
-        IOUtils.writeUnsignedInt(expectedOut, PART1.content.length);
-        expectedOut.write(PART1.content);
+    @SuppressWarnings("javadoc")
+    public void testBegin() throws IOException {
+        final BeginMetadata part = new BeginMetadata(td.cds);
+        assertEquals(1+4+part.getStructureLength(),
+            pw.write(PatchDirective.BEGIN(part)));
+        expectedOut.write(PatchCommand.BEGIN.signature);
+        IOUtils.writeUnsignedInt(expectedOut, part.getStructureLength());
+        part.write(expectedOut);
         assertOutputMatch();
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testPatch() throws IOException {
-        // The patch directive's internal format includes the length of the
-        // patch. This is necessary so that the PatchMetadata object knows how
-        // much data to read from the input stream.
-        // Prepend the length here.
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(buffer);
-        IOUtils.writeUnsignedInt(dos, PART1.content.length);
-        dos.write(PART1.content);
-        BinaryPartForTest patchPart = new BinaryPartForTest(buffer.toByteArray());
-
-        // byte mark + offset + part length + patch
-        assertEquals(1+4+4+patchPart.getStructureLength(), pw.write(PatchDirective.PATCH(1, patchPart)));
-        expectedOut.write(PatchCommand.PATCH.binaryFormat);
+        final byte[] patchData = "bar".getBytes("UTF-8");
+        final PatchMetadata part = new PatchMetadata(td.lf, null, patchData);
+        assertEquals(1+4+4+part.getStructureLength(),
+            pw.write(PatchDirective.PATCH(1, part)));
+        expectedOut.write(PatchCommand.PATCH.signature);
         IOUtils.writeUnsignedInt(expectedOut, 1);
-        IOUtils.writeUnsignedInt(expectedOut, PART1.content.length + 4);
-        IOUtils.writeUnsignedInt(expectedOut, PART1.content.length);
-        expectedOut.write(PART1.content);
+        IOUtils.writeUnsignedInt(expectedOut, part.getStructureLength());
+        part.write(expectedOut);
         assertOutputMatch();
     }
 }

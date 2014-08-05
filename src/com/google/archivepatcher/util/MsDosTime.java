@@ -22,18 +22,59 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-// http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx
+/**
+ * A utility class for manipulating time data stored in MS-DOS format, based
+ * upon a reading of the MS-DOS time format at
+ * <a href='http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx'>
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx</a>.
+ * <p>
+ * This is a <em>very</em> old format originating from a time when storage
+ * requirements were very different. It packs into 16 bits a representation that
+ * has a maximum resolution of 2 seconds, meaning that it is not possible to
+ * represent a time whose seconds value is odd.
+ * <p>
+ * This class is threadsafe and immutable.
+ * @see MsDosDate
+ */
 public class MsDosTime {
-    private int secondDividedBy2;
-    private int minuteOfHour;
-    private int hourOfDay;
+    private final int secondDividedBy2;
+    private final int minuteOfHour;
+    private final int hourOfDay;
 
-    public MsDosTime(int secondDividedBy2, int minuteOfHour, int hourOfDay) {
+    /**
+     * Constructs a new MS-DOS time using the specified values, and ensures
+     * that it is sane.
+     * @param secondDividedBy2 the second within the hour, after being divided
+     * by two; must be within the range [0,29].
+     * @param minuteOfHour the minute within the hour, in the range [0,59]
+     * @param hourOfDay the hour of the day, within the range [0, 23]
+     * @throws IllegalArgumentException if any of the specified values is out
+     * of the allowed range
+     */
+    public MsDosTime(final int secondDividedBy2, final int minuteOfHour,
+        final int hourOfDay) {
+        if (secondDividedBy2 < 0 || secondDividedBy2 > 29) {
+            throw new IllegalArgumentException("secondDividedBy2 must be in " +
+                "the range [0, 29]: " + secondDividedBy2);
+        }
+        if (minuteOfHour < 0 || minuteOfHour > 59) {
+            throw new IllegalArgumentException("minuteOfHour must be in the " +
+                "range [0, 59]: " + minuteOfHour);
+        }
+        if (hourOfDay < 0 || hourOfDay > 23) {
+            throw new IllegalArgumentException("hourOfDay must be in the " +
+                "range [0, 23]: " + hourOfDay);
+        }
         this.secondDividedBy2 = secondDividedBy2;
         this.minuteOfHour = minuteOfHour;
         this.hourOfDay = hourOfDay;
     }
 
+    /**
+     * Converts a raw 16-bit value from a ZIP archive into an MS-DOS time.
+     * @param value_16bit the 16-bit "last modified time" from a ZIP file
+     * @return the equivalent object
+     */
     public static MsDosTime from16BitPackedValue(int value_16bit) {
         int secondDividedBy2 = value_16bit & 31; // 5-bit value
         int minuteOfHour = (value_16bit >> 5) & 63; // 6-bit value
@@ -41,6 +82,11 @@ public class MsDosTime {
         return new MsDosTime(secondDividedBy2, minuteOfHour, hourOfDay);
     }
 
+    /**
+     * Converts this object to its raw 16-bit representation for use in a ZIP
+     * archive's "last modified time" field.
+     * @return such a representation
+     */
     public int to16BitPackedValue() {
         int result = hourOfDay;
         result <<= 6;
@@ -50,14 +96,32 @@ public class MsDosTime {
         return result;
     }
 
+    /**
+     * Returns an alternative representation of this object as milliseconds
+     * since midnight. The result is always in the range [0, 1439999] and is
+     * always evenly divisible by 2000 (due to the MS-DOS limitation that the
+     * number of seconds must always be even, and the coarse granularity of
+     * the format).
+     * @return the time as milliseconds since midnight
+     */
     public long asMillisecondsSinceMidnight() {
-        long result = 0;
-        result += TimeUnit.HOURS.toMillis(hourOfDay);
-        result += TimeUnit.MINUTES.toMillis(minuteOfHour);
-        result += TimeUnit.SECONDS.toMillis(secondDividedBy2 * 2);
-        return result;
+        return TimeUnit.HOURS.toMillis(hourOfDay) +
+            TimeUnit.MINUTES.toMillis(minuteOfHour) +
+            TimeUnit.SECONDS.toMillis(secondDividedBy2 * 2);
     }
 
+    /**
+     * Inverts the logic of {@link #asMillisecondsSinceMidnight()} to convert a
+     * timestamp expressed in milliseconds since the epoch, UTC, into an MS-DOS
+     * time object. All date information is discarded; only the time of day is
+     * preserved. Note that the finest resolution of MS-DOS timestamps is two
+     * seconds, so the value will be truncated to the nearest second that is
+     * evenly divisible by two.
+     * @param millisUtc the timestamp to convert
+     * @return the object as described
+     * @throws IllegalArgumentException if the time cannot be represented in
+     * this format
+     */
     public static MsDosTime fromMillisecondsSinceEpoch(final long millisUtc) {
         Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(millisUtc);

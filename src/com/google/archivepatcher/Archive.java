@@ -26,18 +26,42 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 
+/**
+ * A simple representation of an archive consisting of two parts: a "local"
+ * section and a "central directory".
+ */
 public class Archive {
+    /**
+     * The PKZIP "version" that this library supports.
+     */
     protected static final int STANDARD_VERSION = 20;
+
+    /**
+     * The "local" section of the archive: local file entries and their
+     * associated headers.
+     */
     protected LocalSection local;
+
+    /**
+     * The "central directory" section of the archive; lives at the end of the
+     * archive and contains references back to the local file entries.
+     */
     protected CentralDirectorySection centralDirectory;
 
+    /**
+     * Read an archive in from the specified filesystem path.
+     * This is a convenience method that invokes
+     * {@link #fromFile(RandomAccessFile)}.
+     * 
+     * @param path the path to the archive that should be read
+     * @return the results of parsing the archive
+     * @throws IOException if something goes wrong while reading
+     */
     public static Archive fromFile(String path) throws IOException {
         RandomAccessFile file = null;
         try {
             file = new RandomAccessFile(path, "r");
-            Archive archive = new Archive();
-            archive.read(file);
-            return archive;
+            return Archive.fromFile(file);
         } finally {
             try {
                 file.close();
@@ -47,48 +71,17 @@ public class Archive {
         }
     }
 
-    public Archive() {
-        this(new LocalSection(), new CentralDirectorySection());
-    }
-    public Archive(LocalSection local, CentralDirectorySection centralDirectory) {
-        this.local = local;
-        this.centralDirectory = centralDirectory;
-    }
-
-    public void setLocal(LocalSection local) {
-        this.local = local;
-    }
-
-    public LocalSection getLocal() {
-        return local;
-    }
-
-    public void setCentralDirectry(CentralDirectorySection centralDirectory) {
-        this.centralDirectory = centralDirectory;
-    }
-
-    public CentralDirectorySection getCentralDirectory() {
-        return centralDirectory;
-    }
-
-    public final void writeArchive(OutputStream out) throws IOException {
-        writeArchive((DataOutput) new DataOutputStream(out));
-        out.flush();
-    }
-
-    public void writeArchive(DataOutput out) throws IOException {
-        for (LocalSectionParts alp : local.entries()) {
-            alp.write(out);
-        }
-        for (CentralDirectoryFile cdf : centralDirectory.entries()) {
-            cdf.write(out);
-        }
-        centralDirectory.getEocd().write(out);
-    }
-
-    public void read(RandomAccessFile raf) throws IOException {
-        local = new LocalSection();
-        centralDirectory = new CentralDirectorySection();
+    /**
+     * Read an archive in from the specified {@link RandomAccessFile}.
+     * 
+     * @param raf the file to read from
+     * @return the results of parsing the archive
+     * @throws IOException if something goes wrong while reading
+     */
+    public static Archive fromFile(RandomAccessFile raf) throws IOException {
+        LocalSection local = new LocalSection();
+        CentralDirectorySection centralDirectory =
+            new CentralDirectorySection();
 
         // First, read in the End Of Central Directory, which has the offsets
         // we need in order to read the central directory, which in turn has
@@ -117,17 +110,100 @@ public class Archive {
             localPart.read(raf);
             local.append(localPart);
         }
+        return new Archive(local, centralDirectory);
     }
 
+    /**
+     * Creates a new, empty archive.
+     */
+    public Archive() {
+        this(new LocalSection(), new CentralDirectorySection());
+    }
+
+    /**
+     * Creates an archive with the specified "local" section and "central
+     * directory" section.
+     * 
+     * @param local the "local" section of the archive
+     * @param centralDirectory the "central directory" section of the archive
+     */
+    public Archive(LocalSection local, CentralDirectorySection centralDirectory) {
+        this.local = local;
+        this.centralDirectory = centralDirectory;
+    }
+
+    /**
+     * Sets the "local" section of the archive.
+     * @param local the new value to set
+     */
+    public void setLocal(LocalSection local) {
+        this.local = local;
+    }
+
+    /**
+     * Returns the "local" section of the archive.
+     * @return the "local" section of the archive
+     */
+    public LocalSection getLocal() {
+        return local;
+    }
+
+    /**
+     * Sets the "central directory" section of the archive.
+     * @param centralDirectory the new value to set
+     */
+    public void setCentralDirectry(CentralDirectorySection centralDirectory) {
+        this.centralDirectory = centralDirectory;
+    }
+
+    /**
+     * Returns the "central directory" section of the archive.
+     * @return the "central directory" section of the archive
+     */
+    public CentralDirectorySection getCentralDirectory() {
+        return centralDirectory;
+    }
+
+    /**
+     * Writes the archive to the specified {@link OutputStream}.
+     * This is a convenience method that invokes
+     * {@link #writeArchive(DataOutput)}.
+     * 
+     * @param out the output stream to write to
+     * @throws IOException if anything goes wrong while writing
+     */
+    public final void writeArchive(OutputStream out) throws IOException {
+        writeArchive((DataOutput) new DataOutputStream(out));
+        out.flush();
+    }
+
+    /**
+     * Writes the archive to the specified {@link DataOutputStream}.
+     * @param out the output to write to
+     * @throws IOException if anything goes wrong while writing
+     */
+    public void writeArchive(DataOutput out) throws IOException {
+        for (LocalSectionParts alp : local.entries()) {
+            alp.write(out);
+        }
+        for (CentralDirectoryFile cdf : centralDirectory.entries()) {
+            cdf.write(out);
+        }
+        centralDirectory.getEocd().write(out);
+    }
+
+    // Autogenerated, no special logic
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((centralDirectory == null) ? 0 : centralDirectory.hashCode());
+        result = prime * result + ((centralDirectory == null) ?
+            0 : centralDirectory.hashCode());
         result = prime * result + ((local == null) ? 0 : local.hashCode());
         return result;
     }
 
+    // Autogenerated, no special logic
     @Override
     public boolean equals(Object obj) {
         if (this == obj)

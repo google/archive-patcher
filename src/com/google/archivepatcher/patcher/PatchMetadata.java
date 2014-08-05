@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.patcher;
 
+import com.google.archivepatcher.meta.Flag;
 import com.google.archivepatcher.parts.DataDescriptor;
 import com.google.archivepatcher.parts.LocalFile;
 import com.google.archivepatcher.util.IOUtils;
@@ -23,12 +24,39 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
+/**
+ * The manifestation of a {@link PatchCommand#PATCH} in a patch file,
+ * consisting of a {@link LocalFile}, optional {@link DataDescriptor} and a
+ * binary blob describing a patch to be applied against a resource in the
+ * original archive from which the patch was generated.
+ * <p>
+ * When this part is written, it first writes the {@link LocalFile}, then
+ * the {@link DataDescriptor} (if present), and finally the patch data:
+ * <br>[Local File Record]
+ * <br>[Data Descriptor Record (if present)]
+ * <br>[Patch data blob]
+ * <p>
+ * The data descriptor record will only be read (or written, when writing) if
+ * the {@link LocalFile} part has the
+ * {@link Flag#USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32} bit set.
+ */
 public class PatchMetadata extends RefreshMetadata {
     private byte[] patchData;
 
+    /**
+     * Creates an empty object with no parts, suitable for reading.
+     */
     public PatchMetadata() {
         this(null, null, null);
     }
+
+    /**
+     * Creates a fully populated object, suitable for writing.
+     * 
+     * @param localFilePart the part to set
+     * @param dataDescriptorPart the part to set (optional)
+     * @param patchData the patch blob
+     */
     public PatchMetadata(LocalFile localFilePart,
             DataDescriptor dataDescriptorPart,
             byte[] patchData) {
@@ -56,6 +84,11 @@ public class PatchMetadata extends RefreshMetadata {
         return super.getStructureLength() + 4 + patchData.length;
     }
 
+    /**
+     * Returns the binary patch data.  This is the actual field within this
+     * object; care should be taken not to modify the contents inadvertently.
+     * @return the data
+     */
     public byte[] getData() {
         return patchData;
     }
@@ -69,7 +102,7 @@ public class PatchMetadata extends RefreshMetadata {
     }
 
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj)
             return true;
         if (!super.equals(obj))
@@ -81,5 +114,4 @@ public class PatchMetadata extends RefreshMetadata {
             return false;
         return true;
     }
-
 }

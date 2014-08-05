@@ -36,20 +36,40 @@ import java.util.zip.DeflaterOutputStream;
 
 /**
  * A feature-poor implementation that allows building up an archive at run
- * time. Things like the changing the compression level or preserving linux
+ * time. Things like the changing the compression level or preserving Linux
  * permissions are not supported. The result will be a valid archive, but may
  * drop important meta-information.
  * 
- * This class is also very useful for unit testsing, as it can produce
- * nontrivial archives in memory.
+ * This class is useful for testing, as it can produce non-trivial archives in
+ * memory.
  */
 public class SimpleArchive extends Archive {
     private boolean useDataDescriptors = true;
     private boolean finished = false;
 
+    /**
+     * Given a tuple of {@link LocalFile}, {@link FileData} and
+     * {@link DataDescriptor} along with an {@link InputStream} to read from,
+     * compresses the data within the stream and updates the specified parts
+     * to reflect the results of compression. When this method completes, the
+     * {@link FileData} part contains the compressed data and the compressed and
+     * uncompressed sizes (and CRC32) have been set in the {@link LocalFile}
+     * and/or {@link DataDescriptor} parts according to their flags. The input
+     * stream has been fully read, but is not closed. The general-purpose flag
+     * {@link Flag#USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32} is set if a non-null
+     * {@link DataDescriptor} is set, or cleared if not.
+     * @param lf the {@link LocalFile} part to be updated
+     * @param fd the {@link FileData} part to be updated
+     * @param dd the {@link DataDescriptor} part to be updated, if a data
+     * descriptor is desired
+     * @param in the {@link InputStream} to read from
+     * @throws IOException if anything goes wrong reading, compressing or
+     * checksumming the data
+     */
     protected void compressAndSetData(LocalFile lf, FileData fd,
             DataDescriptor dd, InputStream in) throws IOException {
-        if (finished) throw new IllegalStateException("archive has been finished");
+        if (finished) throw new IllegalStateException(
+            "Archive is finished and can no longer be modified.");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         DeflaterOutputStream out = new DeflaterOutputStream(buffer,
                 new Deflater(Deflater.DEFAULT_COMPRESSION, true));
@@ -76,31 +96,53 @@ public class SimpleArchive extends Archive {
             dd.setCompressedSize_32bit(data.length);
             dd.setCrc32_32bit(crc32);
             int flags = lf.getGeneralPurposeBitFlag_16bit();
-            flags |= Flag.set(Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, (short) flags);
+            flags |= Flag.set(
+                Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, (short) flags);
             lf.setGeneralPurposeBitFlag_16bit(flags);
         } else {
             lf.setUncompressedSize_32bit(uncompressedSize);
             lf.setCompressedSize_32bit(data.length);
             lf.setCrc32_32bit(crc32);
             int flags = lf.getGeneralPurposeBitFlag_16bit();
-            flags &= Flag.unset(Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, (short) flags);
+            flags &= Flag.unset(
+                Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, (short) flags);
             lf.setGeneralPurposeBitFlag_16bit(flags);
         }
     }
 
-    public void add(String path,
-            InputStream uncompressedData) throws IOException {
+    /**
+     * Append an entry to the archive using normal compression and the current
+     * time instead of the time from the source file.
+     * @param path the path under which to store the data in the archive
+     * @param uncompressedData stream from which to read the uncompressed data
+     * @throws IOException if unable to complete the operation
+     */
+    public void add(final String path, final InputStream uncompressedData)
+        throws IOException {
         add(path, System.currentTimeMillis(), uncompressedData);
     }
-    public void add(String path, final long millisUtc,
-            InputStream uncompressedData) throws IOException {
-        LocalFile lf = new LocalFile();
+
+    /**
+     * Append an entry to the archive using normal compression and the specified
+     * timestamp.
+     * @param path the path under which to store the data in the archive
+     * @param millisUtc the timestamp to set for the entry in the archive
+     * @param uncompressedData stream from which to read the uncompressed  data
+     * @throws IOException if unable to complete the operation
+     */
+    public void add(final String path, final long millisUtc,
+            final InputStream uncompressedData) throws IOException {
+        if (finished) throw new IllegalStateException(
+            "Archive is finished and can no longer be modified.");
+        final LocalFile lf = new LocalFile();
         lf.setExtraField(new byte[0]);
         lf.setFileName(path);
         short flags = 0;
-        flags = Flag.setCompressionOption(DeflateCompressionOption.NORMAL, flags);
+        flags = Flag.setCompressionOption(
+            DeflateCompressionOption.NORMAL, flags);
         if (useDataDescriptors) {
-            flags = Flag.set(Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, flags);
+            flags = Flag.set(
+                Flag.USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32, flags);
         }
         lf.setGeneralPurposeBitFlag_16bit(flags);
         lf.setLastModifiedFileDate_16bit(MsDosDate
@@ -108,14 +150,14 @@ public class SimpleArchive extends Archive {
         lf.setLastModifiedFileTime_16bit(MsDosTime
                 .fromMillisecondsSinceEpoch(millisUtc).to16BitPackedValue());
         lf.setVersionNeededToExtract_16bit(STANDARD_VERSION);
-        FileData fd = new FileData(0);
+        final FileData fd = new FileData(0);
         DataDescriptor dd = null;
         if (useDataDescriptors) {
             dd = new DataDescriptor();
         }
         compressAndSetData(lf, fd, dd, uncompressedData);
         
-        CentralDirectoryFile cdf = new CentralDirectoryFile();
+        final CentralDirectoryFile cdf = new CentralDirectoryFile();
         if (dd != null) {
             cdf.setCompressedSize_32bit(dd.getCompressedSize_32bit());
             cdf.setCrc32_32bit(dd.getCrc32_32bit());
@@ -136,9 +178,10 @@ public class SimpleArchive extends Archive {
         cdf.setLastModifiedFileDate_16bit(lf.getLastModifiedFileDate_16bit());
         cdf.setLastModifiedFileTime_16bit(lf.getLastModifiedFileTime_16bit());
         cdf.setVersionMadeBy_16bit(STANDARD_VERSION);
-        cdf.setVersionNeededToExtract_16bit(lf.getVersionNeededToExtract_16bit());
+        cdf.setVersionNeededToExtract_16bit(
+            lf.getVersionNeededToExtract_16bit());
 
-        LocalSectionParts alp = new LocalSectionParts(null);
+        final LocalSectionParts alp = new LocalSectionParts(null);
         alp.setFileDataPart(fd);
         alp.setDataDescriptorPart(dd);
         alp.setLocalFilePart(lf);
@@ -146,6 +189,14 @@ public class SimpleArchive extends Archive {
         centralDirectory.append(cdf);
     }
 
+    /**
+     * Completes the archive, syncing the {@link EndOfCentralDirectory} with
+     * all the entries that were previously added. No further manipulation may
+     * be performed other than writing the archive using
+     * {@link #writeArchive(DataOutput)}. Note that this method is automatically
+     * invoked by {@link #writeArchive(DataOutput)} if needed. All calls after
+     * the first are no-ops.
+     */
     public void finishArchive() {
         if (finished) return;
         finished = true;

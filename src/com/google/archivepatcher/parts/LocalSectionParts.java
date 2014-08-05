@@ -116,26 +116,69 @@ public class LocalSectionParts implements Part {
         return length;
     }
 
-    // Autogen cruft
-    public LocalFile getLocalFilePart() { return localFilePart; }
-    public void setLocalFilePart(LocalFile arg) { localFilePart = arg; }
-    public FileData getFileDataPart() { return fileDataPart; }
-    public void setFileDataPart(FileData arg) { fileDataPart = arg; }
-    public DataDescriptor getDataDescriptorPart() { return dataDescriptorPart; }
-    public void setDataDescriptorPart(DataDescriptor arg) { dataDescriptorPart = arg; }
+    /**
+     * Returns the {@link LocalFile} component of this object.
+     * @return as described
+     */
+    public LocalFile getLocalFilePart() {
+        return localFilePart;
+    }
+
+    /**
+     * See {@link #getLocalFilePart()}.
+     * @param localFilePart the value to set
+     */
+    public void setLocalFilePart(final LocalFile localFilePart) {
+        this.localFilePart = localFilePart;
+    }
+
+    /**
+     * Returns the {@link FileData} component of this object.
+     * @return as described
+     */
+    public FileData getFileDataPart() {
+        return fileDataPart;
+    }
+
+    /**
+     * See {@link #getFileDataPart()}.
+     * @param fileDataPart the value to set
+     */
+    public void setFileDataPart(final FileData fileDataPart) {
+        this.fileDataPart = fileDataPart;
+    }
+
+    /**
+     * Returns the {@link DataDescriptor} component of this object.
+     * @return as described
+     */
+    public DataDescriptor getDataDescriptorPart() {
+        return dataDescriptorPart;
+    }
+
+    /**
+     * See {@link #getDataDescriptorPart()}.
+     * @param dataDescriptor the value to set
+     */
+    public void setDataDescriptorPart(final DataDescriptor dataDescriptor) {
+        this.dataDescriptorPart = dataDescriptor;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result
-                + ((fileDataPart == null) ? 0 : fileDataPart.hashCode());
-        result = prime * result
-                + ((dataDescriptorPart == null) ? 0 : dataDescriptorPart.hashCode());
-        result = prime * result + ((localFilePart == null) ? 0 : localFilePart.hashCode());
+        result = prime * result + ((fileDataPart == null) ?
+            0 : fileDataPart.hashCode());
+        result = prime * result + ((dataDescriptorPart == null) ?
+            0 : dataDescriptorPart.hashCode());
+        result = prime * result + ((localFilePart == null) ?
+            0 : localFilePart.hashCode());
         return result;
     }
+
     @Override
-    public boolean equals(Object obj) {
+    public boolean equals(final Object obj) {
         if (this == obj)
             return true;
         if (obj == null)

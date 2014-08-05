@@ -14,28 +14,62 @@
 
 package com.google.archivepatcher.patcher;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
 import com.google.archivepatcher.parts.CentralDirectoryFile;
 import com.google.archivepatcher.parts.CentralDirectorySection;
 import com.google.archivepatcher.parts.EndOfCentralDirectory;
 import com.google.archivepatcher.parts.Part;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
+/**
+ * The first piece of a patch, consisting of a {@link CentralDirectorySection}.
+ * When this part is written, it begins by writing an
+ * {@link EndOfCentralDirectory} record, then outputs all of the individual
+ * {@link CentralDirectoryFile} records from the
+ * {@link CentralDirectorySection}:
+ * <br>[EOCD]
+ * <br>[Central Directory File Record #1]
+ * <br>[Central Directory File Record #2]
+ * <br>[Central Directory File Record #3]
+ * <br>...
+ */
 public class BeginMetadata implements Part {
+    /**
+     * The {@link CentralDirectorySection} that is read or written by this
+     * object.
+     */
     private CentralDirectorySection cd;
+
+    /**
+     * Creates an empty object with no central directory, suitable for reading.
+     */
     public BeginMetadata() {
         this(null);
     }
-    public BeginMetadata(CentralDirectorySection cd) {
+
+    /**
+     * Creates a fully populated object, suitable for writing.
+     * 
+     * @param cd the central directory section to set
+     */
+    public BeginMetadata(final CentralDirectorySection cd) {
         this.cd = cd;
     }
 
+    /**
+     * Returns the {@link CentralDirectorySection}.
+     * @return the {@link CentralDirectorySection}
+     */
     public CentralDirectorySection getCd() {
         return cd;
     }
 
+    /**
+     * Sets the {@link CentralDirectorySection}.
+     * @param cd the central directory section to set
+     */
     public void setCd(CentralDirectorySection cd) {
         this.cd = cd;
     }
@@ -56,7 +90,7 @@ public class BeginMetadata implements Part {
     @Override
     public void write(DataOutput output) throws IOException {
         cd.getEocd().write(output);
-        for (CentralDirectoryFile entry : cd.entries()) {
+        for (final CentralDirectoryFile entry : cd.entries()) {
             entry.write(output);
         }
     }
@@ -64,7 +98,7 @@ public class BeginMetadata implements Part {
     @Override
     public int getStructureLength() {
         int length = cd.getEocd().getStructureLength();
-        for (CentralDirectoryFile entry : cd.entries()) {
+        for (final CentralDirectoryFile entry : cd.entries()) {
             length += entry.getStructureLength();
         }
         return length;
@@ -97,6 +131,6 @@ public class BeginMetadata implements Part {
     
     @Override
     public String toString() {
-        return "EndMetadata [cd=" + cd + "]";
+        return "BeginMetadata [cd=" + cd + "]";
     }    
 }

@@ -37,7 +37,28 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 
+/**
+ * An experimental tool that tries to optimize a given archive by removing
+ * unnecessary information, using maximum compression, and so on and so forth.
+ * Aggressive optimizations will remove data that is not strictly required by
+ * the specification, which may break tools that depend upon such data; the
+ * general rule is that an aggressively-optimized archive will still uncompress,
+ * but tools that process the archive might not work right. An example would be
+ * the zipalign tool for Android, which nominally aligns file entry boundaries
+ * along 32-bit or 64-bit boundaries so that uncompressed resources can be
+ * mmap'ed directly in the archive; such tools usually require that extra bytes
+ * be present in the archive to align things correctly, and those bytes may be
+ * removed by aggressive optimizations.
+ */
+@SuppressWarnings("javadoc")
 public class ArchiveCompacter extends AbstractArchiveTool {
+
+    /**
+     * Main method. For usage instructions, run with "--help".
+     * 
+     * @param args arguments to the program
+     * @throws Exception if anything goes wrong
+     */
     public static void main(String... args) throws Exception {
         new ArchiveCompacter().run(args);
     }
@@ -80,7 +101,19 @@ public class ArchiveCompacter extends AbstractArchiveTool {
         compact();
     }
     
-
+    /**
+     * Attempts to (re)compress data using maximum deflate compression.
+     * If the data passed in already deflated, it is first inflated and then
+     * deflated again using maximum compression.
+     * 
+     * @param data the data to be (re)compressed
+     * @param deflated whether or not the data is currently compressed
+     * @return a maximally-compressed version of the data; the caller should
+     * check the length of the returned byte array to confirm a size decrease,
+     * as some data (such as random noise) may increase in size after
+     * compression!
+     * @throws IOException if anything goes wrong
+     */
     private byte[] recompress(byte[] data, boolean deflated) throws IOException {
         InputStream in;
         if (deflated) {
@@ -100,7 +133,12 @@ public class ArchiveCompacter extends AbstractArchiveTool {
         out.close();
         return byteBuffer.toByteArray();
     }
-    
+
+    /**
+     * Attempt to compact an archive using the configured options.
+     * @return the total size reduction achieved, in bytes
+     * @throws IOException if anything goes wrong
+     */
     public int compact() throws IOException {
         final CentralDirectorySection cd = archive.getCentralDirectory();
         final LocalSection local = archive.getLocal();
@@ -248,7 +286,7 @@ public class ArchiveCompacter extends AbstractArchiveTool {
         // Realign the archive to take into account all changes made.
         if (!dryRun) {
             if (isVerbose()) log("Realigning archive...");
-            realign();
+            syncOffsets();
             if (isVerbose()) log("Writing compacted archive to " + getOutFile() + "...");
             FileOutputStream out = new FileOutputStream(getOutFile());
             archive.writeArchive(out);
@@ -262,8 +300,13 @@ public class ArchiveCompacter extends AbstractArchiveTool {
         return totalWasted;
     }
 
+    /**
+     * After making modifications to the {@link LocalSection} of an archive,
+     * updates the offsets in the {@link CentralDirectorySection} to match the
+     * real locations in the {@link LocalSection}.
+     */
     // TODO: This could be a method in Archive.
-    private void realign() {
+    private void syncOffsets() {
         final CentralDirectorySection cd = archive.getCentralDirectory();
         final LocalSection local = archive.getLocal();
         int offset = 0;

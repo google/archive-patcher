@@ -16,20 +16,48 @@ package com.google.archivepatcher;
 
 
 /**
- * Base class for tools.
+ * Base class for tools in this package, with built-in command line parameter
+ * parsing and verbosity flags.
  */
 public abstract class AbstractArchiveTool {
+    /**
+     * The options object used for configuring command-line parameters.
+     */
     private final MicroOptions options = new MicroOptions();
+
+    /**
+     * Whether or not the tool is running in verbose mode. In verbose mode,
+     * extra information is typically output.
+     */
     private boolean isVerbose = false;
+
+    /**
+     * Subclasses can configure their own command-line options by overriding
+     * this method. The options "--help" and "--verbose" are configured
+     * automatically. The default implementation does nothing.
+     * @param options the options object to be configured
+     */
+    protected void configureOptions(MicroOptions options) {}
+
+    /**
+     * Configures default options and invokes the subclasses' implementation
+     * of {@link #configureOptions(MicroOptions)}.
+     */
+    private void configureOptions() {
+        configureOptions(options);
+        options.option("verbose").isUnary().describedAs("be verbose");
+        options.option("help").isUnary().describedAs("show help and exit");
+    }
 
     /**
      * Runs the tool. Subclasses should override or implement
      * {@link #configureOptions(MicroOptions)} and
-     * {@link #run(MicroOptions)} to define behavior.
+     * {@link #run(MicroOptions)} to define custom behavior.
      * @param args the args passed to the tool
+     * @throws Exception if something goes wrong
      */
     public final void run(String... args) throws Exception {
-        configureOptions(options);
+        configureOptions();
         try {
             options.parse(args);
         } catch (MicroOptions.OptionException e) {
@@ -54,7 +82,8 @@ public abstract class AbstractArchiveTool {
     }
 
     /**
-     * Unconditionally log a message.
+     * Unconditionally log a message, regardless of the value of
+     * {@link #isVerbose()}. Appends a newline automatically.
      * @param message message to log
      */
     protected final void log(String message) {
@@ -62,11 +91,12 @@ public abstract class AbstractArchiveTool {
     }
 
     /**
-     * Log a message if the tool is running in verbose mode.
+     * Log a message if and only if {@link #isVerbose()} returns true.
+     * Appends a newline automatically.
      * @param message message to log
      */
     protected final void logVerbose(String message) {
-        if (isVerbose) log(message);
+        if (isVerbose()) log(message);
     }
 
     /**
@@ -78,16 +108,8 @@ public abstract class AbstractArchiveTool {
     }
 
     /**
-     * Subclasses should configure options here. The default implementation
-     * defines "--help" and "--verbose".
-     */
-    protected void configureOptions(MicroOptions options) {
-        options.option("verbose").isUnary().describedAs("be verbose");
-        options.option("help").isUnary().describedAs("show help and exit");
-    }
-
-    /**
      * Subclasses implement their run logic here.
+     * @param options the options that were parsed from the command line
      * @throws Exception if anything goes wrong. If it's an OptionException,
      * the usage string is printed as well.
      */

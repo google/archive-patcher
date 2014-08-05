@@ -29,6 +29,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.Arrays;
 
+/**
+ * Tests for the {@link LocalFile} class.
+ */
 public class LocalFileTest {
     private final static int COMPRESSED_SIZE = 500;
     private final static int COMPRESSION_METHOD = CompressionMethod.DEFLATED.value;
@@ -59,6 +62,7 @@ public class LocalFileTest {
     private LocalFile testObj;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
         testObj = new LocalFile();
         testObj.setCompressedSize_32bit(COMPRESSED_SIZE);
@@ -74,6 +78,7 @@ public class LocalFileTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testInitialization() {
         assertEquals(COMPRESSED_SIZE, testObj.getCompressedSize_32bit());
         assertEquals(COMPRESSION_METHOD, testObj.getCompressionMethod_16bit());
@@ -91,11 +96,13 @@ public class LocalFileTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testGetStructureLength() {
         assertEquals(EXPECTED_STRUCTURE_LENGTH, testObj.getStructureLength());
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteAndRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -110,5 +117,4 @@ public class LocalFileTest {
         testObj = read;
         testInitialization();
     }
-
 }

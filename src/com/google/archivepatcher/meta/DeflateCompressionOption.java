@@ -14,6 +14,13 @@
 
 package com.google.archivepatcher.meta;
 
+/**
+ * An enumeration of all the deflate compression options listed in the ZIP
+ * "appnote" specification at https://www.pkware.com/support/zip-app-note.
+ * See the appnote documentation for details on algorithms and meanings of
+ * the individual values.
+ */
+@SuppressWarnings("javadoc")
 public enum DeflateCompressionOption {
     NORMAL,
     MAXIMUM,

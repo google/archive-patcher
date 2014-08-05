@@ -26,6 +26,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
+/**
+ * Tests for the {@link EndOfCentralDirectory} class.
+ */
 public class EndOfCentralDirectoryTest {
     private final static int DISK_NUM = 33;
     private final static int DISK_NUM_OF_CD_START = 44;
@@ -48,6 +51,7 @@ public class EndOfCentralDirectoryTest {
     private EndOfCentralDirectory testObj;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() {
         testObj = new EndOfCentralDirectory();
         testObj.setDiskNumber_16bit(DISK_NUM);
@@ -60,6 +64,7 @@ public class EndOfCentralDirectoryTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testInitialization() {
         assertEquals(DISK_NUM, testObj.getDiskNumber_16bit());
         assertEquals(DISK_NUM_OF_CD_START, testObj.getDiskNumberOfStartOfCentralDirectory_16bit());
@@ -72,11 +77,13 @@ public class EndOfCentralDirectoryTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testGetStructureLength() {
         assertEquals(EXPECTED_STRUCTURE_LENGTH, testObj.getStructureLength());
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteAndRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);

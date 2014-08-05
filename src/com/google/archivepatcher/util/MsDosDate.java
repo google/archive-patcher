@@ -21,25 +21,73 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-// http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx
+/**
+ * A utility class for manipulating date data stored in MS-DOS format, based
+ * upon a reading of the MS-DOS date format at
+ * <a href='http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx'>
+ * http://msdn.microsoft.com/en-us/library/windows/desktop/ms724247(v=vs.85).aspx</a>.
+ * <p>
+ * This is a <em>very</em> old format originating from a time when storage
+ * requirements were very different. It packs into 16 bits a representation that
+ * is valid from the first day of 1980 until the last day of 2107.
+ * <p>
+ * This class is threadsafe and immutable.
+ * @see MsDosTime
+ */
 public class MsDosDate {
-    private int dayOfMonth;
-    private int monthOneBased;
-    private int yearOffsetFrom1980;
+    private final int dayOfMonth;
+    private final int monthOneBased;
+    private final int yearOffsetFrom1980;
 
-    public MsDosDate(int dayOfMonth, int monthOneBased, int yearOffsetFrom1980) {
+    /**
+     * Constructs a new MS-DOS date using the specified values. Does not
+     * ensure a valid date (it is possible to specify a date that does not
+     * exist, such as February 30th of any year).
+     * @param dayOfMonth the day of the month, in the range [1, 31].
+     * @param monthOneBased the month of the year, in the range [1, 12].
+     * @param yearOffsetFrom1980 the year as a positive offset from 1980, in
+     * the range [0, 127].
+     * @throws IllegalArgumentException if any of the specified values is out
+     * of the allowed range
+     */
+    public MsDosDate(final int dayOfMonth, final int monthOneBased,
+        final int yearOffsetFrom1980) {
+        if (yearOffsetFrom1980 < 0 || yearOffsetFrom1980 > 127) {
+            throw new IllegalArgumentException("yearOffsetFrom1980 must be " +
+                "in the range [0, 127]: " + yearOffsetFrom1980);
+        }
+        if (dayOfMonth < 1 || dayOfMonth > 31) {
+            throw new IllegalArgumentException(
+                "dayOfMonth must be in the range [1, 31]: " + dayOfMonth);
+        }
+        if (monthOneBased < 1 || monthOneBased > 12) {
+            throw new IllegalArgumentException(
+                "monthOneBased must be in the range [1, 12]: " + monthOneBased);
+        }
         this.dayOfMonth = dayOfMonth;
         this.monthOneBased = monthOneBased;
         this.yearOffsetFrom1980 = yearOffsetFrom1980;
     }
 
+    /**
+     * Converts a raw 16-bit value from a ZIP archive into an MS-DOS date.
+     * Note that just like the constructor, this method does not ensure that
+     * the resulting object represents a valid date.
+     * @param value_16bit the 16-bit "last modified date" from a ZIP file
+     * @return the equivalent object
+     */
     public static MsDosDate from16BitPackedValue(int value_16bit) {
-        int dayOfMonth = value_16bit & 31; // 5-bit value
-        int monthOneBased = (value_16bit >> 5) & 15; // 4-bit value
-        int yearOffsetFrom1980 = (value_16bit >> 9) & 127; // 7-bit value
+        final int dayOfMonth = value_16bit & 31; // 5-bit value
+        final int monthOneBased = (value_16bit >> 5) & 15; // 4-bit value
+        final int yearOffsetFrom1980 = (value_16bit >> 9) & 127; // 7-bit value
         return new MsDosDate(dayOfMonth, monthOneBased, yearOffsetFrom1980);
     }
 
+    /**
+     * Converts this object to its raw 16-bit representation for use in a ZIP
+     * archive's "last modified date" field.
+     * @return such a representation
+     */
     public int to16BitPackedValue() {
         int result = yearOffsetFrom1980;
         result <<= 4;
@@ -49,12 +97,29 @@ public class MsDosDate {
         return result;
     }
 
+    /**
+     * Returns an alternative representation of this object as milliseconds
+     * since the epoch, UTC. The result is always at the start of the day
+     * represented (zero seconds past midnight).
+     * @return the date as milliseconds since the epoch, UTC.
+     */
     public long asMillisecondsSinceEpoch() {
         Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         calendar.set(1980+yearOffsetFrom1980, monthOneBased-1, dayOfMonth);
         return calendar.getTimeInMillis();
     }
 
+    /**
+     * Inverts the logic of {@link #asMillisecondsSinceEpoch()} to convert a
+     * timestamp expressed in milliseconds since the epoch, UTC, into an MS-DOS
+     * date object. Note that the valid range for MS-DOS dates is from the
+     * first date of 1980 till the last day of 2107; dates outside of this range
+     * will result in an {@link IllegalArgumentException} being thrown.
+     * @param millisUtc the timestamp to convert
+     * @return the object as described
+     * @throws IllegalArgumentException if the date cannot be represented in
+     * this format
+     */
     public static MsDosDate fromMillisecondsSinceEpoch(final long millisUtc) {
         Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         calendar.setTimeInMillis(millisUtc);
@@ -69,5 +134,27 @@ public class MsDosDate {
         DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format.format(new Date(asMillisecondsSinceEpoch()));
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + dayOfMonth;
+        result = prime * result + monthOneBased;
+        result = prime * result + yearOffsetFrom1980;
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        MsDosDate other = (MsDosDate) obj;
+        if (dayOfMonth != other.dayOfMonth) return false;
+        if (monthOneBased != other.monthOneBased) return false;
+        if (yearOffsetFrom1980 != other.yearOffsetFrom1980) return false;
+        return true;
     }
 }

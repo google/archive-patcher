@@ -16,17 +16,6 @@ package com.google.archivepatcher.patcher;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.archivepatcher.parts.Part;
-import com.google.archivepatcher.patcher.PatchCommand;
-import com.google.archivepatcher.patcher.PatchDirective;
-import com.google.archivepatcher.patcher.PatchParser;
-import com.google.archivepatcher.patcher.PatchWriter;
-import com.google.archivepatcher.patcher.PatchParser.PartResolver;
-import com.google.archivepatcher.util.IOUtils;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -34,86 +23,70 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import org.junit.Before;
+import org.junit.Test;
+
+/**
+ * Tests for a {@link PatchParser}.
+ */
 public class PatchParserTest {
-    private final static BinaryPartForTest PART1 = new BinaryPartForTest("PART1");
     private ByteArrayOutputStream writeBuffer;
     private DataOutput writeOut;
     private PatchWriter writer;
+    private PatchTestData td;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws IOException {
+        td = new PatchTestData();
         writeBuffer = new ByteArrayOutputStream();
         writeOut = new DataOutputStream(writeBuffer);
         writer = new PatchWriter(writeOut);
         writer.init();
     }
 
-    private static class CommandSpecificPartResolver implements PartResolver {
-        private final PatchCommand allowedCommand;
-        private final int expectedSize;
-        CommandSpecificPartResolver(PatchCommand allowedCommand, int expectedSize) {
-            this.allowedCommand = allowedCommand;
-            this.expectedSize = expectedSize;
-        }
-        @Override
-        public Part partFor(PatchCommand command) {
-            if (command != allowedCommand) {
-                throw new IllegalArgumentException(
-                        "wrong command type: " + command);
-            }
-            return new BinaryPartForTest(expectedSize);
-        }
-        
-    }
-
-    private PatchParser getParserForCommand(PatchCommand command,
-            final int expectedSize) {
-        ByteArrayInputStream bais = new ByteArrayInputStream(
-                writeBuffer.toByteArray());
-        PartResolver resolver = new CommandSpecificPartResolver(command, expectedSize);
-        return new PatchParser(new DataInputStream(bais), resolver);
-    }
-
-    private void assertExpected(PatchDirective directive, final int expectedSize) throws IOException {
+    private void assertExpected(PatchDirective directive) throws IOException {
         writer.write(directive);
-        PatchParser parser = getParserForCommand(directive.getCommand(), expectedSize);
+        ByteArrayInputStream bais = new ByteArrayInputStream(
+            writeBuffer.toByteArray());
+        PatchParser parser = new PatchParser(new DataInputStream(bais));
         parser.init();
         PatchDirective result = parser.read();
         assertEquals(directive, result);
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testNew() throws IOException {
-        assertExpected(PatchDirective.NEW(PART1), PART1.content.length);
+        final NewMetadata part = new NewMetadata(td.lf, td.fd, null);
+        assertExpected(PatchDirective.NEW(part));
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testCopy() throws IOException {
-        assertExpected(PatchDirective.COPY(17), 0);
+        assertExpected(PatchDirective.COPY(17));
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testRefresh() throws IOException {
-        assertExpected(PatchDirective.REFRESH(1, PART1), PART1.content.length);
+        final RefreshMetadata part = new RefreshMetadata(td.lf, null);
+        assertExpected(PatchDirective.REFRESH(1, part));
     }
 
     @Test
-    public void testEnd() throws IOException {
-        assertExpected(PatchDirective.BEGIN(PART1), PART1.content.length);
+    @SuppressWarnings("javadoc")
+    public void testBegin() throws IOException {
+        final BeginMetadata part = new BeginMetadata(td.cds);
+        assertExpected(PatchDirective.BEGIN(part));
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testPatch() throws IOException {
-        // The patch directive's internal format includes the length of the
-        // patch. This is necessary so that the PatchMetadata object knows how
-        // much data to read from the input stream.
-        // Prepend the length here.
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(buffer);
-        IOUtils.writeUnsignedInt(dos, PART1.content.length);
-        dos.write(PART1.content);
-        BinaryPartForTest patchPart = new BinaryPartForTest(buffer.toByteArray());
-
-        assertExpected(PatchDirective.PATCH(1, patchPart), patchPart.content.length);
+        final byte[] patchData = "bar".getBytes("UTF-8");
+        final PatchMetadata part = new PatchMetadata(td.lf, null, patchData);
+        assertExpected(PatchDirective.PATCH(1, part));
     }
 }

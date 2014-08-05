@@ -24,24 +24,46 @@ import com.google.archivepatcher.parts.Part;
 
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.List;
 
-
+/**
+ * An experimental tool that attempts to copy an archive entry-by-entry instead
+ * of byte-by-byte. This provides a sanity check that a given source archive
+ * can be processed by this library without any data loss; if the resulting
+ * copy is not a perfect binary match for the source archive, then it may be
+ * unsafe to use this library to process it.
+ */
 public class ZipCopy {
+    /**
+     * Runs the copy tool. Args are the source path (copy from) and destination
+     * path (copy to).
+     * 
+     * @param args the arguments to the program
+     * @throws Exception if anything goes wrong
+     */
     public static void main(String... args) throws Exception {
-        String fileName = args[0];
-        System.out.println("zipcat " + fileName);
+        new ZipCopy().copy(args[0], args[1]);
+    }
 
-        RandomAccessFile raf = new RandomAccessFile(fileName, "r");
+    /**
+     * Copy the archive at the specified source path to a new archive whose
+     * path is destinationPath.
+     * 
+     * @param sourcePath archive to copy from
+     * @param destinationPath path where the copy should be created
+     * @throws IOException if anything goes wrong
+     */
+    public void copy(final String sourcePath, final String destinationPath)
+    throws IOException {
+        RandomAccessFile raf = new RandomAccessFile(sourcePath, "r");
         int eocdOffset = EndOfCentralDirectory.seek(raf);
-        System.out.println("eocd offset=" + eocdOffset);
         if (eocdOffset == -1) return;
         EndOfCentralDirectory eocd = new EndOfCentralDirectory();
         raf.seek(eocdOffset);
         eocd.read(raf);
-        System.out.println(eocd);
         final int offsetOfCentralDirectory = (int)
                 eocd.getOffsetOfStartOfCentralDirectoryRelativeToDisk_32bit();
         raf.seek(offsetOfCentralDirectory);
@@ -53,7 +75,6 @@ public class ZipCopy {
             header.read(raf);
             centralDirectoryFileHeaders[x] = header;
             centralDirectoryParts.add(header);
-            System.out.println(header);
         }
         centralDirectoryParts.add(eocd);
         
@@ -65,7 +86,6 @@ public class ZipCopy {
             LocalFile localHeader = new LocalFile();
             localHeader.read(raf);
             localParts.add(localHeader);
-            System.out.println(localHeader);
             final int compressedSize = (int) header.getCompressedSize_32bit();
             FileData dataPart = new FileData(compressedSize);
             dataPart.read(raf);
@@ -76,13 +96,11 @@ public class ZipCopy {
                 DataDescriptor descriptor = new DataDescriptor();
                 descriptor.read(raf);
                 localParts.add(descriptor);
-                System.out.println(descriptor);
             }
         }
         
-        System.out.println("making copy");
         // Now output a copy
-        FileOutputStream fos = new FileOutputStream(fileName + ".copy");
+        FileOutputStream fos = new FileOutputStream(destinationPath);
         DataOutputStream out = new DataOutputStream(fos);
         List<Part> allParts = new LinkedList<Part>();
         allParts.addAll(localParts);

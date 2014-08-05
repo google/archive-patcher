@@ -16,7 +16,8 @@ import java.io.OutputStream;
 public class JxdDeltaGenerator extends DeltaGenerator {
 
     @Override
-    public boolean accept(LocalSectionParts lsp, CentralDirectoryFile cdf) {
+    public boolean accept(CentralDirectoryFile oldCDF, LocalSectionParts oldLSP,
+        CentralDirectoryFile newCDF, LocalSectionParts newLSP) {
         return true;
     }
 

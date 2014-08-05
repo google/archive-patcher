@@ -26,6 +26,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 
+/**
+ * Tests for a {@link DataDescriptor} class.
+ */
 public class DataDescriptorTest {
     private final static int COMPRESSED_SIZE = 120000;
     private final static int CRC32 = 0x72051312;
@@ -42,6 +45,7 @@ public class DataDescriptorTest {
     private DataDescriptor testObj;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
         testObj = new DataDescriptor();
         testObj.setHasSignature(false);
@@ -58,6 +62,7 @@ public class DataDescriptorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testInitialization() {
         testInitialization(false);
         testObj.setHasSignature(true);
@@ -65,6 +70,7 @@ public class DataDescriptorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testGetStructureLength() {
         assertEquals(EXPECTED_STRUCTURE_LENGTH_WITHOUT_SIG, testObj.getStructureLength());
         testObj.setHasSignature(true);
@@ -88,6 +94,7 @@ public class DataDescriptorTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteAndRead() throws Exception {
         testWriteAndRead(false);
         testObj.setHasSignature(true);

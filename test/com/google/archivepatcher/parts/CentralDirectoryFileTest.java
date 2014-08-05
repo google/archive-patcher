@@ -29,6 +29,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.Arrays;
 
+
+/**
+ * Tests for the {@link CentralDirectoryFile} class.
+ */
 public class CentralDirectoryFileTest {
     private final static int COMPRESSED_SIZE = 440;
     private final static int COMPRESSION_METHOD = CompressionMethod.DEFLATED.value;
@@ -72,6 +76,7 @@ public class CentralDirectoryFileTest {
     private CentralDirectoryFile testObj;
 
     @Before
+    @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
         testObj = new CentralDirectoryFile();
         testObj.setCompressedSize_32bit(COMPRESSED_SIZE);
@@ -93,6 +98,7 @@ public class CentralDirectoryFileTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testInitialization() {
         assertEquals(COMPRESSED_SIZE, testObj.getCompressedSize_32bit());
         assertEquals(COMPRESSION_METHOD, testObj.getCompressionMethod_16bit());
@@ -117,11 +123,13 @@ public class CentralDirectoryFileTest {
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testGetStructureLength() {
         assertEquals(EXPECTED_STRUCTURE_LENGTH, testObj.getStructureLength());
     }
 
     @Test
+    @SuppressWarnings("javadoc")
     public void testWriteAndRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
@@ -136,5 +144,4 @@ public class CentralDirectoryFileTest {
         testObj = read;
         testInitialization();
     }
-
 }

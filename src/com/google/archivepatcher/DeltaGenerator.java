@@ -16,7 +16,12 @@ import java.io.OutputStream;
 public abstract class DeltaGenerator {
 
     /**
-     * Returns true if this generator can process the given entry.
+     * Returns true if this generator can process the given entry. Generators
+     * can apply simple heuristics at this stage to filter out or include
+     * transformations that they can make educated guess about. For example,
+     * a generator that can produce efficient differences between JPEG files
+     * might accept resources whose name ends in "jpg", and so on.
+     * <p> 
      * The generator should not attempt to process the entry at this stage;
      * instead, processing (which may be computationally intensive) should be
      * deferred till {@link #makeDelta(InputStream, InputStream, OutputStream)}.
@@ -28,11 +33,16 @@ public abstract class DeltaGenerator {
      * {@link #makeDelta(InputStream, InputStream, OutputStream)} will be
      * for the resource that is identified in the current call.
      *   
-     * @param lsp the local parts
-     * @param cdf the central directory entry corresponding to the local parts
+     * @param oldCDF the {@link CentralDirectoryFile} entry from the "old"
+     * archive
+     * @param oldLSP the {@link LocalSectionParts} entry from the "old" archive
+     * @param newCDF the {@link CentralDirectoryFile} entry from the "new"
+     * archive
+     * @param newLSP the {@link LocalSectionParts} entry from the "new" archive
      * @return true if the generator can produce a delta for this resource
      */
-    public boolean accept(LocalSectionParts lsp, CentralDirectoryFile cdf) {
+    public boolean accept(CentralDirectoryFile oldCDF, LocalSectionParts oldLSP,
+        CentralDirectoryFile newCDF, LocalSectionParts newLSP) {
         return true;
     }
 

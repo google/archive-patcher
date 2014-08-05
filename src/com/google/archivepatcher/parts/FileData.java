@@ -19,17 +19,37 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Arrays;
 
+/**
+ * Represents the binary data for one {@link LocalFile}. The data contained in
+ * this object is what is referred to throughout the ZIP specification as the
+ * "compressed" form of the data, regardless of whether or not compression is
+ * applied.
+ * <p>
+ * This part has no overhead bytes; it is simply a wrapper around a byte array.
+ */
 public class FileData implements Part {
     private int length;
     private byte[] data = null;
 
-    public FileData(int length) {
+    /**
+     * Constructs a new, empty part having the specified capacity in bytes,
+     * suitable for reading.
+     * @param length the number of bytes that are expected when calling
+     * {@link #read(DataInput)}
+     */
+    public FileData(final int length) {
         this.length = length;
     }
 
-    public FileData(byte[] data) {
-        this.data = data;
-        this.length = data.length;
+    /**
+     * Constructs a new part having the specified data, suitable for writing.
+     * @param data the raw binary data exactly as it should be represented in
+     * the archive, after any and all compression has taken place. The value is
+     * used directly within this object; care should be taken not to modify the
+     * contents inadvertently.
+     */
+    public FileData(final byte[] data) {
+        setData(data);
     }
 
     @Override
@@ -40,7 +60,9 @@ public class FileData implements Part {
 
     @Override
     public void write(DataOutput out) throws IOException {
-        if (data == null) throw new IllegalStateException("data not available!");
+        if (data == null) {
+            throw new IllegalStateException("data not set!");
+        }
         out.write(data);
     }
 
@@ -49,17 +71,30 @@ public class FileData implements Part {
         return length;
     }
 
-    public int getLength() {
-        return length;
-    }
-
+    /**
+     * Returns the data contained within this part. This is the actual field
+     * within this object; care should be taken not to modify the contents
+     * inadvertently.
+     * @return the data
+     */
     public byte[] getData() {
         return data;
     }
 
-    public void setData(byte[] data) {
-        this.data = data;
-        this.length = data.length;
+    /**
+     * Sets the data within this part.  The value is used directly within this
+     * object; care should be taken not to modify the contents inadvertently.
+     * @param data the value to set; if the array is non-null and of length
+     * zero, it is treated as if it were null.
+     */
+    public void setData(final byte[] data) {
+        if (data == null || data.length == 0) {
+            this.data = null;
+            length = 0;
+        } else {
+            this.data = data;
+            length = data.length;
+        }
     }
 
     @Override
@@ -80,10 +115,17 @@ public class FileData implements Part {
         if (getClass() != obj.getClass())
             return false;
         FileData other = (FileData) obj;
-        if (!Arrays.equals(data, other.data))
-            return false;
         if (length != other.length)
+            return false;
+        if (!Arrays.equals(data, other.data))
             return false;
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "FileData [length=" + length
+            + ", data=" + Arrays.toString(data) + "]";
+    }
+
 }

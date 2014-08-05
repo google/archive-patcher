@@ -29,10 +29,21 @@ import java.util.Set;
  * no way suitable for production use.
  */
 public class ArchiveBuilder {
+    /**
+     * Main method. Arguments:
+     * <ul>
+     * <li>archivename: the path at which to create the archive.
+     * <li>files: any number of files to be added to the archive; directories
+     * are added recursively.
+     * </ul>
+     * @param args arguments to the program
+     * @throws Exception if anything goes wrong
+     */
     public static void main(String... args) throws Exception {
-        if (args.length < 2) throw new RuntimeException("Usage: archivebuilder [archivename] [files...]");
-        String archiveName = args[0];
-        Set<File> filesToArchive = new LinkedHashSet<File>();
+        if (args.length < 2) throw new RuntimeException(
+            "Usage: archivebuilder [archivename] [files...]");
+        final String archiveName = args[0];
+        final Set<File> filesToArchive = new LinkedHashSet<File>();
         for (int x=1; x<args.length; x++) {
             File file = new File(args[x]);
             if (file.isDirectory()) {
@@ -41,7 +52,7 @@ public class ArchiveBuilder {
                 filesToArchive.add(file);
             }
         }
-        SimpleArchive archive = new SimpleArchive();
+        final SimpleArchive archive = new SimpleArchive();
         final File cwd = new File(".");
         final String cwdPath = cwd.getCanonicalPath() + File.separatorChar;
         System.out.println("cwd=" + cwdPath);
@@ -55,14 +66,15 @@ public class ArchiveBuilder {
             archive.add(path, in);
             in.close();
         }
-        FileOutputStream out = new FileOutputStream(archiveName);
+        final FileOutputStream out = new FileOutputStream(archiveName);
         archive.writeArchive(out);
         out.flush();
         out.close();
     }
 
-    private static void addRecursive(final File file, Collection<File> destination) {
-        for (File child : file.listFiles()) {
+    private static void addRecursive(
+        final File file, Collection<File> destination) {
+        for (final File child : file.listFiles()) {
             if (child.isDirectory()) {
                 addRecursive(child, destination);
             } else {
