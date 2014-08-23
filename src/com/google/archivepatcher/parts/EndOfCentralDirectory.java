@@ -131,6 +131,7 @@ public class EndOfCentralDirectory implements Part {
      * defined by the ZIP specification. This is an antiquated term, more
      * accurately described today as the "file number" or "part number" of the
      * start of the data for this record in a multi-file "split archive".
+     * This value is zero-based, so the first disk is disk number zero.
      * <p>
      * Note that this library does not currently support multi-file archives.
      * @return the value, as an unsigned 16-bit integer
@@ -153,6 +154,7 @@ public class EndOfCentralDirectory implements Part {
      * defined by the ZIP specification. This is an antiquated term, more
      * accurately described today as the "file number" or "part number" of the
      * start of the central directory in a multi-file "split archive".
+     * This value is zero-based, so the first disk is disk number zero.
      * <p>
      * Note that this library does not currently support multi-file archives.
      * @return the value, as an unsigned 16-bit integer

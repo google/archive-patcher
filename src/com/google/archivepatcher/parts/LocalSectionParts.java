@@ -164,6 +164,7 @@ public class LocalSectionParts implements Part {
         this.dataDescriptorPart = dataDescriptor;
     }
 
+    // Deliberately omits computation of the central directory
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -177,6 +178,7 @@ public class LocalSectionParts implements Part {
         return result;
     }
 
+    // Deliberately omits comparison with the central directory
     @Override
     public boolean equals(final Object obj) {
         if (this == obj)
@@ -202,5 +204,14 @@ public class LocalSectionParts implements Part {
         } else if (!localFilePart.equals(other.localFilePart))
             return false;
         return true;
+    }
+
+    // Deliberately omits the central directory
+    @Override
+    public String toString() {
+        return "LocalSectionParts [" +
+            "localFilePart=" + localFilePart +
+            ", fileDataPart=" + fileDataPart +
+            ", dataDescriptorPart=" + dataDescriptorPart + "]";
     }
 }

@@ -219,7 +219,10 @@ public class SimpleArchive extends Archive {
         eocd.setDiskNumberOfStartOfCentralDirectory_16bit(0);
         eocd.setLengthOfCentralDirectory_32bit(lengthOfCentralDirectory);
         eocd.setNumEntriesInCentralDir_16bit(centralDirectory.entries().size());
-        eocd.setOffsetOfStartOfCentralDirectoryRelativeToDisk_32bit(startOfCentralDirectory);
+        eocd.setNumEntriesInCentralDirThisDisk_16bit(
+            centralDirectory.entries().size());
+        eocd.setOffsetOfStartOfCentralDirectoryRelativeToDisk_32bit(
+            startOfCentralDirectory);
         eocd.setZipFileComment("");
         centralDirectory.setEocd(eocd);
     }

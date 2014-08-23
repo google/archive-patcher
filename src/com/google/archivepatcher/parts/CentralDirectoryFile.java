@@ -625,6 +625,7 @@ public class CentralDirectoryFile implements Part {
      * accurately described today as the "file number" or "part number" of the
      * start of the corresponding {@link LocalFile} in a multi-file
      * "split archive".
+     * This value is zero-based, so the first disk is disk number zero.
      * <p>
      * Note that this library does not currently support multi-file archives.
      * @return the value, as an unsigned 16-bit integer

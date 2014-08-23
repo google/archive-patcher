@@ -137,4 +137,26 @@ public class MsDosTime {
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format.format(new Date(asMillisecondsSinceMidnight()));
     }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + hourOfDay;
+        result = prime * result + minuteOfHour;
+        result = prime * result + secondDividedBy2;
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        MsDosTime other = (MsDosTime) obj;
+        if (hourOfDay != other.hourOfDay) return false;
+        if (minuteOfHour != other.minuteOfHour) return false;
+        if (secondDividedBy2 != other.secondDividedBy2) return false;
+        return true;
+    }
 }

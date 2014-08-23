@@ -17,6 +17,7 @@ package com.google.archivepatcher;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import com.google.archivepatcher.parts.EndOfCentralDirectory;
 import com.google.archivepatcher.util.SimpleArchive;
 
 import org.junit.Before;
@@ -62,6 +63,16 @@ public class ArchiveTest {
         FileOutputStream out = new FileOutputStream(ARCHIVE);
         archive.writeArchive(out);
         out.close();
+
+        Archive readArchive = Archive.fromFile(ARCHIVE);
+        EndOfCentralDirectory eocd =
+            readArchive.getCentralDirectory().getEocd();
+        assertEquals(1, eocd.getNumEntriesInCentralDir_16bit());
+        assertEquals(1, eocd.getNumEntriesInCentralDirThisDisk_16bit());
+        // TODO: Should these be zero or one? Is it zero-based or one-based?
+        assertEquals(0, eocd.getDiskNumber_16bit());
+        assertEquals(0, eocd.getDiskNumberOfStartOfCentralDirectory_16bit());
+        assertEquals(0, eocd.getZipFileCommentLength_16bit());
 
         // Verification phase
         ZipFile written = new ZipFile(ARCHIVE);
