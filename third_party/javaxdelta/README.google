@@ -1,0 +1,17 @@
+URL: http://sourceforge.net/code-snapshots/svn/j/ja/javaxdelta/code/javaxdelta-code-59-trunk.zip
+Version: r59
+License: MIT
+License File: LICENSE
+
+Description:
+A library for building and applying patches to binary files.
+
+In the context of archive-patcher, this library provides one possible
+implementation of a delta algorithm that can be applied per-resource.
+
+Local Modifications:
+LICENSE.TXT renamed to LICENSE and moved to this directory.
+Moved src/main/java/com/ to just src/com/
+Deleted **/package-info.java
+Deleted all other files and directories, as they are unnecessary in this
+implementation. Note that this means the initial checkin does not compile.
