@@ -108,6 +108,14 @@ public abstract class AbstractArchiveTool {
     }
 
     /**
+     * Force verbosity on or off.
+     * @param verbose whether or not to be verbose.
+     */
+    public void setVerbose(boolean verbose) {
+        isVerbose = verbose;
+    }
+
+    /**
      * Subclasses implement their run logic here.
      * @param options the options that were parsed from the command line
      * @throws Exception if anything goes wrong. If it's an OptionException,

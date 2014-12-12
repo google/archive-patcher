@@ -1,0 +1,18 @@
+This directory contains a sequence of zip files representing "versions" of an
+arbitrary software program, used to test the generation of sequences of patches.
+
+In each ZIP file there is a single entry, "content", which contains the
+following text (without the quotes or any leading or trailing whitespace):
+
+  "This is version [x] of a test file."
+
+... where "[x]" is replaced with a "version" number, starting at one. Thus, the
+following contents are in each archive:
+
+  v1.zip:/content:This is version 1 of a test file.
+  v2.zip:/content:This is version 2 of a test file.
+  v3.zip:/content:This is version 3 of a test file.
+  v4.zip:/content:This is version 4 of a test file.
+
+The file "archive_list" contains a listing of all four ZIP files, which is fed
+into the patch sequence generation test process.

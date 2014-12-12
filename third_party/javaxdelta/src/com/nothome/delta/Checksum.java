@@ -26,11 +26,10 @@
 
 package com.nothome.delta;
 
-import gnu.trove.TLongIntHashMap;
-import gnu.trove.decorator.TLongIntHashMapDecorator;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Checksum computation class.
@@ -39,7 +38,7 @@ public class Checksum {
     
     static final boolean debug = false;
     
-    private TLongIntHashMap checksums = new TLongIntHashMap();
+    private Map<Long, Integer> checksums = new HashMap<Long, Integer>();
     
     private static final char single_hash[] = {
         /* Random numbers generated using SLIB's pseudo-random number generator. */
@@ -144,7 +143,7 @@ public class Checksum {
      * Finds the index of a checksum.
      */
     public int findChecksumIndex(long hashf) {
-        if (!checksums.contains(hashf))
+        if (!checksums.containsKey(hashf))
             return -1;
         return checksums.get(hashf);
     }
@@ -156,7 +155,7 @@ public class Checksum {
     public String toString()
     {
         return super.toString() +
-            " checksums=" + new TLongIntHashMapDecorator(this.checksums) +
+            " checksums=" + new HashMap<Long, Integer>(this.checksums) +
             "";
     }
     

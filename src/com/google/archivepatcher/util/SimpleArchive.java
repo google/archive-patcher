@@ -14,25 +14,26 @@
 
 package com.google.archivepatcher.util;
 
-import com.google.archivepatcher.Archive;
-import com.google.archivepatcher.meta.CompressionMethod;
-import com.google.archivepatcher.meta.DeflateCompressionOption;
-import com.google.archivepatcher.meta.Flag;
-import com.google.archivepatcher.parts.LocalSectionParts;
-import com.google.archivepatcher.parts.CentralDirectoryFile;
-import com.google.archivepatcher.parts.FileData;
-import com.google.archivepatcher.parts.DataDescriptor;
-import com.google.archivepatcher.parts.EndOfCentralDirectory;
-import com.google.archivepatcher.parts.LocalFile;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+
+import com.google.archivepatcher.Archive;
+import com.google.archivepatcher.meta.CompressionMethod;
+import com.google.archivepatcher.meta.DeflateCompressionOption;
+import com.google.archivepatcher.meta.Flag;
+import com.google.archivepatcher.parts.CentralDirectoryFile;
+import com.google.archivepatcher.parts.DataDescriptor;
+import com.google.archivepatcher.parts.EndOfCentralDirectory;
+import com.google.archivepatcher.parts.FileData;
+import com.google.archivepatcher.parts.LocalFile;
+import com.google.archivepatcher.parts.LocalSectionParts;
 
 /**
  * A feature-poor implementation that allows building up an archive at run
@@ -63,16 +64,24 @@ public class SimpleArchive extends Archive {
      * @param dd the {@link DataDescriptor} part to be updated, if a data
      * descriptor is desired
      * @param in the {@link InputStream} to read from
+     * @param compress whether or not to compress the data; if false, the data
+     * is stored instead
      * @throws IOException if anything goes wrong reading, compressing or
      * checksumming the data
      */
     protected void compressAndSetData(LocalFile lf, FileData fd,
-            DataDescriptor dd, InputStream in) throws IOException {
+            DataDescriptor dd, InputStream in, boolean compress)
+                throws IOException {
         if (finished) throw new IllegalStateException(
             "Archive is finished and can no longer be modified.");
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        DeflaterOutputStream out = new DeflaterOutputStream(buffer,
+        OutputStream out;
+        if (compress) {
+            out = new DeflaterOutputStream(buffer,
                 new Deflater(Deflater.DEFAULT_COMPRESSION, true));
+        } else {
+            out = buffer;
+        }
         byte[] temp = new byte[4096];
         int numRead = -1;
         int uncompressedSize = 0;
@@ -87,7 +96,11 @@ public class SimpleArchive extends Archive {
         out.close();
         byte[] data = buffer.toByteArray();
         fd.setData(data);
-        lf.setCompressionMethod_16bit(CompressionMethod.DEFLATED.value);
+        if (compress) {
+            lf.setCompressionMethod_16bit(CompressionMethod.DEFLATED.value);
+        } else {
+            lf.setCompressionMethod_16bit(CompressionMethod.NO_COMPRESSION.value);
+        }
         if (dd != null) {
             lf.setUncompressedSize_32bit(0);
             lf.setCompressedSize_32bit(0);
@@ -115,11 +128,12 @@ public class SimpleArchive extends Archive {
      * time instead of the time from the source file.
      * @param path the path under which to store the data in the archive
      * @param uncompressedData stream from which to read the uncompressed data
+     * @param compress whether or not to compress the data
      * @throws IOException if unable to complete the operation
      */
-    public void add(final String path, final InputStream uncompressedData)
-        throws IOException {
-        add(path, System.currentTimeMillis(), uncompressedData);
+    public void add(final String path, final InputStream uncompressedData,
+        boolean compress) throws IOException {
+        add(path, System.currentTimeMillis(), uncompressedData, compress);
     }
 
     /**
@@ -128,10 +142,12 @@ public class SimpleArchive extends Archive {
      * @param path the path under which to store the data in the archive
      * @param millisUtc the timestamp to set for the entry in the archive
      * @param uncompressedData stream from which to read the uncompressed  data
+     * @param compress whether or not to compress the data
      * @throws IOException if unable to complete the operation
      */
     public void add(final String path, final long millisUtc,
-            final InputStream uncompressedData) throws IOException {
+            final InputStream uncompressedData, boolean compress)
+                throws IOException {
         if (finished) throw new IllegalStateException(
             "Archive is finished and can no longer be modified.");
         final LocalFile lf = new LocalFile();
@@ -155,7 +171,7 @@ public class SimpleArchive extends Archive {
         if (useDataDescriptors) {
             dd = new DataDescriptor();
         }
-        compressAndSetData(lf, fd, dd, uncompressedData);
+        compressAndSetData(lf, fd, dd, uncompressedData, compress);
         
         final CentralDirectoryFile cdf = new CentralDirectoryFile();
         if (dd != null) {

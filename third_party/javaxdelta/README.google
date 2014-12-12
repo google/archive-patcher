@@ -15,3 +15,8 @@ Moved src/main/java/com/ to just src/com/
 Deleted **/package-info.java
 Deleted all other files and directories, as they are unnecessary in this
 implementation. Note that this means the initial checkin does not compile.
+
+Modified the following two files to use java.util.HashMap<Long, Integer> instead
+of the Trove-based LongIntHashMap, eliminating the dependency upon Trove:
+src/com/nothome/delta/Checksum.java
+src/com/nothome/delta/text/Checksum.java

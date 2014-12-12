@@ -26,11 +26,10 @@
 
 package com.nothome.delta.text;
 
-import gnu.trove.TLongIntHashMap;
-import gnu.trove.decorator.TLongIntHashMapDecorator;
-
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Checksum that uses character streams.
@@ -39,7 +38,7 @@ public class Checksum {
     
     public static boolean debug = false;
     
-    protected TLongIntHashMap checksums = new TLongIntHashMap();
+    protected Map<Long, Integer> checksums = new HashMap<Long, Integer>();
     
     private static final char[] single_hash = com.nothome.delta.Checksum.getSingleHash();
     
@@ -95,7 +94,7 @@ public class Checksum {
     }
     
     public int findChecksumIndex(long hashf) {
-        if (!checksums.contains(hashf))
+        if (!checksums.containsKey(hashf))
             return -1;
         return checksums.get(hashf);
     }
@@ -107,7 +106,7 @@ public class Checksum {
     public String toString()
     {
         return super.toString() +
-            " checksums=" + new TLongIntHashMapDecorator(this.checksums) +
+            " checksums=" + new HashMap<Long, Integer>(this.checksums) +
             "";
     }
     

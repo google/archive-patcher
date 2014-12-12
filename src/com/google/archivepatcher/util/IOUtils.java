@@ -20,6 +20,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 /**
  * I/O utilities specifically designed for ZIP archive processing and
@@ -167,11 +168,33 @@ public class IOUtils {
      * @throws IOException if unable to complete the operation
      */
     public static byte[] readAll(InputStream in) throws IOException {
+        return readAll(in, 0);
+    }
+
+    /**
+     * Consume all available bytes from the given source and return them as a
+     * byte array. This operation will block until the end of stream is reached
+     * and may exhaust system memory; use with caution.
+     * @param in the input source
+     * @param extraBufferAtEnd number of additional bytes to add to the returned
+     * buffer, filled with zeroes.
+     * @return all remaining data from the input source
+     * @throws IOException if unable to complete the operation
+     */
+    public static byte[] readAll(InputStream in, int extraBufferAtEnd) throws IOException {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         final byte[] temp = new byte[4096];
         int numRead = 0;
         while ( (numRead = in.read(temp)) >= 0) {
             buffer.write(temp, 0, numRead);
+        }
+        if (extraBufferAtEnd > 0) {
+            Arrays.fill(temp, (byte) 0);
+            while(extraBufferAtEnd > 0) {
+                int numToAdd = Math.min(extraBufferAtEnd, temp.length);
+                buffer.write(temp, 0, numToAdd);
+                extraBufferAtEnd -= numToAdd;
+            }
         }
         return buffer.toByteArray();
     }

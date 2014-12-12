@@ -22,6 +22,7 @@ import com.google.archivepatcher.patcher.PatchDirective;
 import com.google.archivepatcher.patcher.PatchMetadata;
 import com.google.archivepatcher.patcher.PatchParser;
 import com.google.archivepatcher.patcher.RefreshMetadata;
+import com.google.archivepatcher.util.MiscUtils;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -107,7 +108,7 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
 
         if (options.has("makepatch")) {
-            DeltaGenerator deltaGenerator = maybeCreateInstance(
+            DeltaGenerator deltaGenerator = MiscUtils.maybeCreateInstance(
                     options.getArg("deltaclass", null),
                     DeltaGenerator.class);
             makePatch(options.getArg("old"),
@@ -118,7 +119,7 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
 
         if (options.has("applypatch")) {
-            DeltaApplier deltaApplier = maybeCreateInstance(
+            DeltaApplier deltaApplier = MiscUtils.maybeCreateInstance(
                     options.getArg("deltaclass", null),
                     DeltaApplier.class);
             applyPatch(options.getArg("old"),
@@ -127,69 +128,6 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     deltaApplier);
             return;
         }
-    }
-
-    /**
-     * Load a named class that is required, throwing an exception upon failure.
-     * 
-     * @param className the name of the class to load
-     * @param requiredInterface optionally, an interface that must be
-     * implemented by the class in order for loading to succeed
-     * @return the class object representing the named class
-     * @throws MicroOptions.OptionException if classloading fails or the
-     * required interface is not implemented
-     */
-    private static final Class<?> loadRequiredClass(final String className,
-            final Class<?> requiredInterface)
-                    throws MicroOptions.OptionException {
-        try {
-            Class<?> result = Class.forName(className);
-            if (requiredInterface == null) return result;
-            if (requiredInterface.isAssignableFrom(result)) return result;
-            throw new MicroOptions.OptionException(
-                    "class doesn't implement " +
-                    requiredInterface.getName());
-        } catch (ClassNotFoundException e) {
-            MicroOptions.OptionException error =
-                    new MicroOptions.OptionException(
-                            "failed to load class: " + className);
-            error.initCause(e);
-            throw error;
-        }
-    }
-
-    /**
-     * Load a named class and return an instance of it using the class'
-     * default no-arg public constructor.
-     * @param className the name of the class to load and instantiate
-     * @param requiredInterface optionally, an interface that must be
-     * implemented by the class in order for loading to succeed
-     * @return an instance of the specified class, that implements the
-     * specified interface
-     * @throws MicroOptions.OptionException  if classloading fails or the
-     * required interface is not implemented
-     */
-    @SuppressWarnings("unchecked") // enforced by loadrequiredClass.
-    private static final <T> T createRequiredInstance(final String className,
-            final Class<T> requiredInterface)
-            throws MicroOptions.OptionException {
-        Class<?> clazz = loadRequiredClass(className, requiredInterface);
-        try {
-            return (T) clazz.newInstance();
-        } catch (Exception e) {
-            MicroOptions.OptionException error =
-                    new MicroOptions.OptionException(
-                            "failed to initialize class: " + className);
-            error.initCause(e);
-            throw error;
-        }
-    }
-
-    private static final <T> T maybeCreateInstance(final String className,
-            final Class<T> requiredInterface)
-            throws MicroOptions.OptionException {
-        if (className == null) return null;
-        return createRequiredInstance(className, requiredInterface);
     }
 
     /**

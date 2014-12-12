@@ -63,7 +63,7 @@ public class ArchiveBuilder {
             }
             System.out.println("add: " + path);
             FileInputStream in = new FileInputStream(path);
-            archive.add(path, in);
+            archive.add(path, in, true);
             in.close();
         }
         final FileOutputStream out = new FileOutputStream(archiveName);

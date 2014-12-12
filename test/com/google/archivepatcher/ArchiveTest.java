@@ -59,7 +59,7 @@ public class ArchiveTest {
     public void testWriteArchive_1File() throws IOException {
         final String ARCHIVE = "test/UNITTEST_1File.zip";
         SimpleArchive archive = new SimpleArchive();
-        archive.add(PATH1, contentIn1);
+        archive.add(PATH1, contentIn1, true);
         FileOutputStream out = new FileOutputStream(ARCHIVE);
         archive.writeArchive(out);
         out.close();
@@ -90,8 +90,8 @@ public class ArchiveTest {
     public void testWriteArchive_2Files() throws IOException {
         final String ARCHIVE = "test/UNITTEST_2Files.zip";
         SimpleArchive archive = new SimpleArchive();
-        archive.add(PATH1, contentIn1);
-        archive.add(PATH2, contentIn2);
+        archive.add(PATH1, contentIn1, true);
+        archive.add(PATH2, contentIn2, true);
         FileOutputStream out = new FileOutputStream(ARCHIVE);
         archive.writeArchive(out);
         out.close();

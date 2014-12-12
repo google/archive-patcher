@@ -29,6 +29,7 @@ import com.google.archivepatcher.patcher.NewMetadata;
 import com.google.archivepatcher.patcher.PatchDirective;
 import com.google.archivepatcher.patcher.PatchParser;
 import com.google.archivepatcher.patcher.RefreshMetadata;
+import com.google.archivepatcher.testutil.TestFile;
 import com.google.archivepatcher.util.SimpleArchive;
 import com.google.archivepatcher.util.MsDosDate;
 import com.google.archivepatcher.util.MsDosTime;
@@ -42,7 +43,6 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -73,38 +73,25 @@ public class PatchGeneratorTest {
     public final static byte[] CONTENT4 = "By comparing CRC-32s, the patcher can even efficiently find possible candidates for renames and duplicate data within an archive, allowing a patch to capture renames and copies with very little cost.".getBytes(Charset.forName("UTF8"));
 
     @SuppressWarnings("javadoc")
-    public static class TrivialFile {
-        public final String file;
-        public final byte[] content;
-        public TrivialFile(String file, byte[] content) {
-            this.file = file;
-            this.content = content;
-        }
-        public InputStream getInputStream() {
-            return new ByteArrayInputStream(content);
-        }
-    }
-
+    public final static TestFile TF1 = new TestFile(FILE1, CONTENT1);
     @SuppressWarnings("javadoc")
-    public final static TrivialFile TF1 = new TrivialFile(FILE1, CONTENT1);
+    public final static TestFile TF2 = new TestFile(FILE2, CONTENT2);
     @SuppressWarnings("javadoc")
-    public final static TrivialFile TF2 = new TrivialFile(FILE2, CONTENT2);
+    public final static TestFile TF3 = new TestFile(FILE3, CONTENT3);
     @SuppressWarnings("javadoc")
-    public final static TrivialFile TF3 = new TrivialFile(FILE3, CONTENT3);
-    @SuppressWarnings("javadoc")
-    public final static TrivialFile TF4 = new TrivialFile(FILE4, CONTENT4);
+    public final static TestFile TF4 = new TestFile(FILE4, CONTENT4);
 
     // it's like a macro!
     @SuppressWarnings("javadoc")
-    public static TrivialFile tf(String file, byte[] content) {
-        return new TrivialFile(file, content);
+    public static TestFile tf(String file, byte[] content) {
+        return new TestFile(file, content);
     }
 
     @SuppressWarnings("javadoc")
-    public static Archive makeArchive(TrivialFile... files) throws IOException {
+    public static Archive makeArchive(TestFile... files) throws IOException {
         SimpleArchive archive = new SimpleArchive();
-        for (TrivialFile tf : files) {
-            archive.add(tf.file, NOWISH, tf.getInputStream());
+        for (TestFile tf : files) {
+            archive.add(tf.file, NOWISH, tf.getInputStream(), true);
         }
         archive.finishArchive();
         return archive;
@@ -178,7 +165,7 @@ public class PatchGeneratorTest {
         assertTrue(Arrays.equals(binaryExpected.toByteArray(), binaryProduced.toByteArray()));
     }
 
-    private final static void twiddleTime(Archive archive, TrivialFile file, int offset) {
+    private final static void twiddleTime(Archive archive, TestFile file, int offset) {
         if (Math.abs(offset) < 2000) throw new IllegalArgumentException("granularity too fine for MS DOS");
         final long newMillis = NOWISH + offset;
         final int newDate = MsDosDate.fromMillisecondsSinceEpoch(newMillis).to16BitPackedValue();
@@ -194,7 +181,7 @@ public class PatchGeneratorTest {
     // WARNING: This breaks the data in a way that makes it impossible to
     // extract the archive: the CRC is arbitrarily mangled, as is the data
     // block.
-    private final static void twiddleData(Archive archive, TrivialFile file) {
+    private final static void twiddleData(Archive archive, TestFile file) {
         CentralDirectoryFile cdf = archive.getCentralDirectory().getByPath(file.file);
         cdf.setCrc32_32bit(~cdf.getCrc32_32bit());
         LocalSectionParts local = archive.getLocal().getByPath(file.file);
@@ -209,17 +196,17 @@ public class PatchGeneratorTest {
         data[0] = (byte) ~data[0]; // flip bits
     }
 
-    private static NewMetadata metadataForNew(Archive archive, TrivialFile file) {
+    private static NewMetadata metadataForNew(Archive archive, TestFile file) {
         LocalSectionParts alp = archive.getLocal().getByPath(file.file);
         return new NewMetadata(alp.getLocalFilePart(), alp.getFileDataPart(), alp.getDataDescriptorPart());
     }
 
-    private static RefreshMetadata metadataForRefresh(Archive archive, TrivialFile file) {
+    private static RefreshMetadata metadataForRefresh(Archive archive, TestFile file) {
         LocalSectionParts alp = archive.getLocal().getByPath(file.file);
         return new RefreshMetadata(alp.getLocalFilePart(), alp.getDataDescriptorPart());
     }
 
-    private static int offsetForCopy(Archive archive, TrivialFile file) {
+    private static int offsetForCopy(Archive archive, TestFile file) {
         return (int) archive.getCentralDirectory().getByPath(file.file)
                 .getRelativeOffsetOfLocalHeader_32bit();
     }

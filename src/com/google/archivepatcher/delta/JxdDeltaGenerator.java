@@ -1,4 +1,4 @@
-package com.google.archivepatcher.ext;
+package com.google.archivepatcher.delta;
 
 import com.google.archivepatcher.DeltaGenerator;
 import com.google.archivepatcher.parts.CentralDirectoryFile;
