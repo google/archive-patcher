@@ -105,6 +105,7 @@ public class MsDosDate {
      */
     public long asMillisecondsSinceEpoch() {
         Calendar calendar = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        calendar.setTimeInMillis(0L);
         calendar.set(1980+yearOffsetFrom1980, monthOneBased-1, dayOfMonth);
         return calendar.getTimeInMillis();
     }
@@ -156,5 +157,31 @@ public class MsDosDate {
         if (monthOneBased != other.monthOneBased) return false;
         if (yearOffsetFrom1980 != other.yearOffsetFrom1980) return false;
         return true;
+    }
+
+    /**
+     * Returns the day of the month in the range [0, 31].
+     * @return the value
+     */
+    public int getDayOfMonth() {
+        return dayOfMonth;
+    }
+
+    /**
+     * Returns the month of the year in the range [1, 12], where 1 is January
+     * and 12 is December.
+     * @return the value
+     */
+    public int getMonthOneBased() {
+        return monthOneBased;
+    }
+
+    
+    /**
+     * Return the year as an offset from 1980.
+     * @return the value
+     */
+    public int getYearOffsetFrom1980() {
+        return yearOffsetFrom1980;
     }
 }

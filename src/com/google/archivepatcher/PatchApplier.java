@@ -14,45 +14,79 @@
 
 package com.google.archivepatcher;
 
-import com.google.archivepatcher.parts.CentralDirectorySection;
-import com.google.archivepatcher.parts.FileData;
-import com.google.archivepatcher.parts.LocalSectionParts;
-import com.google.archivepatcher.parts.CentralDirectoryFile;
-import com.google.archivepatcher.parts.LocalSection;
-import com.google.archivepatcher.patcher.BeginMetadata;
-import com.google.archivepatcher.patcher.NewMetadata;
-import com.google.archivepatcher.patcher.PatchCommand;
-import com.google.archivepatcher.patcher.PatchDirective;
-import com.google.archivepatcher.patcher.PatchMagic;
-import com.google.archivepatcher.patcher.PatchMetadata;
-import com.google.archivepatcher.patcher.PatchParser;
-import com.google.archivepatcher.patcher.RefreshMetadata;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import com.google.archivepatcher.compression.BuiltInCompressionEngine;
+import com.google.archivepatcher.compression.Uncompressor;
+import com.google.archivepatcher.delta.DeltaApplier;
+import com.google.archivepatcher.parts.CentralDirectoryFile;
+import com.google.archivepatcher.parts.CentralDirectorySection;
+import com.google.archivepatcher.parts.FileData;
+import com.google.archivepatcher.parts.LocalSection;
+import com.google.archivepatcher.parts.LocalSectionParts;
+import com.google.archivepatcher.patcher.BeginMetadata;
+import com.google.archivepatcher.patcher.NewMetadata;
+import com.google.archivepatcher.patcher.PatchCommand;
+import com.google.archivepatcher.patcher.PatchDirective;
+import com.google.archivepatcher.patcher.PatchMetadata;
+import com.google.archivepatcher.patcher.PatchParser;
+import com.google.archivepatcher.patcher.RefreshMetadata;
 
 /**
  * Applies a patch that will produce a given "new" archive when applied to
  * a given "old" archive. The patch should have been produced by a
  * {@link PatchGenerator} with a version number less than or equal to the
  * current version number.
- * @see PatchMagic#getVersion()
  * @see PatchGenerator
  */
-// FIXME: Stream the output, don't buffer in memory.
+// FIXME: Stream the output, don't buffer everything in memory.
 // FIXME: Don't modify the old Archive's in-memory representation.
-// FIXME: Support a more robust mechanism for registering delta appliers.
 public class PatchApplier {
+
+    /**
+     * The old archive, used as a source for copying and as a base for
+     * building new resources with patch metadata.
+     */
     private final Archive oldArchive;
+
+    /**
+     * The parser for reading the patch stream.
+     */
     private final PatchParser parser;
+
+    /**
+     * The new archive being built as the output of the patching process.
+     */
     private final Archive newArchive;
-    private final DeltaApplier deltaApplier;
+
+    /**
+     * A mapping of all available {@link DeltaApplier}s, by ID.
+     */
+    private final Map<Integer, DeltaApplier> deltaAppliersById =
+        new HashMap<Integer, DeltaApplier>();
+
+    /**
+     * A mapping of all available {@link Uncompressor}s, by Id.
+     */
+    private final Map<Integer, Uncompressor> uncompressorsById =
+        new HashMap<Integer, Uncompressor>();
+
+    /**
+     * Entries in the old archive's central directory, by offset in the old
+     * archive file.
+     */
     private final Map<Integer, CentralDirectoryFile> oldCDFByOffset =
             new HashMap<Integer, CentralDirectoryFile>();
+
+    /**
+     * The current offset in the new archive being built.
+     */
     private int currentFileOffset = 0; // How far we have written
 
     /**
@@ -62,17 +96,31 @@ public class PatchApplier {
      * of the caller's choosing.
      * @param oldArchive the "old" archive
      * @param parser the {@link PatchParser} to use for parsing the patch file
-     * @param deltaApplier optionally, a {@link DeltaApplier} to be used
-     * for applying deltas; if unspecified, no {@link PatchCommand#PATCH}
-     * commands from the patch can be applied and patch processing will fail if
-     * any are present 
+     * @param deltaAppliers optionally, a list of {@link DeltaApplier}s to be 
+     * used for applying deltas; if unspecified or empty, no
+     * {@link PatchCommand#PATCH} commands from the patch can be applied and
+     * patch processing will fail if any are present 
+     * @param uncompressors optionally, a list of {@link Uncompressor}s to be
+     * used for uncompressing delta resources; if unspecified or empty, no
+     * resources can be uncompressed; if the patch contains compressed
+     * resources, patch application will fail.
      */
     public PatchApplier(final Archive oldArchive, final PatchParser parser,
-        final DeltaApplier deltaApplier) {
+        final List<DeltaApplier> deltaAppliers,
+        final List<Uncompressor> uncompressors) {
         this.oldArchive = oldArchive;
         this.parser = parser;
-        this.deltaApplier = deltaApplier;
         this.newArchive = new Archive();
+        if (deltaAppliers != null) {
+            for (final DeltaApplier deltaApplier : deltaAppliers) {
+                deltaAppliersById.put(deltaApplier.getId(), deltaApplier);
+            }
+        }
+        if (uncompressors != null) {
+            for (final Uncompressor uncompressor : uncompressors) {
+                uncompressorsById.put(uncompressor.getId(), uncompressor);
+            }
+        }
     }
 
     /**
@@ -82,16 +130,21 @@ public class PatchApplier {
      * (patched) archive at a path of the caller's choosing.
      * @param oldArchive the "old" archive
      * @param patchPath the path to the patch file to be parsed
-     * @param deltaApplier optionally, a {@link DeltaApplier} to be used
-     * for applying deltas; if unspecified, no {@link PatchCommand#PATCH}
+     * @param deltaAppliers optionally, a list of {@link DeltaApplier}s to be
+     * used for applying deltas; if unspecified, no {@link PatchCommand#PATCH}
      * commands from the patch can be applied and patch processing will fail if
      * any are present
+     * @param uncompressors optionally, a list of {@link Uncompressor}s to be
+     * used for uncompressing delta resources; if unspecified or empty, no
+     * resources can be uncompressed; if the patch contains compressed
+     * resources, patch application will fail.
      * @throws IOException if unable to open the specified patch file
      */
     public PatchApplier(final String oldArchive, final String patchPath,
-        final DeltaApplier deltaApplier) throws IOException {
+        final List<DeltaApplier> deltaAppliers,
+        final List<Uncompressor> uncompressors) throws IOException {
         this(Archive.fromFile(oldArchive),
-            new PatchParser(new File(patchPath)), deltaApplier);
+            new PatchParser(new File(patchPath)), deltaAppliers, uncompressors);
     }
 
     /**
@@ -192,7 +245,6 @@ public class PatchApplier {
         CentralDirectoryFile cdf = getOldCentralDirectoryFile(sourceOffset);
         LocalSectionParts alp = oldArchive.getLocal().getByPath(cdf.getFileName());
         newArchive.getLocal().append(alp);
-
         assert(currentFileOffset == getNewCentralDirectoryFile(cdf).getRelativeOffsetOfLocalHeader_32bit());
         currentFileOffset += alp.getStructureLength();
     }
@@ -209,14 +261,28 @@ public class PatchApplier {
     /**
      * Applies a {@link PatchCommand#NEW} operation.
      * @param metadata the "new" data for the operation
+     * @throws IOException if unable to apply the patch cleanly
      */
-    private void applyNew(final NewMetadata metadata) {
+    private void applyNew(final NewMetadata metadata) throws IOException {
+        byte[] newData = metadata.getData();
+        int compressionEngineId = metadata.getPatchingCompressionEngineId();
+        if (compressionEngineId != BuiltInCompressionEngine.NONE.getId()) {
+            // Uncompress the data first.
+            Uncompressor uncompressor = uncompressorsById.get(compressionEngineId);
+            if (uncompressor == null) {
+                throw new RuntimeException("No uncompressor with ID=" + compressionEngineId + " is available to apply this patch.");
+            }
+            ByteArrayOutputStream uncompressedData = new ByteArrayOutputStream();
+            uncompressor.uncompress(new ByteArrayInputStream(newData), uncompressedData);
+            // Switch to using the uncompressed data for final processing
+            newData = uncompressedData.toByteArray();
+        }
+
         LocalSectionParts alp = new LocalSectionParts();
         alp.setLocalFilePart(metadata.getLocalFilePart());
         alp.setDataDescriptorPart(metadata.getDataDescriptorPart());
-        alp.setFileDataPart(metadata.getFileDataPart());
+        alp.setFileDataPart(new FileData(newData));
         newArchive.getLocal().append(alp);
-        
         assert(currentFileOffset ==
                 getNewCDF(alp.getLocalFilePart().getFileName())
                 .getRelativeOffsetOfLocalHeader_32bit());
@@ -253,11 +319,27 @@ public class PatchApplier {
      */
     private void applyPatch(final int sourceOffset,
         final PatchMetadata metadata) throws IOException {
+        final DeltaApplier deltaApplier = deltaAppliersById.get(metadata.getDeltaGeneratorId());
+        if (deltaApplier == null) {
+            throw new RuntimeException("No delta applier with ID=" + metadata.getDeltaGeneratorId() + " is available to apply this patch.");
+        }
         LocalSectionParts oldAlp = getOldLocalSectionParts(sourceOffset);
         ByteArrayInputStream oldDataInput = new ByteArrayInputStream(
                 oldAlp.getFileDataPart().getData());
-        ByteArrayInputStream patchInput = new ByteArrayInputStream(
-                metadata.getData());
+        byte[] rawPatchInput = metadata.getData();
+        ByteArrayInputStream patchInput = new ByteArrayInputStream(rawPatchInput);
+        int compressionEngineId = metadata.getCompressionEngineId();
+        if (compressionEngineId != BuiltInCompressionEngine.NONE.getId()) {
+            // Uncompress the data first.
+            Uncompressor uncompressor = uncompressorsById.get(compressionEngineId);
+            if (uncompressor == null) {
+                throw new RuntimeException("No uncompressor with ID=" + compressionEngineId + " is available to apply this patch.");
+            }
+            ByteArrayOutputStream uncompressedPatchInput = new ByteArrayOutputStream();
+            uncompressor.uncompress(patchInput, uncompressedPatchInput);
+            // Set patch input stream to the uncompressed data
+            patchInput = new ByteArrayInputStream(uncompressedPatchInput.toByteArray());
+        }
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         deltaApplier.applyDelta(oldDataInput, patchInput, buffer);
         LocalSectionParts newAlp = new LocalSectionParts();

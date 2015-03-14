@@ -1,0 +1,14 @@
+ARCPAT01:
+* Initial version
+
+ARCPAT02:
+* Added this VERSION_HISTORY file to track major differences between versions.
+* "NEW" and "PATCH" commands have been been modified to include a new uint32
+  compression engine ID that describes which compression engine, if any, has
+  been used to compress the payload. For "NEW" commands, this is the ID of the
+  compression engine used to compress the entire content of the new entry. For
+  "PATCH" commands, this is the ID of the compression engine used to compress
+  the delta. 0 means no compression, 1 means DEFLATE. These compression engines
+  are not necessarily related to those supported by the ZIP specification, as
+  they are only used for patching and not as part of the resulting output
+  archive.

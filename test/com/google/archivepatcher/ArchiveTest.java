@@ -17,12 +17,6 @@ package com.google.archivepatcher;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-import com.google.archivepatcher.parts.EndOfCentralDirectory;
-import com.google.archivepatcher.util.SimpleArchive;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -32,6 +26,12 @@ import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.archivepatcher.parts.EndOfCentralDirectory;
+import com.google.archivepatcher.util.SimpleArchive;
+
 /**
  * Tests for the {@link Archive} class.
  */
@@ -40,10 +40,11 @@ public class ArchiveTest {
     private final static String PATH2 = "file2.txt";
     private final static String CONTENT_STRING1 = "file1 content: this is a test string long enough to be deflated its totally rad really super cool i love it";
     private final static String CONTENT_STRING2 = "file2 content: this is another string long enough to be deflated its totally rad really super cool i love it";
+    private final static long LAST_MODIFIED_MILLIS = 1418418038000L; // 2014-12-12 at 21:00:38 GMT
 
     private InputStream contentIn1;
     private InputStream contentIn2;
-    
+
     @Before
     @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
@@ -59,7 +60,7 @@ public class ArchiveTest {
     public void testWriteArchive_1File() throws IOException {
         final String ARCHIVE = "test/UNITTEST_1File.zip";
         SimpleArchive archive = new SimpleArchive();
-        archive.add(PATH1, contentIn1, true);
+        archive.add(PATH1, LAST_MODIFIED_MILLIS, contentIn1, true);
         FileOutputStream out = new FileOutputStream(ARCHIVE);
         archive.writeArchive(out);
         out.close();
@@ -90,8 +91,8 @@ public class ArchiveTest {
     public void testWriteArchive_2Files() throws IOException {
         final String ARCHIVE = "test/UNITTEST_2Files.zip";
         SimpleArchive archive = new SimpleArchive();
-        archive.add(PATH1, contentIn1, true);
-        archive.add(PATH2, contentIn2, true);
+        archive.add(PATH1, LAST_MODIFIED_MILLIS, contentIn1, true);
+        archive.add(PATH2, LAST_MODIFIED_MILLIS, contentIn2, true);
         FileOutputStream out = new FileOutputStream(ARCHIVE);
         archive.writeArchive(out);
         out.close();

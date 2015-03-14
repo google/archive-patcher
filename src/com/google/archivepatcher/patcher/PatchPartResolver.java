@@ -14,22 +14,20 @@
 
 package com.google.archivepatcher.patcher;
 
-import com.google.archivepatcher.parts.Part;
-
 /**
- * Interface for a {@link Part} factory that creates {@link Part} objects
- * for {@link PatchCommand}s. Test classes and other behavior-modifiers
+ * Interface for a {@link PatchPart} factory that creates {@link PatchPart}
+ * objects for {@link PatchCommand}s. Test classes and other behavior-modifiers
  * can use this interface to generate custom implementations of the various
- * {@link Part}s for {@link PatchDirective}.
+ * {@link PatchPart}s for {@link PatchDirective}.
  */
-public interface PartResolver {
+public interface PatchPartResolver {
     /**
-     * Generates a new {@link Part} object appropriate for the specified
+     * Generates a new {@link PatchPart} object appropriate for the specified
      * {@link PatchCommand}. For example, given a
      * {@link PatchCommand#REFRESH} the implementation should return an
      * object of type {@link RefreshMetadata} or a subclass thereof. 
      * @param command the command to generate a part for
      * @return the part
      */
-    public Part partFor(PatchCommand command);
+    public PatchPart partFor(PatchCommand command);
 }

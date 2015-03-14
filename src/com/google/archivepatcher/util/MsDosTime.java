@@ -159,4 +159,29 @@ public class MsDosTime {
         if (secondDividedBy2 != other.secondDividedBy2) return false;
         return true;
     }
+
+    /**
+     * Returns the seconds in the minute divided by two, in the range [0, 30].
+     * @return the value
+     */
+    public int getSecondDividedBy2() {
+        return secondDividedBy2;
+    }
+
+    
+    /**
+     * Returns the minute in the hour, in the range [0, 59].
+     * @return the value
+     */
+    public int getMinuteOfHour() {
+        return minuteOfHour;
+    }
+
+    /**
+     * Returns the hour of the day, in the range [0, 23]
+     * @return the value
+     */
+    public int getHourOfDay() {
+        return hourOfDay;
+    }
 }

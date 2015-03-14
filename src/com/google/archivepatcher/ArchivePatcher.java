@@ -14,6 +14,12 @@
 
 package com.google.archivepatcher;
 
+import com.google.archivepatcher.compression.Compressor;
+import com.google.archivepatcher.compression.Uncompressor;
+import com.google.archivepatcher.delta.BuiltInDeltaEngine;
+import com.google.archivepatcher.delta.DeltaApplier;
+import com.google.archivepatcher.delta.DeltaGenerator;
+import com.google.archivepatcher.delta.DeltaUtils;
 import com.google.archivepatcher.parts.CentralDirectoryFile;
 import com.google.archivepatcher.parts.CentralDirectorySection;
 import com.google.archivepatcher.patcher.BeginMetadata;
@@ -22,7 +28,7 @@ import com.google.archivepatcher.patcher.PatchDirective;
 import com.google.archivepatcher.patcher.PatchMetadata;
 import com.google.archivepatcher.patcher.PatchParser;
 import com.google.archivepatcher.patcher.RefreshMetadata;
-import com.google.archivepatcher.util.MiscUtils;
+import com.google.archivepatcher.reporting.PatchGenerationReport;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -70,6 +76,8 @@ public class ArchivePatcher extends AbstractArchiveTool {
         super.configureOptions(options);
         options.option("makepatch").isUnary()
             .describedAs("generate a patch to transform --old into --new");
+        options.option("report").isUnary()
+            .describedAs("with --makepatch, show detailed report on patch generation");
         options.option("applypatch").isUnary()
             .describedAs("apply a patch file to --old, creating --new");
         options.option("explain").isUnary()
@@ -80,12 +88,6 @@ public class ArchivePatcher extends AbstractArchiveTool {
             .describedAs("the archive that --old is being transformed into");
         options.option("patch").isRequired()
             .describedAs("the path to the patchfile to create or apply");
-        options.option("deltaclass")
-            .describedAs("with --makepatch, the name of a class to use to " +
-                    "generate deltas; with --applypatch, the name of a " +
-                    "class to use to apply deltas; otherwise, unused. " +
-                    "Interfaces: " + DeltaGenerator.class.getName() +", " +
-                    DeltaApplier.class.getName());
     }
 
     @Override
@@ -108,24 +110,23 @@ public class ArchivePatcher extends AbstractArchiveTool {
         }
 
         if (options.has("makepatch")) {
-            DeltaGenerator deltaGenerator = MiscUtils.maybeCreateInstance(
-                    options.getArg("deltaclass", null),
-                    DeltaGenerator.class);
-            makePatch(options.getArg("old"),
+            PatchGenerationReport report = makePatch(options.getArg("old"),
                     options.getArg("new"),
                     options.getArg("patch"),
-                    deltaGenerator);
+                    DeltaUtils.getBuiltInDeltaGenerators(),
+                    DeltaUtils.getBuiltInCompressors());
+            if (options.has("report")) {
+                log(report.toString());
+            }
             return;
         }
 
         if (options.has("applypatch")) {
-            DeltaApplier deltaApplier = MiscUtils.maybeCreateInstance(
-                    options.getArg("deltaclass", null),
-                    DeltaApplier.class);
             applyPatch(options.getArg("old"),
                     options.getArg("new"),
                     options.getArg("patch"),
-                    deltaApplier);
+                    DeltaUtils.getBuiltInDeltaAppliers(),
+                    DeltaUtils.getBuiltInUncompressors());
             return;
         }
     }
@@ -133,26 +134,55 @@ public class ArchivePatcher extends AbstractArchiveTool {
     /**
      * Create a patch at the specified path (patchFile) that will transform
      * one archive (oldFile) to another (newFile) when applied with
-     * {@link #applyPatch(String, String, String, DeltaApplier)} using a
+     * {@link #applyPatch(String, String, String, List, List)} using a
      * compatible {@link DeltaApplier}.
      * 
      * @param oldFile the file that the generated patch will transform from
      * @param newFile the file that the generated patch will transform to
      * @param patchFile the path to write the generated patch to
-     * @param deltaGenerator optionally, a {@link DeltaGenerator} that can
-     * produce efficient deltas for individual file resources that are found
-     * in both oldFile and newFile archives
+     * @param deltaGenerators optionally, a list of {@link DeltaGenerator}s that
+     * can produce efficient deltas for individual file resources that are found
+     * in both oldFile and newFile archives.
+     * @param compressors optionally, a list of {@link Compressor}s that can
+     * compress binary artifacts.
+     * @return a {@link PatchGenerationReport} detailing the process of patch
+     * generation
      * @throws IOException if there is a problem reading or writing
      */
-    public void makePatch(String oldFile, String newFile, String patchFile,
-        DeltaGenerator deltaGenerator) throws IOException {
+    public PatchGenerationReport makePatch(String oldFile, String newFile, String patchFile,
+        List<DeltaGenerator> deltaGenerators, List<Compressor> compressors)
+            throws IOException {
         if (isVerbose()) {
             log("generating patch");
-            log("  old:             " + oldFile);
-            log("  new:             " + newFile);
-            log("  patch:           " + patchFile);
-            log("  delta generator: " + (deltaGenerator == null ?
-                    "none" : deltaGenerator.getClass().getName()));
+            log("  old:              " + oldFile);
+            log("  new:              " + newFile);
+            log("  patch:            " + patchFile);
+            String deltaGeneratorList = "";
+            if (deltaGenerators == null || deltaGenerators.isEmpty()) {
+                deltaGeneratorList = "none";
+            } else {
+                for (int x=0; x<deltaGenerators.size(); x++) {
+                    deltaGeneratorList += deltaGenerators.get(x).getClass().getName();
+                    if (x < deltaGenerators.size() - 1) {
+                        deltaGeneratorList += ", ";
+                    }
+                }
+            }
+            log("  delta generators: " + deltaGeneratorList);
+
+            String compressorList = "";
+            if (compressors == null || compressors.isEmpty()) {
+                compressorList = "none";
+            } else {
+                for (int x=0; x<compressors.size(); x++) {
+                    compressorList += compressors.get(x).getClass().getName();
+                    if (x < compressors.size() - 1) {
+                        compressorList += ", ";
+                    }
+                }
+            }
+            log("  compressors: " + compressorList);
+
         }
         FileOutputStream out = null;
         DataOutputStream dos = null;
@@ -161,9 +191,9 @@ public class ArchivePatcher extends AbstractArchiveTool {
             out = new FileOutputStream(patchFile);
             dos = new DataOutputStream(out);
             PatchGenerator generator = new PatchGenerator(
-                oldFile, newFile, dos, deltaGenerator);
+                oldFile, newFile, dos, deltaGenerators, compressors);
             generator.init();
-            generator.generateAll();
+            return generator.generateAll();
         } finally {
             if (dos != null) try {
                 dos.close(); // flushes and closes both streams
@@ -177,25 +207,54 @@ public class ArchivePatcher extends AbstractArchiveTool {
      * path (newFile) using an optional {@link DeltaApplier} to apply process
      * deltas. The specified {@link DeltaApplier} must be compatible with the
      * {@link DeltaGenerator} that was specified to
-     * {@link #makePatch(String, String, String, DeltaGenerator)}.
+     * {@link #makePatch(String, String, String, List, List)}.
      * 
      * @param oldFile the archive to be patched
      * @param newFile the path to which the new, patched archive will be written
      * @param patchFile the path to the patch file that will be used
-     * @param deltaApplier optionally, a {@link DeltaApplier} that can
+     * @param deltaAppliers optionally, a list of {@link DeltaApplier}s that can
      * apply deltas for individual file resources that were found in both
      * oldFile and newFile archives when the patch was generated
+     * @param uncompressors optionally, a list of {@link Uncompressor}s that can
+     * uncompress patch bits that have been compressed by the patch generation
+     * process
      * @throws IOException if there is a problem reading or writing
      */
     public void applyPatch(String oldFile, String newFile, String patchFile,
-        DeltaApplier deltaApplier) throws IOException {
+        List<DeltaApplier> deltaAppliers, List<Uncompressor> uncompressors)
+            throws IOException {
         if (isVerbose()) {
             log("applying patch");
             log("  old:   " + oldFile);
             log("  new:   " + newFile);
             log("  patch: " + patchFile);
+            String deltaApplierList = "";
+            if (deltaAppliers == null || deltaAppliers.isEmpty()) {
+                deltaApplierList = "none";
+            } else {
+                for (int x=0; x<deltaAppliers.size(); x++) {
+                    deltaApplierList += deltaAppliers.get(x).getClass().getName();
+                    if (x < deltaAppliers.size() - 1) {
+                        deltaApplierList += ", ";
+                    }
+                }
+            }
+            log("  delta appliers: " + deltaApplierList);
+            String uncompressorList = "";
+            if (uncompressors == null || uncompressors.isEmpty()) {
+                uncompressorList = "none";
+            } else {
+                for (int x=0; x<uncompressors.size(); x++) {
+                    uncompressorList += uncompressors.get(x).getClass().getName();
+                    if (x < uncompressors.size() - 1) {
+                        uncompressorList += ", ";
+                    }
+                }
+            }
+            log("  uncompressors: " + uncompressorList);
         }
-        PatchApplier applier = new PatchApplier(oldFile, patchFile, deltaApplier);
+        PatchApplier applier = new PatchApplier(
+            oldFile, patchFile, deltaAppliers, uncompressors);
         Archive result = applier.applyPatch();
         FileOutputStream out = new FileOutputStream(newFile);
         result.writeArchive(out);
@@ -283,6 +342,8 @@ public class ArchivePatcher extends AbstractArchiveTool {
                                     .getFileName());
                     final PatchMetadata patchMetadata =
                         (PatchMetadata) directive.getPart();
+                    final String engine = BuiltInDeltaEngine.getById(
+                            patchMetadata.getDeltaGeneratorId()).toString();
                     final int sizeOfPatchRecord =
                         1 + patchMetadata.getStructureLength();
                     // [cost - savings = delta versus new]
@@ -290,6 +351,7 @@ public class ArchivePatcher extends AbstractArchiveTool {
                         (int) patchedCdf.getCompressedSize_32bit();
                     if (isVerbose()) {
                         log("PATCH " + patchedCdf.getFileName());
+                        log("  type:    " + engine);
                         log("  cost:    " + f(sizeOfPatchRecord) + " bytes");
                         log("  savings: " + f(patchSavings) + " bytes");
                     }
@@ -303,7 +365,7 @@ public class ArchivePatcher extends AbstractArchiveTool {
                     final int sizeOfNewRecord =
                         1 + newMetadata.getStructureLength();
                     final int sizeOfNewData =
-                        newMetadata.getFileDataPart().getStructureLength();
+                        newMetadata.getDataLength();
                     if (isVerbose()) {
                         log ("NEW " +
                             newMetadata.getLocalFilePart().getFileName());

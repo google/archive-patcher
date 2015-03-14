@@ -18,9 +18,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.zip.InflaterInputStream;
 
-import com.google.archivepatcher.DeltaApplier;
 import com.google.archivepatcher.bsdiff.BsPatch;
 import com.google.archivepatcher.util.IOUtils;
 
@@ -43,8 +41,12 @@ public class BsDiffDeltaApplier implements DeltaApplier {
         }
         final byte[] oldBytes = IOUtils.readAll(oldData);
         final byte[] newBytes = new byte[new_size];
-        InflaterInputStream inflaterIn = new InflaterInputStream(deltaData);
-        BsPatch.applyPatch(oldBytes, newBytes, inflaterIn);
+        BsPatch.applyPatch(oldBytes, newBytes, deltaData);
         newOut.write(newBytes, 0, new_size);
+    }
+
+    @Override
+    public int getId() {
+        return BuiltInDeltaEngine.BSDIFF.getId();
     }
 }

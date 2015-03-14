@@ -15,27 +15,10 @@
 package com.google.archivepatcher.patcher;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import com.google.archivepatcher.Archive;
-import com.google.archivepatcher.PatchApplier;
-import com.google.archivepatcher.PatchGenerator;
-import com.google.archivepatcher.parts.LocalSectionParts;
-import com.google.archivepatcher.parts.CentralDirectoryFile;
-import com.google.archivepatcher.parts.LocalFile;
-import com.google.archivepatcher.patcher.BeginMetadata;
-import com.google.archivepatcher.patcher.NewMetadata;
-import com.google.archivepatcher.patcher.PatchDirective;
-import com.google.archivepatcher.patcher.PatchParser;
-import com.google.archivepatcher.patcher.RefreshMetadata;
-import com.google.archivepatcher.testutil.TestFile;
-import com.google.archivepatcher.util.SimpleArchive;
-import com.google.archivepatcher.util.MsDosDate;
-import com.google.archivepatcher.util.MsDosTime;
-
-import org.junit.Before;
-import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,10 +27,32 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import com.google.archivepatcher.Archive;
+import com.google.archivepatcher.PatchApplier;
+import com.google.archivepatcher.PatchGenerator;
+import com.google.archivepatcher.compression.BuiltInCompressionEngine;
+import com.google.archivepatcher.compression.Compressor;
+import com.google.archivepatcher.compression.DeflateCompressor;
+import com.google.archivepatcher.delta.BsDiffDeltaGenerator;
+import com.google.archivepatcher.delta.DeltaGenerator;
+import com.google.archivepatcher.delta.JxdDeltaGenerator;
+import com.google.archivepatcher.parts.CentralDirectoryFile;
+import com.google.archivepatcher.parts.LocalFile;
+import com.google.archivepatcher.parts.LocalSectionParts;
+import com.google.archivepatcher.reporting.PatchGenerationReport;
+import com.google.archivepatcher.testutil.TestFile;
+import com.google.archivepatcher.util.MsDosDate;
+import com.google.archivepatcher.util.MsDosTime;
+import com.google.archivepatcher.util.SimpleArchive;
 
 /**
  * Tests for a {@link PatchGenerator}.
@@ -111,12 +116,21 @@ public class PatchGeneratorTest {
         outBuffer = null;
     }
 
-    private void generatePatch() throws IOException {
+    @Deprecated
+    private PatchGenerationReport generatePatchWithoutDeltaOrCompression() throws IOException {
+        // TODO: Generate with deltas and compression instead
+        return generatePatch(null, null);
+    }
+
+    private PatchGenerationReport generatePatch(
+        List<DeltaGenerator> deltaGenerators, List<Compressor> compressors)
+            throws IOException {
         outBuffer = new ByteArrayOutputStream();
         DataOutput dataOut = new DataOutputStream(outBuffer);
-        PatchGenerator generator = new PatchGenerator(oldArchive, newArchive, dataOut, null);
+        PatchGenerator generator = new PatchGenerator(
+            oldArchive, newArchive, dataOut, deltaGenerators, compressors);
         generator.init();
-        generator.generateAll();
+        return generator.generateAll();
     }
 
     private List<PatchDirective> getDirectives() throws IOException {
@@ -155,7 +169,7 @@ public class PatchGeneratorTest {
         newArchive.writeArchive(binaryExpected);
         ByteArrayInputStream in = new ByteArrayInputStream(outBuffer.toByteArray());
         PatchParser parser = new PatchParser(new DataInputStream(in));
-        PatchApplier applier = new PatchApplier(oldArchive, parser, null);
+        PatchApplier applier = new PatchApplier(oldArchive, parser, null, null);
         Archive transformed = applier.applyPatch();
         // LOGICAL test
         assertEquals(newArchive, transformed);
@@ -198,7 +212,9 @@ public class PatchGeneratorTest {
 
     private static NewMetadata metadataForNew(Archive archive, TestFile file) {
         LocalSectionParts alp = archive.getLocal().getByPath(file.file);
-        return new NewMetadata(alp.getLocalFilePart(), alp.getFileDataPart(), alp.getDataDescriptorPart());
+        // TODO: Also test compression engines here
+        return new NewMetadata(alp.getLocalFilePart(), alp.getDataDescriptorPart(),
+            BuiltInCompressionEngine.NONE.getId(), alp.getFileDataPart().getData());
     }
 
     private static RefreshMetadata metadataForRefresh(Archive archive, TestFile file) {
@@ -217,7 +233,7 @@ public class PatchGeneratorTest {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1);
         assertEquals(oldArchive, newArchive);
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(0));
         assertDirectivesMatch();
     }
@@ -227,7 +243,7 @@ public class PatchGeneratorTest {
     public void testReplaceOne() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF2);
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.NEW(metadataForNew(newArchive, TF2)));
         assertDirectivesMatch();
     }
@@ -237,7 +253,7 @@ public class PatchGeneratorTest {
     public void testDeleteFirst() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF2,TF3); // missing FIRST entry
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF2)));
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF3)));
         assertDirectivesMatch();
@@ -248,7 +264,7 @@ public class PatchGeneratorTest {
     public void testDeleteMiddle() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF1,TF3); // missing MIDDLE entry
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF1)));
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF3)));
         assertDirectivesMatch();
@@ -259,7 +275,7 @@ public class PatchGeneratorTest {
     public void testDeleteLast() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3);
         newArchive = makeArchive(TF1,TF2); // missing LAST entry
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF1)));
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF2)));
         assertDirectivesMatch();
@@ -270,7 +286,7 @@ public class PatchGeneratorTest {
     public void testCopyOutOfOrder() throws Exception {
         oldArchive = makeArchive(TF1,TF2,TF3,TF4);
         newArchive = makeArchive(TF4,TF3,TF2,TF1);
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF4)));
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF3)));
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF2)));
@@ -284,7 +300,7 @@ public class PatchGeneratorTest {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1);
         twiddleTime(newArchive, TF1, 5000); // Make TF1 newer, but keep same data
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.REFRESH(
                 offsetForCopy(oldArchive, TF1),
                 metadataForRefresh(newArchive, TF1)));
@@ -296,20 +312,24 @@ public class PatchGeneratorTest {
     public void testAppend() throws Exception {
         oldArchive = makeArchive(TF1);
         newArchive = makeArchive(TF1,TF2);
-        generatePatch();
+        generatePatchWithoutDeltaOrCompression();
         expectDirective(PatchDirective.COPY(offsetForCopy(oldArchive, TF1)));
         expectDirective(PatchDirective.NEW(metadataForNew(newArchive, TF2)));
         assertDirectivesMatch();
     }
 
-    @Test
-    @SuppressWarnings("javadoc")
-    public void testMixture() throws Exception {
+    private void prepareMixtureTest() throws Exception {
         oldArchive = makeArchive(TF1, TF2, TF3);
         newArchive = makeArchive(TF2, TF3, TF4);
         twiddleTime(newArchive, TF2, 5000); // Make TF2 newer, but keep same data
         twiddleData(newArchive, TF3); // Make TF3 have updated data
-        generatePatch();
+    }
+
+    @Test
+    @SuppressWarnings("javadoc")
+    public void testMixture() throws Exception {
+        prepareMixtureTest();
+        generatePatchWithoutDeltaOrCompression();
         // Deleted: TF1; 
         // Added: TF4 (NEW)
         // New metadata: TF2 (REFRESH)
@@ -321,4 +341,28 @@ public class PatchGeneratorTest {
         expectDirective(PatchDirective.NEW(metadataForNew(newArchive, TF4)));
         assertDirectivesMatch();
     }
+
+    @Test
+    @SuppressWarnings("javadoc")
+    public void testReportGeneration() throws Exception {
+        prepareMixtureTest();
+        List<DeltaGenerator> deltaGenerators = new ArrayList<DeltaGenerator>();
+        deltaGenerators.add(new JxdDeltaGenerator());
+        deltaGenerators.add(new BsDiffDeltaGenerator());
+        List<Compressor> compressors = new ArrayList<Compressor>();
+        compressors.add(new DeflateCompressor());
+        PatchGenerationReport report = generatePatch(deltaGenerators, compressors);
+        assertNotNull(report);
+        String textReport = report.toString();
+        assertNotNull(textReport);
+        assertFalse(textReport.isEmpty());
+        String csvReport = report.toCsv();
+        assertNotNull(csvReport);
+        assertFalse(csvReport.isEmpty());
+        System.out.println("Test Report (Text):");
+        System.out.println(report);
+        System.out.println("Test Report (CSV):");
+        System.out.println(report.toCsv());
+    }
+
 }

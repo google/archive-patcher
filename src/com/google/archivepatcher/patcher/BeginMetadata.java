@@ -21,7 +21,6 @@ import java.io.IOException;
 import com.google.archivepatcher.parts.CentralDirectoryFile;
 import com.google.archivepatcher.parts.CentralDirectorySection;
 import com.google.archivepatcher.parts.EndOfCentralDirectory;
-import com.google.archivepatcher.parts.Part;
 
 /**
  * The first piece of a patch, consisting of a {@link CentralDirectorySection}.
@@ -35,7 +34,7 @@ import com.google.archivepatcher.parts.Part;
  * <br>[Central Directory File Record #3]
  * <br>...
  */
-public class BeginMetadata implements Part {
+public class BeginMetadata extends PatchPart {
     /**
      * The {@link CentralDirectorySection} that is read or written by this
      * object.
@@ -75,7 +74,9 @@ public class BeginMetadata implements Part {
     }
 
     @Override
-    public void read(DataInput input) throws IOException {
+    public void read(DataInput input, ArchivePatcherVersion patchVersion)
+        throws IOException {
+        super.read(input, patchVersion);
         cd = new CentralDirectorySection();
         EndOfCentralDirectory eocd = new EndOfCentralDirectory();
         eocd.read(input);

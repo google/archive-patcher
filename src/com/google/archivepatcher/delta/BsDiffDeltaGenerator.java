@@ -18,10 +18,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
 
-import com.google.archivepatcher.DeltaGenerator;
 import com.google.archivepatcher.bsdiff.BsDiff;
 import com.google.archivepatcher.util.IOUtils;
 
@@ -40,16 +37,15 @@ public class BsDiffDeltaGenerator extends DeltaGenerator {
         // that can walk off the end of the buffer by one byte.
         final byte[] oldBytes = IOUtils.readAll(oldData);
         final byte[] newBytes = IOUtils.readAll(newData);
-        Deflater deflater = new Deflater(Deflater.BEST_COMPRESSION);
-        {
-            final DataOutputStream dataOut = new DataOutputStream(deltaOut);
-            IOUtils.writeUTF8(dataOut, "HAYDEN/BSDIFF43 ");
-            IOUtils.writeUnsignedInt(dataOut, newBytes.length);
-            dataOut.flush();
-        }
-        DeflaterOutputStream deflaterOut = new DeflaterOutputStream(deltaOut, deflater);
-        BsDiff.generatePatch(oldBytes, newBytes, deflaterOut);
-        deflaterOut.finish();
-        deflaterOut.flush();
+        final DataOutputStream dataOut = new DataOutputStream(deltaOut);
+        IOUtils.writeUTF8(dataOut, "HAYDEN/BSDIFF43 ");
+        IOUtils.writeUnsignedInt(dataOut, newBytes.length);
+        BsDiff.generatePatch(oldBytes, newBytes, dataOut);
+        dataOut.flush();
+    }
+
+    @Override
+    public int getId() {
+        return BuiltInDeltaEngine.BSDIFF.getId();
     }
 }

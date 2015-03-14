@@ -14,12 +14,11 @@
 
 package com.google.archivepatcher.patcher;
 
-import com.google.archivepatcher.parts.Part;
-import com.google.archivepatcher.util.IOUtils;
-
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Collection;
+
+import com.google.archivepatcher.util.IOUtils;
 
 /**
  * Generates a patch, converting the an ordered sequence of
@@ -49,7 +48,7 @@ public class PatchWriter {
 
     /**
      * Initializes the writer, writing the patch signature metadata to the
-     * destination. Subseqeunt invocations are no-ops.
+     * destination. Subsequent invocations are no-ops.
      * @return this object
      * @throws IOException if unable to write the metadata
      */
@@ -73,7 +72,7 @@ public class PatchWriter {
         final PatchCommand command = directive.getCommand();
         out.write(command.signature);
         int written = 1;
-        Part part = null;
+        PatchPart part = null;
         int partLength = -1;
         switch(directive.getCommand()) {
             case COPY: // "COPY @OFFSET"

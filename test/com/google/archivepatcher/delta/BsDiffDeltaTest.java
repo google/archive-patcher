@@ -23,7 +23,9 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Before;
@@ -34,6 +36,10 @@ import com.google.archivepatcher.PatchApplier;
 import com.google.archivepatcher.PatchGenerator;
 import com.google.archivepatcher.bsdiff.BsDiff;
 import com.google.archivepatcher.bsdiff.BsPatch;
+import com.google.archivepatcher.compression.Compressor;
+import com.google.archivepatcher.compression.DeflateCompressor;
+import com.google.archivepatcher.compression.DeflateUncompressor;
+import com.google.archivepatcher.compression.Uncompressor;
 import com.google.archivepatcher.patcher.PatchCommand;
 import com.google.archivepatcher.testutil.ObservablePatchParser;
 import com.google.archivepatcher.testutil.TestFile;
@@ -76,7 +82,9 @@ public class BsDiffDeltaTest {
     private ByteArrayOutputStream outBuffer;
     private DataOutput out;
     private BsDiffDeltaGenerator deltaGenerator;
+    private DeflateCompressor compressor;
     private BsDiffDeltaApplier deltaApplier;
+    private Uncompressor uncompressor;
 
     private static Archive makeUncompressedArchive(TestFile... files) throws IOException {
         SimpleArchive archive = new SimpleArchive();
@@ -96,7 +104,9 @@ public class BsDiffDeltaTest {
         outBuffer = new ByteArrayOutputStream();
         out = new DataOutputStream(outBuffer);
         deltaGenerator = new BsDiffDeltaGenerator();
+        compressor = new DeflateCompressor();
         deltaApplier = new BsDiffDeltaApplier();
+        uncompressor = new DeflateUncompressor();
     }
 
     private byte[] toByteArray(Archive archive) throws IOException {
@@ -107,14 +117,25 @@ public class BsDiffDeltaTest {
 
     @Test
     public void testGenerateAndApply() throws Exception {
-        PatchGenerator generator = new PatchGenerator(archive1, archive2, out, deltaGenerator);
+        List<DeltaGenerator> deltaGenerators = new ArrayList<DeltaGenerator>();
+        deltaGenerators.add(deltaGenerator);
+        List<Compressor> compressors = new ArrayList<Compressor>();
+        compressors.add(compressor);
+        PatchGenerator generator = new PatchGenerator(
+            archive1, archive2, out, deltaGenerators, compressors);
         generator.generateAll();
         byte[] patch = outBuffer.toByteArray();
         assertTrue(patch.length < CONTENT1_LENGTH);
         ByteArrayInputStream in = new ByteArrayInputStream(patch);
         DataInputStream dataIn = new DataInputStream(in);
         ObservablePatchParser parser = new ObservablePatchParser(dataIn);
-        PatchApplier applier = new PatchApplier(archive1, parser, deltaApplier);
+
+        List<DeltaApplier> deltaAppliers = new ArrayList<DeltaApplier>();
+        deltaAppliers.add(deltaApplier);
+        List<Uncompressor> uncompressors = new ArrayList<Uncompressor>();
+        uncompressors.add(uncompressor);
+        PatchApplier applier = new PatchApplier(
+            archive1, parser, deltaAppliers, uncompressors);
         Archive patchedArchive = applier.applyPatch();
         assertTrue(parser.initInvoactionCount > 0);
         assertEquals(2, parser.directivesRead.size());

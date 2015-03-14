@@ -1,4 +1,18 @@
-package com.google.archivepatcher;
+// Copyright 2015 Google Inc. All rights reserved.
+// 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.google.archivepatcher.delta;
 
 import com.google.archivepatcher.parts.CentralDirectoryFile;
 import com.google.archivepatcher.parts.LocalSectionParts;
@@ -64,4 +78,28 @@ public abstract class DeltaGenerator {
      */
     public abstract void makeDelta(InputStream oldData, InputStream newData,
             OutputStream deltaOut) throws IOException;
+
+    /**
+     * Returns the unique ID of this delta generator. This should match the ID
+     * returned by the identically-named method in the corresponding
+     * DeltaApplier implementation.
+     * @return the ID, which must be greater than zero.
+     */
+    public abstract int getId();
+
+    /**
+     * Returns an indication of whether or not the delta generator's output is
+     * compressed by the implementation. In general, delta generators should
+     * <strong>not</strong> compress their output; the code using the delta
+     * generator can then use arbitrary compression algorithms for maximum
+     * compression and portability.
+     * <p>
+     * The default implementation returns false.
+     * 
+     * @return true if and only if the implementation compresses the output
+     * automatically (not recommended)
+     */
+    public boolean isDeltaOutputCompressed() {
+        return false;
+    }
 }

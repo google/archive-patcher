@@ -28,7 +28,7 @@ public enum Flag {
     @SuppressWarnings("javadoc")
     EOS_MARKER_PRESENT(1),         // IFF compression method = 14  (LZMA)
     @SuppressWarnings("javadoc")
-    USED_8K_SLIDING_DICTIONARY(1), // IFF compresison method = 6   (Implode)
+    USED_8K_SLIDING_DICTIONARY(1), // IFF compression method = 6   (Implode)
     @SuppressWarnings("javadoc")
     USED_3_SANNON_FANO_TREES(2),   // IFF compression method = 6   (Implode)
     @SuppressWarnings("javadoc")

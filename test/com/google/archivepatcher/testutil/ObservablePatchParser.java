@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.google.archivepatcher.patcher.PartResolver;
+import com.google.archivepatcher.patcher.PatchPartResolver;
 import com.google.archivepatcher.patcher.PatchDirective;
 import com.google.archivepatcher.patcher.PatchParseException;
 import com.google.archivepatcher.patcher.PatchParser;
@@ -45,7 +45,7 @@ public class ObservablePatchParser extends PatchParser {
     public final List<PatchDirective> directivesRead =
         new LinkedList<PatchDirective>();
 
-    public ObservablePatchParser(DataInput in, PartResolver resolver) {
+    public ObservablePatchParser(DataInput in, PatchPartResolver resolver) {
         super(in, resolver);
     }
 

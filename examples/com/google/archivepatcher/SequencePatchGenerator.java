@@ -15,13 +15,16 @@
 package com.google.archivepatcher;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
+import com.google.archivepatcher.delta.DeltaUtils;
 import com.google.archivepatcher.util.MiscUtils;
 import com.google.archivepatcher.util.Pair;
 
@@ -52,55 +55,122 @@ public class SequencePatchGenerator extends AbstractArchiveTool {
     @Override
     public void configureOptions(MicroOptions options) {
         super.configureOptions(options);
-        options.option("archive-list-file").isRequired().describedAs(
+        options.option("archive-list").isRequired().describedAs(
             "path to a file containing a list of archives to be processed, " +
-            "in ascending order by version. Paths should be either absolute " +
-            "or relative, in which case they are relative to the directory " +
-            "in which the archive list file resides.");
+            "in ascending order by version OR to a directory whose files " +
+            "are already lexically sorted in the desired order. When using " +
+            "a list file, paths should be either absolute or relative, in " +
+            "which case they are relative to the directory in which the " +
+            "archive list file resides. In directory mode, all files ending " +
+            "in '.patch' or '.patch.deflated' are ignored.");
         options.option("output-directory").describedAs(
             "sets the path to the directory where patch files should be " +
-            "written; defaults to the current working directory.");
+            "written; defaults to the directory that is archive-list or " +
+            "the directory containing the archive-list file.");
         options.option("generate-leapfrog-patches").isUnary().describedAs(
             "generate 'leapfrog' patches in addition to the normal sequence");
-        options.option("delta-class").describedAs(
-            "the name of a class to use to generate deltas; must implement " +
-            "the interface: " + DeltaGenerator.class.getName());
-        options.option("compress").isUnary().describedAs(
-            "in addition to the regular patch files, generate compressed " +
-            "patches using DEFLATE compression and append the suffix " +
+        options.option("csv").isUnary().describedAs(
+            "write csv output to stdout consisting of tuples of the " +
+            "following values: [old archive path], [new archive path], " +
+            "[patch path], [compressed patch path], [old archive size], " +
+            "[new archive size], [patch size], [compressed patch size], " +
+            "[bytes saved, uncompressed patch versus new archive], " +
+            "[bytes saved, compressed patch versus new archive]");
+        options.option("no-compress").isUnary().describedAs(
+            "in addition to the regular patch files, normally generates " +
+            "patches using DEFLATE compression appending the suffix " +
             "'.deflated' to the generated files. This is useful for " +
             "simulating the effects of HTTP compression on patch transfer, " +
-            "or simply for generating patches that are smaller on disk.");
+            "or simply for generating patches that are smaller on disk. " +
+            "Setting this option disables this feature.");
     }
 
-    private String archiveListPath = null;
-    private File archiveListFile = null;
-    private String outputPath = null;
+    private File baseDirectory;
+    private final List<String> archivePaths = new ArrayList<String>();
     private File outputDirectory = null;
-    private String deltaClassName = null;
     private boolean generateLeapfrogs = false;
     private boolean compress = false;
 
     @Override
     protected void run(MicroOptions options) throws Exception {
         // First read all the paths from the list file.
-        archiveListPath = options.getArg("archive-list-file");
-        archiveListFile = MiscUtils.getReadableFile(archiveListPath);
-        outputPath = options.getArg("output-directory", ".");
-        outputDirectory = new File(outputPath);
-        deltaClassName = options.getArg("delta-class",  null);
+        String archiveListPath = options.getArg("archive-list");
+        File archiveListFile = new File(archiveListPath);
+        if (archiveListFile.isFile()) {
+            archivePaths.addAll(MiscUtils.readLines(
+                MiscUtils.getReadableFile(archiveListPath), '#'));
+            baseDirectory = archiveListFile.getParentFile();
+            outputDirectory = baseDirectory;
+        } else if (archiveListFile.isDirectory()) {
+            final SortedSet<String> sorted = new TreeSet<String>();
+            archiveListFile.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File pathname) {
+                    if (!pathname.isFile()) return false;
+                    if (pathname.getName().endsWith(".patch")) return false;
+                    if (pathname.getName().endsWith(".patch.deflated")) return false;
+                    sorted.add(pathname.getName());
+                    return true;
+                }
+            });
+            archivePaths.addAll(sorted);
+            baseDirectory = archiveListFile;
+            outputDirectory = baseDirectory;
+        }
+        if (options.has("output-directory")) {
+            outputDirectory = new File(options.getArg("output-directory"));
+        }
         generateLeapfrogs = options.has("generate-leapfrog-patches");
-        compress = options.has("compress");
-        generateAll();
+        compress = !options.has("no-compress");
+        generateAll(options.has("csv"));
+    }
+
+    /**
+     * Helper class that records statistics for each patch that is generated.
+     */
+    private static class PatchStats {
+        String oldPath;
+        String newPath;
+        String uncompressedPatchPath;
+        String compressedPatchPath;
+        long oldSizeBytes;
+        long newSizeBytes;
+        long uncompressedPatchSizeBytes;
+        long compressedPatchSizeBytes;
+
+        @Override
+        public String toString() {
+            final long uncompressedPatchSavings = newSizeBytes - uncompressedPatchSizeBytes;
+            final long compressedPatchSavings = newSizeBytes - compressedPatchSizeBytes;
+            StringBuilder buffer = new StringBuilder();
+            buffer.append(oldPath);
+            buffer.append(',').append(newPath);
+            buffer.append(',').append(uncompressedPatchPath);
+            if (compressedPatchPath != null) {
+                buffer.append(',').append(compressedPatchPath);
+            }
+            buffer.append(',').append(oldSizeBytes);
+            buffer.append(',').append(newSizeBytes);
+            buffer.append(',').append(uncompressedPatchSizeBytes);
+            if (compressedPatchPath != null) {
+                buffer.append(',').append(compressedPatchSizeBytes);
+            }
+            buffer.append(',').append(uncompressedPatchSavings);
+            if (compressedPatchPath != null) {
+                buffer.append(',').append(compressedPatchSavings);
+            }
+            return buffer.toString();
+        }
     }
 
     /**
      * Generate all patches.
+     * @param outputCsv whether or not to output CSV output to stdout as
+     * progress is made.
+     * @return the list of statistics gathered
      * @throws IOException if anything goes awry
      */
-    private void generateAll() throws IOException {
-        final List<String> archivePaths = Collections.unmodifiableList(
-            MiscUtils.readLines(archiveListFile, '#'));
+    private List<PatchStats> generateAll(boolean outputCsv) throws IOException {
         if (archivePaths.size() < 2) {
             throw new MicroOptions.OptionException(
                 "List file must contain at least two entries!");
@@ -119,14 +189,23 @@ public class SequencePatchGenerator extends AbstractArchiveTool {
 
         // Now generate the list of all the patches we will create.
         final List<Pair<File>> patchPairs = generatePatchPairs(
-            archiveListFile.getParentFile(), archivePaths, generateLeapfrogs);
+            baseDirectory, archivePaths, generateLeapfrogs);
+
+        final List<PatchStats> statsList = new ArrayList<PatchStats>();
 
         // Generate each patch, gathering statistics.
         logVerbose("Generating " + patchPairs.size() + " patches...");
         for (final Pair<File> pair : patchPairs) {
             final File patchFile =
-                generateOnePatch(outputDirectory, deltaClassName, pair,
-                    isVerbose());
+                generateOnePatch(outputDirectory, pair, isVerbose());
+            PatchStats stats = new PatchStats();
+            statsList.add(stats);
+            stats.oldPath = pair.value1.getName();
+            stats.newPath = pair.value2.getName();
+            stats.uncompressedPatchPath = patchFile.getName();
+            stats.oldSizeBytes = pair.value1.length();
+            stats.newSizeBytes = pair.value2.length();
+            stats.uncompressedPatchSizeBytes = patchFile.length();
 
             // Stats!
             logVerbose(patchFile.getName() + ": " + patchFile.length() +
@@ -139,32 +218,37 @@ public class SequencePatchGenerator extends AbstractArchiveTool {
                 // Stats!
                 logVerbose(compressedFile.getName() + ": " +
                     compressedFile.length() + " bytes");
+                stats.compressedPatchPath = compressedFile.getName();
+                stats.compressedPatchSizeBytes = compressedFile.length();
+            }
+
+            if (outputCsv) {
+                log(stats.toString());
             }
         }
+
+        return statsList;
     }
 
     /**
      * Generates one patch.
      * @param outputDirectory the directory in which to generate the patch
-     * @param deltaClassName the name of the delta class to be used
      * @param pair the pair of archives to generate a patch for
      * @param verbose whether or not to be verbose
      * @return the patch file generated
      * @throws IOException if there is a problem reading or writing
      */
     final static File generateOnePatch(final File outputDirectory,
-        final String deltaClassName, final Pair<File> pair, boolean verbose)
-            throws IOException {
+        final Pair<File> pair, boolean verbose)throws IOException {
         final String patchName = generatePatchName(pair);
         final File patchFile = new File(outputDirectory, patchName);
         final ArchivePatcher patcher = new ArchivePatcher();
         patcher.setVerbose(verbose);
-        final DeltaGenerator deltaGenerator =
-            MiscUtils.maybeCreateInstance(
-                deltaClassName, DeltaGenerator.class);
         patcher.makePatch(pair.value1.getAbsolutePath(),
             pair.value2.getAbsolutePath(),
-            patchFile.getAbsolutePath(), deltaGenerator);
+            patchFile.getAbsolutePath(),
+            DeltaUtils.getBuiltInDeltaGenerators(),
+            DeltaUtils.getBuiltInCompressors());
         return patchFile;
     }
 

@@ -14,7 +14,6 @@
 
 package com.google.archivepatcher.patcher;
 
-import com.google.archivepatcher.parts.Part;
 import com.google.archivepatcher.util.IOUtils;
 
 import java.io.DataInput;
@@ -39,10 +38,10 @@ public class PatchParser {
     private final DataInput in;
 
     /**
-     * The {@link PartResolver} that converts {@link PatchCommand}s to
-     * {@link Part} objects.
+     * The {@link PatchPartResolver} that converts {@link PatchCommand}s to
+     * {@link PatchPart} objects.
      */
-    private final PartResolver resolver;
+    private final PatchPartResolver resolver;
 
     /**
      * Whether or not we have initialized by reading patch magic.
@@ -50,8 +49,13 @@ public class PatchParser {
     private boolean initialized = false;
 
     /**
+     * The version of the patch being read.
+     */
+    private ArchivePatcherVersion patchVersion = null;
+
+    /**
      * Creates a new parser that will read from the specified file using the
-     * default {@link PartResolver}.
+     * default {@link PatchPartResolver}.
      * @param in the file to read from
      * @throws IOException if there is a problem opening the file
      */
@@ -61,7 +65,7 @@ public class PatchParser {
 
     /**
      * Creates a new parser that will read from the specified input source
-     * using the default {@link PartResolver}.
+     * using the default {@link PatchPartResolver}.
      * @param in the input source to read from
      */
     public PatchParser(DataInput in) {
@@ -70,11 +74,12 @@ public class PatchParser {
 
     /**
      * Creates a new parser that will read from the specified input source
-     * using the specified {@link PartResolver}.
+     * using the specified {@link PatchPartResolver}.
      * @param in the input source to read from
-     * @param resolver the resolver to use for creating {@link Part} objects
+     * @param resolver the resolver to use for creating {@link PatchPart}
+     * objects
      */
-    public PatchParser(DataInput in, PartResolver resolver) {
+    public PatchParser(DataInput in, PatchPartResolver resolver) {
         this.in = in;
         this.resolver = resolver;
     }
@@ -90,9 +95,10 @@ public class PatchParser {
         if (initialized) return this;
         initialized = true;
         final String magic = PatchMagic.readStandardHeader(in);
-        final int version = PatchMagic.getVersion(magic);
-        if (version < 1) {
-            throw new PatchParseException("bad version: " + version);
+        try {
+            patchVersion = PatchMagic.getPatchVersion(magic);
+        } catch (IllegalArgumentException e) {
+            throw new PatchParseException("bad version");
         }
         return this;
     }
@@ -176,7 +182,7 @@ public class PatchParser {
      */
     private PatchDirective parsePatchCommand() throws PatchParseException {
         // Format: "PATCH @OFFSET [patchLength] [patch]"
-        final Part part = resolver.partFor(PatchCommand.PATCH);
+        final PatchPart part = resolver.partFor(PatchCommand.PATCH);
         int offset;
         try {
             offset = (int) IOUtils.readUnsignedInt(in);
@@ -191,7 +197,7 @@ public class PatchParser {
                 "Can't read part length for PATCH command", e);
         }
         try {
-            part.read(in);
+            part.read(in, patchVersion);
         } catch (IOException e) {
             throw new PatchParseException(
                 "Can't parse content for PATCH command", e);
@@ -207,7 +213,7 @@ public class PatchParser {
      */
     private PatchDirective parseRefreshCommand() throws PatchParseException {
         // Format: "REFRESH @OFFSET [partLength] [part=[META]]"
-        final Part part = resolver.partFor(PatchCommand.REFRESH);
+        final PatchPart part = resolver.partFor(PatchCommand.REFRESH);
         int offset;
         try {
             offset = (int) IOUtils.readUnsignedInt(in);
@@ -222,7 +228,7 @@ public class PatchParser {
                 "Can't read part length for REFRESH command", e);
         }
         try {
-            part.read(in);
+            part.read(in, patchVersion);
         } catch (IOException e) {
             throw new PatchParseException(
                 "Can't parse content for REFRESH command", e);
@@ -238,7 +244,7 @@ public class PatchParser {
      */
     private PatchDirective parseNewCommand() throws PatchParseException {
         // Format: "NEW [partLength] [part=[CDFH][LFH][DATA][DD]?]"
-        final Part part = resolver.partFor(PatchCommand.NEW);
+        final PatchPart part = resolver.partFor(PatchCommand.NEW);
         try {
             IOUtils.readUnsignedInt(in);
         } catch (IOException e) {
@@ -246,7 +252,7 @@ public class PatchParser {
                 "Can't read part length for NEW command", e);
         }
         try {
-            part.read(in);
+            part.read(in, patchVersion);
         } catch (IOException e) {
             throw new PatchParseException(
                 "Can't parse content for NEW command", e);
@@ -262,7 +268,7 @@ public class PatchParser {
      */
     private PatchDirective parseBeginCommand() throws PatchParseException {
         // Format: // "BEGIN [partLength] [part=[EOCD]]"
-        final Part part = resolver.partFor(PatchCommand.BEGIN);
+        final PatchPart part = resolver.partFor(PatchCommand.BEGIN);
         try {
             IOUtils.readUnsignedInt(in);
         } catch (IOException e) {
@@ -270,7 +276,7 @@ public class PatchParser {
                 "Can't read part length for BEGIN command", e);
         }
         try {
-            part.read(in);
+            part.read(in, patchVersion);
         } catch (IOException e) {
             throw new PatchParseException(
                 "Can't parse content for BEGIN command", e);

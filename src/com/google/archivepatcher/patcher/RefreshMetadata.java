@@ -21,7 +21,6 @@ import java.io.IOException;
 import com.google.archivepatcher.meta.Flag;
 import com.google.archivepatcher.parts.DataDescriptor;
 import com.google.archivepatcher.parts.LocalFile;
-import com.google.archivepatcher.parts.Part;
 
 /**
  * The manifestation of a {@link PatchCommand#REFRESH} in a patch file,
@@ -35,7 +34,7 @@ import com.google.archivepatcher.parts.Part;
  * the {@link LocalFile} part has the
  * {@link Flag#USE_DATA_DESCRIPTOR_FOR_SIZES_AND_CRC32} bit set.
  */
-public class RefreshMetadata implements Part {
+public class RefreshMetadata extends PatchPart {
     /**
      * The {@link LocalFile} part that is read or written by this object.
      */
@@ -96,7 +95,9 @@ public class RefreshMetadata implements Part {
     }
 
     @Override
-    public void read(DataInput input) throws IOException {
+    public void read(DataInput input, ArchivePatcherVersion patchVersion)
+        throws IOException {
+        super.read(input, patchVersion);
         localFilePart = new LocalFile();
         localFilePart.read(input);
         if (!hasDataDescriptor()) return;

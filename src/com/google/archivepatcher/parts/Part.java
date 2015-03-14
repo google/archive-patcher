@@ -24,7 +24,7 @@ import java.io.IOException;
  * end-of-central-directory record.
  * <p>
  * Subclasses should make sure to implement {@link #hashCode()} and
- * {@link #equals(Object)}, as these interfaces nay be required in order for
+ * {@link #equals(Object)}, as these interfaces may be required in order for
  * patch generation to function correctly.
  */
 public interface Part {

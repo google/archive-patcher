@@ -14,11 +14,9 @@
 
 package com.google.archivepatcher.patcher;
 
-import com.google.archivepatcher.parts.Part;
-
 /**
- * The default implementation of the {@link PartResolver} interface, which
- * simply generates the built-in {@link Part} objects for each
+ * The default implementation of the {@link PatchPartResolver} interface, which
+ * simply generates the built-in {@link PatchPart} objects for each
  * {@link PatchCommand} according to the following mapping:
  * <br>{@link PatchCommand#BEGIN} yields a {@link BeginMetadata} object
  * <br>{@link PatchCommand#COPY} yields an IllegalArgumentException
@@ -26,10 +24,10 @@ import com.google.archivepatcher.parts.Part;
  * <br>{@link PatchCommand#PATCH} yields a {@link PatchMetadata} object
  * <br>{@link PatchCommand#REFRESH} yields a {@link RefreshMetadata} object
  */
-public class DefaultPartResolver implements PartResolver {
+public class DefaultPartResolver implements PatchPartResolver {
 
     @Override
-    public Part partFor(final PatchCommand command) {
+    public PatchPart partFor(final PatchCommand command) {
         switch (command) {
             case BEGIN:     return new BeginMetadata();
             case NEW:       return new NewMetadata();

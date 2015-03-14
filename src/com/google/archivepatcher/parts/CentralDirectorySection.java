@@ -164,4 +164,18 @@ public class CentralDirectorySection {
     public EndOfCentralDirectory getEocd() {
         return eocd;
     }
+
+    /**
+     * Returns the number of bytes that this section contains, which is the
+     * sum of the lengths of all the parts within it.
+     * @return as described
+     */
+    public int getStructureLength() {
+        int length = 0;
+        for (CentralDirectoryFile cdf : entries) {
+            length += cdf.getStructureLength();
+        }
+        length += eocd.getStructureLength();
+        return length;
+    }
 }

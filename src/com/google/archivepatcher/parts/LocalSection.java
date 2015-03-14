@@ -131,4 +131,17 @@ public class LocalSection {
         return "LocalSection [entries=" + entries
             + ", entryIndexByPath=" + entryIndexByPath + "]";
     }
+
+    /**
+     * Returns the number of bytes that this section contains, which is the
+     * sum of the lengths of all the parts within it.
+     * @return as described
+     */
+    public int getStructureLength() {
+        int length = 0;
+        for (LocalSectionParts lsp : entries) {
+            length += lsp.getStructureLength();
+        }
+        return length;
+    }
 }

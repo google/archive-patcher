@@ -26,6 +26,10 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.archivepatcher.compression.BuiltInCompressionEngine;
+import com.google.archivepatcher.compression.Compressor;
+import com.google.archivepatcher.compression.DeflateCompressor;
+
 /**
  * Tests for a {@link PatchParser}.
  */
@@ -34,6 +38,7 @@ public class PatchParserTest {
     private DataOutput writeOut;
     private PatchWriter writer;
     private PatchTestData td;
+    private final static int TEST_DELTA_GENERATOR_ID = 17;
 
     @Before
     @SuppressWarnings("javadoc")
@@ -58,7 +63,19 @@ public class PatchParserTest {
     @Test
     @SuppressWarnings("javadoc")
     public void testNew() throws IOException {
-        final NewMetadata part = new NewMetadata(td.lf, td.fd, null);
+        final NewMetadata part = new NewMetadata(td.lf, null,
+            BuiltInCompressionEngine.NONE.getId(), td.fd.getData());
+        assertExpected(PatchDirective.NEW(part));
+    }
+
+    @Test
+    @SuppressWarnings("javadoc")
+    public void testNewWithCompressedData() throws IOException {
+        Compressor compressor = new DeflateCompressor();
+        ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+        compressor.compress(new ByteArrayInputStream(td.fd.getData()), compressed);
+        final NewMetadata part = new NewMetadata(td.lf, null,
+            BuiltInCompressionEngine.DEFLATE.getId(), compressed.toByteArray());
         assertExpected(PatchDirective.NEW(part));
     }
 
@@ -86,7 +103,29 @@ public class PatchParserTest {
     @SuppressWarnings("javadoc")
     public void testPatch() throws IOException {
         final byte[] patchData = "bar".getBytes("UTF-8");
-        final PatchMetadata part = new PatchMetadata(td.lf, null, patchData);
+        final PatchMetadata part = new PatchMetadata(
+            td.lf,
+            null,
+            TEST_DELTA_GENERATOR_ID,
+            BuiltInCompressionEngine.NONE.getId(),
+            patchData);
+        assertExpected(PatchDirective.PATCH(1, part));
+    }
+
+    @Test
+    @SuppressWarnings("javadoc")
+    public void testPatchWithCompressedData() throws IOException {
+        final byte[] patchData = "bar".getBytes("UTF-8");
+        Compressor compressor = new DeflateCompressor();
+        ByteArrayOutputStream compressed = new ByteArrayOutputStream();
+        compressor.compress(new ByteArrayInputStream(patchData), compressed);
+
+        final PatchMetadata part = new PatchMetadata(
+            td.lf,
+            null,
+            TEST_DELTA_GENERATOR_ID,
+            BuiltInCompressionEngine.DEFLATE.getId(),
+            patchData);
         assertExpected(PatchDirective.PATCH(1, part));
     }
 }

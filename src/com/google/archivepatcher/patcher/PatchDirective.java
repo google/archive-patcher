@@ -14,11 +14,9 @@
 
 package com.google.archivepatcher.patcher;
 
-import com.google.archivepatcher.parts.Part;
-
 /**
  * A representation of one {@link PatchCommand} with its associated
- * {@link Part}. An ordered sequence of these objects describes a series of
+ * {@link PatchPart}. An ordered sequence of these objects describes a series of
  * transformations that will convert on archive to another.
  */
 public class PatchDirective {
@@ -28,9 +26,9 @@ public class PatchDirective {
     private final PatchCommand command;
 
     /**
-     * The {@link Part} corresponding to the {@link #command}.
+     * The {@link PatchPart} corresponding to the {@link #command}.
      */
-    private Part part = null;
+    private PatchPart part = null;
 
     /**
      * The offset, for {@link PatchCommand}s that need an offset (such as the
@@ -46,7 +44,7 @@ public class PatchDirective {
      * @param part the part for the command, if any
      * @param offset the offset for the command, if any
      */
-    private PatchDirective(final PatchCommand command, final Part part,
+    private PatchDirective(final PatchCommand command, final PatchPart part,
         final Integer offset) {
         this.command = command;
         this.part = part;
@@ -58,7 +56,7 @@ public class PatchDirective {
      * @param part the part for the directive
      * @return the directive
      */
-    public static PatchDirective NEW(final Part part) {
+    public static PatchDirective NEW(final PatchPart part) {
         if (part == null) {
             throw new IllegalArgumentException("Part must not be null.");
         }
@@ -85,7 +83,8 @@ public class PatchDirective {
      * @param offset the offset of the original resource in the source archive
      * @return the directive
      */
-    public static PatchDirective REFRESH(final int offset, final Part part) {
+    public static PatchDirective REFRESH(final int offset,
+        final PatchPart part) {
         if (part == null) {
             throw new IllegalArgumentException("Part must not be null.");
         }
@@ -102,7 +101,7 @@ public class PatchDirective {
      * @param part the part for the directive
      * @return the directive
      */
-    public static PatchDirective BEGIN(final Part part) {
+    public static PatchDirective BEGIN(final PatchPart part) {
         if (part == null) {
             throw new IllegalArgumentException("Part must not be null.");
         }
@@ -120,7 +119,8 @@ public class PatchDirective {
      * @param offset the offset of the original resource in the source archive
      * @return the directive
      */
-    public static PatchDirective PATCH(final int offset, final Part part) {
+    public static PatchDirective PATCH(final int offset,
+        final PatchPart part) {
         if (part == null) {
             throw new IllegalArgumentException("Part must not be null.");
         }
@@ -144,11 +144,11 @@ public class PatchDirective {
     }
 
     /**
-     * If this directive makes use of a {@link Part}, returns that part;
+     * If this directive makes use of a {@link PatchPart}, returns that part;
      * otherwise, throws an {@link UnsupportedOperationException}.
      * @return the part, if a part is used
      */
-    public Part getPart() {
+    public PatchPart getPart() {
         if (part == null) throw new UnsupportedOperationException(
                 command.name() + " doesn't make use of a part");
         return part;

@@ -16,10 +16,12 @@ package com.google.archivepatcher.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.DeflaterOutputStream;
@@ -197,5 +199,46 @@ public class MiscUtils {
                 // ignore
             }
         }
+    }
+
+    /**
+     * Return a list of files from either a list file or a directory.
+     * 
+     * @param archiveListPath the path, which should either point to a file that
+     * contains archive entries (one per line, either absolute or relative to
+     * the location of the file) OR to a directory that contains only archive
+     * files. List files can use the '#' character as a comment line.
+     * @return the list of files
+     * @throws IOException if anything goes wrong
+     */
+    public static List<File> getFileList(final String archiveListPath)
+        throws IOException {
+        final List<File> result = new ArrayList<File>();
+        final File archiveListFile = new File(archiveListPath);
+        if (archiveListFile.isFile()) {
+            final List<String> paths = MiscUtils.readLines(
+                getReadableFile(archiveListPath), '#');
+            final File baseDirectory = archiveListFile.getParentFile();
+            for (String path : paths) {
+                File file = new File(path);
+                if (!file.isAbsolute()) {
+                    file = new File(baseDirectory, path);
+                }
+                result.add(file);
+            }
+        } else if (archiveListFile.isDirectory()) {
+            archiveListFile.listFiles(new FileFilter() {
+                @Override
+                public boolean accept(File file) {
+                    if (!file.isFile()) return false;
+                    result.add(file.getAbsoluteFile());
+                    return true;
+                }
+            });
+        } else {
+            throw new IllegalArgumentException(
+                "unsupported path: " + archiveListPath);
+        }
+        return result;
     }
 }
