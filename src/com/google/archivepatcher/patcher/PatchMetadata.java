@@ -140,8 +140,8 @@ public class PatchMetadata extends RefreshMetadata {
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + Integer.hashCode(deltaGeneratorId);
-        result = prime * result + Integer.hashCode(compressionEngineId);
+        result = prime * result + deltaGeneratorId;
+        result = prime * result + compressionEngineId;
         result = prime * result + Arrays.hashCode(patchData);
         return result;
     }

@@ -283,7 +283,7 @@ public class EndOfCentralDirectory implements Part {
      * of length zero, it is treated as if it were null.
      */
     public void setZipFileComment(final String zipFileComment) {
-        if (zipFileComment == null || zipFileComment.isEmpty()) {
+        if (zipFileComment == null || zipFileComment.length() == 0) {
             this.zipFileComment = null;
             this.zipFileCommentLength_16bit = 0;
         } else {

@@ -19,7 +19,6 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 
 /**
@@ -30,8 +29,6 @@ import java.util.Arrays;
  * manipulation of all multi-byte numeric values.
  */
 public class IOUtils {
-    private final static Charset UTF8 = Charset.forName("UTF-8");
-
     /**
      * Reads a string as UTF-8.
      * @param input the input source
@@ -44,7 +41,7 @@ public class IOUtils {
         if (length == 0) return null;
         byte[] buffer = new byte[length];
         input.readFully(buffer, 0, length);
-        return new String(buffer, 0, length, UTF8);
+        return new String(buffer, 0, length, "UTF8");
     }
 
     /**
@@ -55,7 +52,7 @@ public class IOUtils {
      */
     public static void writeUTF8(final DataOutput out, final String string)
         throws IOException {
-        out.write(string.getBytes(UTF8));
+        out.write(string.getBytes("UTF8"));
     }
 
     /**

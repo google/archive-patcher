@@ -532,7 +532,7 @@ public class CentralDirectoryFile implements Part {
      * length zero, it is treated as if it were null.
      */
     public void setFileComment(final String fileComment) {
-        if (fileComment == null || fileComment.isEmpty()) {
+        if (fileComment == null || fileComment.length() == 0) {
             this.fileComment = null;
             this.fileCommentLength_16bit = 0;
         } else {
@@ -569,7 +569,7 @@ public class CentralDirectoryFile implements Part {
      * zero, it is treated as if it were null.
      */
     public void setFileName(final String fileName) {
-        if (fileName == null || fileName.isEmpty()) {
+        if (fileName == null || fileName.length() == 0) {
             this.fileName = null;
             this.fileNameLength_16bit = 0;
         } else {

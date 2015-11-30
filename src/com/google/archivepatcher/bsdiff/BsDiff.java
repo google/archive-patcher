@@ -142,8 +142,8 @@ public class BsDiff {
                         groupArray[i]=groupArray[kk+k];
                         groupArray[kk+k]=temp;
                         k++;
-                    };
-                };
+                    }
+                }
             }
     
             while(jj+j<kk) {
@@ -154,8 +154,8 @@ public class BsDiff {
                     groupArray[jj+j]=groupArray[kk+k];
                     groupArray[kk+k]=temp;
                     k++;
-                };
-            };
+                }
+            }
         }
 
         if(jj>start) {
@@ -414,7 +414,7 @@ public class BsDiff {
                 if((newPosition+lastOffset<config.oldData.length) &&
                     (config.oldData[newPosition+lastOffset] == config.newData[newPosition]))
                     oldScore--;
-            };
+            }
 
             if((len!=oldScore) || (newPosition==config.newData.length)) {
                 int s=0;
@@ -428,7 +428,7 @@ public class BsDiff {
                     if(s*2-i>Sf*2-lenf) {
                         Sf=s; lenf=i;
                     }
-                };
+                }
 
                 int lenb=0;
                 if(newPosition<config.newData.length) {
@@ -441,8 +441,8 @@ public class BsDiff {
                         if(s*2-i>Sb*2-lenb) {
                             Sb=s; lenb=i;
                         }
-                    };
-                };
+                    }
+                }
 
                 if(lastNewPosition+lenf>newPosition-lenb) {
                     overlap=(lastNewPosition+lenf)-(newPosition-lenb);
@@ -458,12 +458,12 @@ public class BsDiff {
                         }
                         if(s>Ss) {
                             Ss=s; lens=i+1;
-                        };
-                    };
+                        }
+                    }
 
                     lenf+=lens-overlap;
                     lenb-=lens;
-                };
+                }
 
                 byte[] control_buffer = new byte[8 * 3];
                 writeOffset(lenf,control_buffer,0);

@@ -29,7 +29,8 @@ public class PatchParseException extends IOException {
      * @param cause the cause
      */
     public PatchParseException(String message, Throwable cause) {
-        super(message, cause);
+        super(message);
+        initCause(cause);
     }
 
     /**

@@ -131,8 +131,8 @@ public class NewMetadata extends RefreshMetadata {
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + Integer.hashCode(patchingCompressionEngineId);
-        result = prime * result + Integer.hashCode(patchingCompressedDataLength);
+        result = prime * result + patchingCompressionEngineId;
+        result = prime * result + patchingCompressedDataLength;
         result = prime * result + Arrays.hashCode(data);
         return result;
     }

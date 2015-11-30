@@ -26,7 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -69,22 +69,43 @@ public class PatchGeneratorTest {
     public final static String FILE4 = "file4";
 
     @SuppressWarnings("javadoc")
-    public final static byte[] CONTENT1 = "Have you ever considered an archive-aware patch system? Such a system could conceivably be much more efficient than vanilla diff.".getBytes(Charset.forName("UTF8"));
+    public final static byte[] CONTENT1;
     @SuppressWarnings("javadoc")
-    public final static byte[] CONTENT2 = "Effectively, such a tool determines the differences between entries in an archive. Each entry is considered on its own.".getBytes(Charset.forName("UTF8"));
+    public final static byte[] CONTENT2;
     @SuppressWarnings("javadoc")
-    public final static byte[] CONTENT3 = "In theory, this can lead to a very efficient binary patcher. By comparing data and metadata separately, such a patcher can even mitigate the effects of non-data changes in archives".getBytes(Charset.forName("UTF8"));
+    public final static byte[] CONTENT3;
     @SuppressWarnings("javadoc")
-    public final static byte[] CONTENT4 = "By comparing CRC-32s, the patcher can even efficiently find possible candidates for renames and duplicate data within an archive, allowing a patch to capture renames and copies with very little cost.".getBytes(Charset.forName("UTF8"));
+    public final static byte[] CONTENT4;
 
     @SuppressWarnings("javadoc")
-    public final static TestFile TF1 = new TestFile(FILE1, CONTENT1);
+    public final static TestFile TF1;
     @SuppressWarnings("javadoc")
-    public final static TestFile TF2 = new TestFile(FILE2, CONTENT2);
+    public final static TestFile TF2;
     @SuppressWarnings("javadoc")
-    public final static TestFile TF3 = new TestFile(FILE3, CONTENT3);
+    public final static TestFile TF3;
     @SuppressWarnings("javadoc")
-    public final static TestFile TF4 = new TestFile(FILE4, CONTENT4);
+    public final static TestFile TF4;
+
+    static {
+        try {
+            CONTENT1 = ("Have you ever considered an archive-aware patch system? Such a system " +
+                    "could conceivably be much more efficient than vanilla diff.").getBytes("UTF8");
+            CONTENT2 = ("Effectively, such a tool determines the differences between entries in " +
+                    "an archive. Each entry is considered on its own.").getBytes("UTF8");
+            CONTENT3 = ("In theory, this can lead to a very efficient binary patcher. By " +
+                    "comparing data and metadata separately, such a patcher can even mitigate " +
+                    "the effects of non-data changes in archives").getBytes("UTF8");
+            CONTENT4 = ("By comparing CRC-32s, the patcher can even efficiently find possible " +
+                    "candidates for renames and duplicate data within an archive, allowing a " +
+                    "patch to capture renames and copies with very little cost.").getBytes("UTF8");
+        } catch (UnsupportedEncodingException unlikely) {
+            throw new RuntimeException(unlikely);
+        }
+        TF1 = new TestFile(FILE1, CONTENT1);
+        TF2 = new TestFile(FILE2, CONTENT2);
+        TF3 = new TestFile(FILE3, CONTENT3);
+        TF4 = new TestFile(FILE4, CONTENT4);
+    }
 
     // it's like a macro!
     @SuppressWarnings("javadoc")
@@ -355,10 +376,10 @@ public class PatchGeneratorTest {
         assertNotNull(report);
         String textReport = report.toString();
         assertNotNull(textReport);
-        assertFalse(textReport.isEmpty());
+        assertFalse(textReport.length() == 0);
         String csvReport = report.toCsv();
         assertNotNull(csvReport);
-        assertFalse(csvReport.isEmpty());
+        assertFalse(csvReport.length() == 0);
         System.out.println("Test Report (Text):");
         System.out.println(report);
         System.out.println("Test Report (CSV):");

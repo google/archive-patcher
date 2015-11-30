@@ -18,7 +18,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.charset.Charset;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 
 import org.junit.Before;
@@ -39,15 +39,27 @@ public class BsDiffTest {
     private ByteArrayOutputStream patchBuffer;
 
     private final static byte[] content1() {
-        return CONTENT1.getBytes(Charset.forName("UTF8"));
+        try {
+            return CONTENT1.getBytes("UTF8");
+        } catch (UnsupportedEncodingException unlikely) {
+            throw new RuntimeException(unlikely);
+        }
     }
 
     private final static byte[] content2() {
-        return CONTENT2.getBytes(Charset.forName("UTF8"));
+        try {
+            return CONTENT2.getBytes("UTF8");
+        } catch (UnsupportedEncodingException unlikely) {
+            throw new RuntimeException(unlikely);
+        }
     }
 
     private final static byte[] content3() {
-        return CONTENT3.getBytes(Charset.forName("UTF8"));
+        try {
+            return CONTENT3.getBytes("UTF8");
+        } catch (UnsupportedEncodingException unlikely) {
+            throw new RuntimeException(unlikely);
+        }
     }
 
     @Before

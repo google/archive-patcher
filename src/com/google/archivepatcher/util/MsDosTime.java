@@ -105,8 +105,8 @@ public class MsDosTime {
      * @return the time as milliseconds since midnight
      */
     public long asMillisecondsSinceMidnight() {
-        return TimeUnit.HOURS.toMillis(hourOfDay) +
-            TimeUnit.MINUTES.toMillis(minuteOfHour) +
+        return TimeUnit.SECONDS.toMillis(60 * 60 * hourOfDay) +  // TimeUnit.HOURS in Java 6+
+            TimeUnit.SECONDS.toMillis(60 * minuteOfHour) +  // TimeUnit.MINUTES in Java 6+
             TimeUnit.SECONDS.toMillis(secondDividedBy2 * 2);
     }
 

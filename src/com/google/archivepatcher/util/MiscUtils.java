@@ -120,7 +120,7 @@ public class MiscUtils {
             String currentLine = null;
             while ((currentLine = bufferedReader.readLine()) != null) {
                 String trimmed = currentLine.trim();
-                if (!trimmed.isEmpty()) {
+                if (trimmed.length() != 0) {
                     if (commentChar == null ||
                         trimmed.charAt(0) != commentChar) {
                         result.add(currentLine);

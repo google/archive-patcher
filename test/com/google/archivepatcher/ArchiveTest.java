@@ -21,7 +21,6 @@ import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -38,8 +37,11 @@ import com.google.archivepatcher.util.SimpleArchive;
 public class ArchiveTest {
     private final static String PATH1 = "file1.txt";
     private final static String PATH2 = "file2.txt";
-    private final static String CONTENT_STRING1 = "file1 content: this is a test string long enough to be deflated its totally rad really super cool i love it";
-    private final static String CONTENT_STRING2 = "file2 content: this is another string long enough to be deflated its totally rad really super cool i love it";
+    private final static String CONTENT_STRING1 =
+            "file1 content: this is a test string long enough to be deflated its totally rad " +
+            "really super cool i love it";
+    private final static String CONTENT_STRING2 = "file2 content: this is another string long " +
+            "enough to be deflated its totally rad really super cool i love it";
     private final static long LAST_MODIFIED_MILLIS = 1418418038000L; // 2014-12-12 at 21:00:38 GMT
 
     private InputStream contentIn1;
@@ -48,10 +50,10 @@ public class ArchiveTest {
     @Before
     @SuppressWarnings("javadoc")
     public void setUp() throws Exception {
-        byte[] content1 = CONTENT_STRING1.getBytes(Charset.forName("UTF8"));
+        byte[] content1 = CONTENT_STRING1.getBytes("UTF8");
         contentIn1 = new ByteArrayInputStream(content1);
 
-        byte[] content2 = CONTENT_STRING2.getBytes(Charset.forName("UTF8"));
+        byte[] content2 = CONTENT_STRING2.getBytes("UTF8");
         contentIn2 = new ByteArrayInputStream(content2);
     }
 
@@ -125,7 +127,7 @@ public class ArchiveTest {
         int numRead = 0;
         String result = "";
         while ( (numRead = writtenIn.read(buffer)) != -1 ) {
-            result += new String(buffer, 0, numRead, Charset.forName("UTF8"));
+            result += new String(buffer, 0, numRead, "UTF8");
         }
         assertEquals(result, expectedString);
     }
