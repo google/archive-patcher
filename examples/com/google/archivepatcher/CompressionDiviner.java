@@ -33,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.zip.Deflater;
 import java.util.zip.ZipException;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.compression.DeflateCompressor;
 import com.google.archivepatcher.compression.DeflateUncompressor;
 import com.google.archivepatcher.meta.CompressionMethod;
@@ -168,7 +169,7 @@ public class CompressionDiviner extends AbstractArchiveTool {
             this.file = file;
             this.superBrute = superBrute;
         }
-        @Override
+        @Implementation
         public DivinedCompressionStats call() throws Exception {
             return divineCompressionStats(file, superBrute);
         }

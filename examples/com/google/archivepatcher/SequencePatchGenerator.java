@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.delta.DeltaUtils;
 import com.google.archivepatcher.util.MiscUtils;
 import com.google.archivepatcher.util.Pair;
@@ -104,7 +105,7 @@ public class SequencePatchGenerator extends AbstractArchiveTool {
         } else if (archiveListFile.isDirectory()) {
             final SortedSet<String> sorted = new TreeSet<String>();
             archiveListFile.listFiles(new FileFilter() {
-                @Override
+                @Implementation
                 public boolean accept(File pathname) {
                     if (!pathname.isFile()) return false;
                     if (pathname.getName().endsWith(".patch")) return false;

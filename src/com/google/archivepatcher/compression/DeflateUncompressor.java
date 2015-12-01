@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.compression;
 
+import com.google.archivepatcher.compat.Implementation;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -49,7 +51,7 @@ public class DeflateUncompressor implements Uncompressor {
         this.nowrap = nowrap;
     }
 
-    @Override
+    @Implementation
     public void uncompress(InputStream compressedIn, OutputStream uncompressedOut) throws IOException {
         Inflater inflater = new Inflater(nowrap);
         InflaterInputStream inflaterIn = new InflaterInputStream(compressedIn, inflater);
@@ -61,7 +63,7 @@ public class DeflateUncompressor implements Uncompressor {
         inflater.end();
     }
 
-    @Override
+    @Implementation
     public int getId() {
         return BuiltInCompressionEngine.DEFLATE.getId();
     }

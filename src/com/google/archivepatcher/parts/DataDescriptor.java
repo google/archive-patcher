@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.parts;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.util.IOUtils;
 
 import java.io.DataInput;
@@ -46,7 +47,7 @@ public class DataDescriptor implements Part {
     private long uncompressedSize_32bit;
     private boolean hasSignature;
 
-    @Override
+    @Implementation
     public void read(final DataInput in) throws IOException {
         long maybeSignature = IOUtils.readUnsignedInt(in);
         if (maybeSignature == MAYBE_SIGNATURE) {
@@ -62,7 +63,7 @@ public class DataDescriptor implements Part {
         uncompressedSize_32bit = IOUtils.readUnsignedInt(in);
     }
 
-    @Override
+    @Implementation
     public void write(final DataOutput out) throws IOException {
         if (hasSignature) {
             IOUtils.writeUnsignedInt(out, MAYBE_SIGNATURE);
@@ -72,7 +73,7 @@ public class DataDescriptor implements Part {
         IOUtils.writeUnsignedInt(out, uncompressedSize_32bit);
     }
 
-    @Override
+    @Implementation
     public int getStructureLength() {
         return 4+4+4+ (hasSignature ? 4 : 0);
     }

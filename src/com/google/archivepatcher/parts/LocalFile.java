@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.parts;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.meta.CompressionMethod;
 import com.google.archivepatcher.util.IOUtils;
 import com.google.archivepatcher.util.MsDosDate;
@@ -99,7 +100,7 @@ public class LocalFile implements Part {
         return MsDosTime.from16BitPackedValue(lastModifiedFileTime_16bit);
     }
 
-    @Override
+    @Implementation
     public void read(final DataInput in) throws IOException {
         final int signature = (int) IOUtils.readUnsignedInt(in);
         if (signature != SIGNATURE) {
@@ -124,7 +125,7 @@ public class LocalFile implements Part {
         }
     }
 
-    @Override
+    @Implementation
     public void write(final DataOutput out) throws IOException {
         IOUtils.writeRaw32Bit(out, SIGNATURE);
         IOUtils.writeUnsignedShort(out, versionNeededToExtract_16bit);
@@ -145,7 +146,7 @@ public class LocalFile implements Part {
         }
     }
 
-    @Override
+    @Implementation
     public int getStructureLength() {
         return 4+2+2+2+2+2+4+4+4+2+2+fileNameLength_16bit+extraFieldLength_16bit;
     }

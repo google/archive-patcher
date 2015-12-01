@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.delta;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.util.IOUtils;
 import com.nothome.delta.GDiffPatcher;
 
@@ -25,13 +26,13 @@ import java.io.OutputStream;
  * Implementation of a {@link DeltaApplier} based on javaxdelta.
  */
 public class JxdDeltaApplier implements DeltaApplier {
-    @Override
+    @Implementation
     public void applyDelta(InputStream oldData, InputStream deltaData,
             OutputStream newOut) throws IOException {
         new GDiffPatcher().patch(IOUtils.readAll(oldData), deltaData, newOut);
     }
 
-    @Override
+    @Implementation
     public int getId() {
         return BuiltInDeltaEngine.JAVAXDELTA.getId();
     }

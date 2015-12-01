@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.util;
 
+import com.google.archivepatcher.compat.Implementation;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -228,7 +230,7 @@ public class MiscUtils {
             }
         } else if (archiveListFile.isDirectory()) {
             archiveListFile.listFiles(new FileFilter() {
-                @Override
+                @Implementation
                 public boolean accept(File file) {
                     if (!file.isFile()) return false;
                     result.add(file.getAbsoluteFile());

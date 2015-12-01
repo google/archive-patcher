@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import com.google.archivepatcher.bsdiff.BsPatch;
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.util.IOUtils;
 
 
@@ -27,7 +28,7 @@ import com.google.archivepatcher.util.IOUtils;
  * Implementation of a {@link DeltaApplier} based on bsdiff.
  */
 public class BsDiffDeltaApplier implements DeltaApplier {
-    @Override
+    @Implementation
     public void applyDelta(InputStream oldData, InputStream deltaData,
         OutputStream newOut) throws IOException {
         final DataInputStream dataIn = new DataInputStream(deltaData);
@@ -45,7 +46,7 @@ public class BsDiffDeltaApplier implements DeltaApplier {
         newOut.write(newBytes, 0, new_size);
     }
 
-    @Override
+    @Implementation
     public int getId() {
         return BuiltInDeltaEngine.BSDIFF.getId();
     }

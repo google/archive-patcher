@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.parts;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.util.IOUtils;
 
 import java.io.DataInput;
@@ -76,7 +77,7 @@ public class EndOfCentralDirectory implements Part {
         return offset;
     }
 
-    @Override
+    @Implementation
     public void read(DataInput in) throws IOException {
         final int signature = (int) IOUtils.readUnsignedInt(in);
         if (signature != SIGNATURE) throw new IOException("Invalid signature: " + signature);
@@ -92,7 +93,7 @@ public class EndOfCentralDirectory implements Part {
         }
     }
     
-    @Override
+    @Implementation
     public void write(DataOutput out) throws IOException {
         IOUtils.writeUnsignedInt(out, SIGNATURE);
         IOUtils.writeUnsignedShort(out, diskNumber_16bit);
@@ -107,7 +108,7 @@ public class EndOfCentralDirectory implements Part {
         }
     }
 
-    @Override
+    @Implementation
     public int getStructureLength() {
         return 4+2+2+2+2+4+4+2+zipFileCommentLength_16bit;
     }

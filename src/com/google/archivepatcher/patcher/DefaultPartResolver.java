@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.patcher;
 
+import com.google.archivepatcher.compat.Implementation;
+
 /**
  * The default implementation of the {@link PatchPartResolver} interface, which
  * simply generates the built-in {@link PatchPart} objects for each
@@ -26,7 +28,7 @@ package com.google.archivepatcher.patcher;
  */
 public class DefaultPartResolver implements PatchPartResolver {
 
-    @Override
+    @Implementation
     public PatchPart partFor(final PatchCommand command) {
         switch (command) {
             case BEGIN:     return new BeginMetadata();

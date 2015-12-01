@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.parts;
 
+import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.meta.Flag;
 
 import java.io.DataInput;
@@ -79,7 +80,7 @@ public class LocalSectionParts implements Part {
                 (short) localFilePart.getGeneralPurposeBitFlag_16bit());
     }
 
-    @Override
+    @Implementation
     public void read(DataInput input) throws IOException {
         if (centralDirectory == null) {
             throw new IllegalStateException("cannot read without a central directory attached");
@@ -98,7 +99,7 @@ public class LocalSectionParts implements Part {
         dataDescriptorPart.read(input);
     }
 
-    @Override
+    @Implementation
     public void write(DataOutput output) throws IOException {
         localFilePart.write(output);
         fileDataPart.write(output);
@@ -106,7 +107,7 @@ public class LocalSectionParts implements Part {
         dataDescriptorPart.write(output);
     }
 
-    @Override
+    @Implementation
     public int getStructureLength() {
         int length = localFilePart.getStructureLength();
         length += fileDataPart.getStructureLength();

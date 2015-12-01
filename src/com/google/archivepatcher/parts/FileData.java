@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.parts;
 
+import com.google.archivepatcher.compat.Implementation;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -52,13 +54,13 @@ public class FileData implements Part {
         setData(data);
     }
 
-    @Override
+    @Implementation
     public void read(DataInput in) throws IOException {
         data = new byte[length];
         in.readFully(data);
     }
 
-    @Override
+    @Implementation
     public void write(DataOutput out) throws IOException {
         if (data == null) {
             throw new IllegalStateException("data not set!");
@@ -66,7 +68,7 @@ public class FileData implements Part {
         out.write(data);
     }
 
-    @Override
+    @Implementation
     public int getStructureLength() {
         return length;
     }

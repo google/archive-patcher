@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.compression;
 
+import com.google.archivepatcher.compat.Implementation;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -103,7 +105,7 @@ public class DeflateCompressor implements Compressor {
         this.strategy = strategy;
     }
 
-    @Override
+    @Implementation
     public void compress(InputStream uncompressedIn, OutputStream compressedOut)
         throws IOException {
         Deflater deflater = new Deflater(compressionLevel, nowrap);
@@ -120,7 +122,7 @@ public class DeflateCompressor implements Compressor {
         deflater.end();
     }
 
-    @Override
+    @Implementation
     public int getId() {
         return BuiltInCompressionEngine.DEFLATE.getId();
     }
