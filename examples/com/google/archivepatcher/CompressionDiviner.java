@@ -14,10 +14,13 @@
 
 package com.google.archivepatcher;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -31,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.zip.Deflater;
-import java.util.zip.ZipException;
 
 import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.compression.DeflateCompressor;
@@ -87,12 +89,25 @@ public class CompressionDiviner extends AbstractArchiveTool {
             "parallel. The default is 10.");
         options.option("superbrute").isUnary().describedAs(
             "disable all speedups and check every possibility exhaustively");
+        options.option("directives-out-dir").describedAs(
+            "if set, write a directives file for each archive processed " +
+            "into the specified directory. The directives file consists " +
+            "of a sequence of comma-separated-value lines. Each line " +
+            "contains a tuple of <entry_path>,<tech>[,<level>,<strategy>," +
+            "<nowrap>] entries that describes how to recreate the entry " +
+            "having the specified path. The file name is the same as the " +
+            "original file, suffixed with '.directives'. if <tech> is " +
+            "'unknown', then the compression method was not divined and no " +
+            "the remaining parts of the tuple are omitted. Similarly, if " +
+            "<tech> is 'no_compression', the entry was not compressed and " +
+            "the remaining parts of the tuple are omitted.");
     }
 
     @Override
     protected void run(MicroOptions options) throws Exception {
         final boolean csvStatsOnly = options.has("csv-stats-only");
         final boolean superBrute = options.has("superbrute");
+        final String directivesOutDir = options.getArg("directives-out-dir", null);
         if (!options.has("archive") && !options.has("archive-list")) {
             throw new IllegalArgumentException("specify one of --archive " +
                 "or --archive-list");
@@ -112,7 +127,7 @@ public class CompressionDiviner extends AbstractArchiveTool {
         final List<Callable<DivinedCompressionStats>> tasks =
             new ArrayList<Callable<DivinedCompressionStats>>(archives.size());
         for (File archiveFile : archives) {
-            tasks.add(new DivinationTask(archiveFile, superBrute));
+            tasks.add(new DivinationTask(archiveFile, superBrute, directivesOutDir));
         }
         final int jobs = Integer.parseInt(options.getArg("jobs", "10"));
         ExecutorService executor = Executors.newFixedThreadPool(
@@ -165,13 +180,15 @@ public class CompressionDiviner extends AbstractArchiveTool {
     private class DivinationTask implements Callable<DivinedCompressionStats> {
         private final File file;
         private final boolean superBrute;
-        public DivinationTask(File file, boolean superBrute) {
+        private final String directivesOutDir;
+        public DivinationTask(File file, boolean superBrute, String directivesOutDir) {
             this.file = file;
             this.superBrute = superBrute;
+            this.directivesOutDir = directivesOutDir;
         }
         @Implementation
         public DivinedCompressionStats call() throws Exception {
-            return divineCompressionStats(file, superBrute);
+            return divineCompressionStats(file, superBrute, directivesOutDir);
         }
         
     }
@@ -182,16 +199,34 @@ public class CompressionDiviner extends AbstractArchiveTool {
      * possible strategy at every possible compression level with every possible
      * wrapping. Generally insane, but provided for sanity checking the
      * optimizations.
+     * @param directivesOutDir if not null, the directory into which to record
+     * divination results for replay
      * @return the stats
      * @throws IOException if anything goes wrong
      */
     public DivinedCompressionStats divineCompressionStats(File archiveFile,
-        boolean superBrute)
+        boolean superBrute, String directivesOutDir)
         throws IOException {
-        final Archive archive = Archive.fromFile(archiveFile.getAbsolutePath());
+        final Archive archive =
+                Archive.fromFile(archiveFile.getAbsolutePath());
         final DivinedCompressionStats stats = new DivinedCompressionStats(
             archiveFile.getAbsolutePath());
         stats.superBrute = superBrute;
+        PrintWriter directivesOut = null;
+        if (directivesOutDir != null) {
+            File outDir = new File(directivesOutDir);
+            outDir.mkdirs();
+            if (!outDir.exists()) {
+                throw new RuntimeException(
+                        "Unable to find or create output directory");
+            }
+            final String simpleArchiveName = archiveFile.getName();
+            final File directivesFile = new File(outDir,
+                    simpleArchiveName + ".directives");
+            directivesOut = new PrintWriter(new BufferedWriter(
+                    new FileWriter(directivesFile)));
+        }
+
         for (LocalSectionParts lsp : archive.getLocal().entries()) {
             stats.totalEntries++;
             LocalFile lf = lsp.getLocalFilePart();
@@ -199,6 +234,10 @@ public class CompressionDiviner extends AbstractArchiveTool {
             if (lf.getCompressionMethod() == CompressionMethod.NO_COMPRESSION) {
                 stats.totalUncompressedEntries++;
                 stats.totalUncompressedBytes += lf.getUncompressedSize_32bit();
+                if (directivesOut != null) {
+                    directivesOut.println(
+                            lf.getFileName() + ",no_compression");
+                }
             } else {
                 stats.totalCompressedEntries++;
                 stats.totalCompressedBytes += lf.getCompressedSize_32bit();
@@ -218,7 +257,27 @@ public class CompressionDiviner extends AbstractArchiveTool {
             }
             if (info != null) {
                 stats.infoByPath.put(lf.getFileName(), info);
+                if (directivesOut != null) {
+                    if (info.matched) {
+                        JreDeflateParameters params =
+                                JreDeflateParameters.parseJreDeflateParameters(
+                                        info.implementationParameters);
+                        directivesOut.println(
+                                lf.getFileName() + "," +
+                                info.implementationName + "," +
+                                params.level + "," +
+                                params.strategy + "," +
+                                params.nowrap);
+                    } else {
+                        directivesOut.println(
+                                lf.getFileName() + ",unknown");
+                    }
+                }
             }
+        }
+        if (directivesOut != null) {
+            directivesOut.flush();
+            directivesOut.close();
         }
         return stats;
     }
@@ -259,7 +318,7 @@ public class CompressionDiviner extends AbstractArchiveTool {
                 logVerbose("determined likely nowrap=" + guessedNowrap);
             }
             stats.likelyNowrap = guessedNowrap;
-        } catch (ZipException likelyWrappingProblem) {
+        } catch (IOException likelyWrappingProblem) {
             // Retry with nowrap = true
             uncompressedDataBuffer = new ByteArrayOutputStream();
             uncompressor.setNowrap(!guessedNowrap);
@@ -270,7 +329,7 @@ public class CompressionDiviner extends AbstractArchiveTool {
                     logVerbose("determined likely nowrap=" + !guessedNowrap);
                 }
                 stats.likelyNowrap = !guessedNowrap;
-            } catch (ZipException somethingElse) {
+            } catch (IOException somethingElse) {
                 // Cannot be recovered
                 return new DeflateInfo(false,
                     DeflateInfo.UNKNOWN_DEFLATE, "unknown");
