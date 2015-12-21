@@ -143,6 +143,7 @@ public class CentralDirectoryFile implements Part {
         relativeOffsetOfLocalHeader_32bit = IOUtils.readUnsignedInt(in);
         
         if (fileNameLength_16bit > 0) {
+            // FIXME: Support Cp417 depending on flag 11.
             fileName = IOUtils.readUTF8(in, fileNameLength_16bit);
         }
         if (extraFieldLength_16bit > 0) {
@@ -174,6 +175,7 @@ public class CentralDirectoryFile implements Part {
         IOUtils.writeRaw32Bit(out, externalFileAttributes_32bit);
         IOUtils.writeUnsignedInt(out, relativeOffsetOfLocalHeader_32bit);
         if (fileName != null) {
+            // FIXME: Support Cp417 depending on flag 11.
             IOUtils.writeUTF8(out, fileName);
         }
         if (extraField != null) {

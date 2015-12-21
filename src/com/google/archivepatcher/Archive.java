@@ -14,12 +14,6 @@
 
 package com.google.archivepatcher;
 
-import com.google.archivepatcher.parts.LocalSectionParts;
-import com.google.archivepatcher.parts.CentralDirectoryFile;
-import com.google.archivepatcher.parts.CentralDirectorySection;
-import com.google.archivepatcher.parts.EndOfCentralDirectory;
-import com.google.archivepatcher.parts.LocalSection;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
@@ -30,6 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+
+import com.google.archivepatcher.parts.CentralDirectoryFile;
+import com.google.archivepatcher.parts.CentralDirectorySection;
+import com.google.archivepatcher.parts.EndOfCentralDirectory;
+import com.google.archivepatcher.parts.LocalSection;
+import com.google.archivepatcher.parts.LocalSectionParts;
 
 /**
  * A simple representation of an archive consisting of two parts: a "local"
@@ -54,11 +54,11 @@ public class Archive {
     protected CentralDirectorySection centralDirectory;
 
     /**
-     * Optional backing file that this object represents. This field is
-     * deliberately omitted from {@link #hashCode()} and
-     * {@link #equals(Object)}.
+     * Bits of information not necessarily critical to processing the archive,
+     * but that are useful. This field is deliberately omitted from
+     * {@link #hashCode()} and {@link #equals(Object)}.
      */
-    protected File backingFile = null;
+    protected ArchiveMetadata metadata = null;
 
     /**
      * Read an archive in from the specified filesystem path.
@@ -73,8 +73,7 @@ public class Archive {
         RandomAccessFile randomAccessFile = null;
         try {
             randomAccessFile = new RandomAccessFile(path, "r");
-            Archive result = Archive.fromFile(randomAccessFile);
-            result.backingFile = new File(path);
+            Archive result = Archive.fromFile(new File(path), randomAccessFile);
             return result;
         } finally {
             try {
@@ -91,8 +90,24 @@ public class Archive {
      * @param raf the file to read from
      * @return the results of parsing the archive
      * @throws IOException if something goes wrong while reading
+     * @deprecated this method doesn't completely set the metadata for the
+     * archive. 
      */
     public static Archive fromFile(RandomAccessFile raf) throws IOException {
+        return fromFile(null, raf);
+    }
+
+    /**
+     * Read an archive in from the specified {@link RandomAccessFile}.
+     * 
+     * @param backingFile the file on which the random access file is based
+     * @param raf the file to read from
+     * @return the results of parsing the archive
+     * @throws IOException if something goes wrong while reading
+     */
+    private static Archive fromFile(File backingFile,
+        RandomAccessFile raf) throws IOException {
+
         LocalSection local = new LocalSection();
         CentralDirectorySection centralDirectory =
             new CentralDirectorySection();
@@ -120,11 +135,14 @@ public class Archive {
 
         raf.seek(0);
         for (int x=0; x<numRecords; x++) {
-            LocalSectionParts localPart = new LocalSectionParts(centralDirectory);
+            LocalSectionParts localPart =
+                new LocalSectionParts(centralDirectory);
             localPart.read(raf);
             local.append(localPart);
         }
-        return new Archive(local, centralDirectory);
+        final ArchiveMetadata metadata = new ArchiveMetadata(backingFile,
+            eocdOffset, offsetOfCentralDirectory);
+        return new Archive(metadata, local, centralDirectory);
     }
 
     /**
@@ -141,9 +159,32 @@ public class Archive {
      * @param local the "local" section of the archive
      * @param centralDirectory the "central directory" section of the archive
      */
-    public Archive(LocalSection local, CentralDirectorySection centralDirectory) {
+    public Archive(LocalSection local,
+        CentralDirectorySection centralDirectory) {
+        this(new ArchiveMetadata(null, -1, -1), local, centralDirectory);
+    }
+
+    /**
+     * Creates an archive with the specified "local" section and "central
+     * directory" section and metadata.
+     * 
+     * @param metadata the metadata
+     * @param local the "local" section of the archive
+     * @param centralDirectory the "central directory" section of the archive
+     */
+    public Archive(ArchiveMetadata metadata, LocalSection local,
+        CentralDirectorySection centralDirectory) {
+        this.metadata = metadata;
         this.local = local;
         this.centralDirectory = centralDirectory;
+    }
+
+    /**
+     * Returns the archive's metadata, if any has been set.
+     * @return as described
+     */
+    public ArchiveMetadata getArchiveMetadata() {
+        return metadata;
     }
 
     /**
@@ -154,7 +195,18 @@ public class Archive {
      * @return as described
      */
     public File getBackingFile() {
-        return backingFile;
+        if (metadata != null) {
+            return metadata.getBackingFile();
+        }
+        return null;
+    }
+
+    /**
+     * Sets the metadata for the archive.
+     * @param metadata the new value to set
+     */
+    public void setMetadata(ArchiveMetadata metadata) {
+        this.metadata = metadata;
     }
 
     /**
@@ -243,12 +295,13 @@ public class Archive {
      * @throws IOException if something goes wrong
      */
     public InputStream getInputStream() throws IOException {
-       if (backingFile != null) {
-           return new FileInputStream(backingFile);
+       if (metadata != null && metadata.getBackingFile() != null) {
+           return new FileInputStream(metadata.getBackingFile());
        }
        EndOfCentralDirectory eocd = getCentralDirectory().getEocd();
-       int sizeEstimate = (int) eocd.getOffsetOfStartOfCentralDirectoryRelativeToDisk_32bit()
-           + (int) eocd.getLengthOfCentralDirectory_32bit();
+       int sizeEstimate =
+           (int) eocd.getOffsetOfStartOfCentralDirectoryRelativeToDisk_32bit() +
+           (int) eocd.getLengthOfCentralDirectory_32bit();
        ByteArrayOutputStream buffer = new ByteArrayOutputStream(sizeEstimate);
        writeArchive(buffer);
        return new ByteArrayInputStream(buffer.toByteArray());

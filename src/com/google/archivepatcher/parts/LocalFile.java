@@ -117,6 +117,7 @@ public class LocalFile implements Part {
         fileNameLength_16bit = IOUtils.readUnsignedShort(in);
         extraFieldLength_16bit = IOUtils.readUnsignedShort(in);
         if (fileNameLength_16bit > 0) {
+            // FIXME: Support Cp417 depending on flag 11.
             fileName = IOUtils.readUTF8(in, fileNameLength_16bit);
         }
         if (extraFieldLength_16bit > 0) {
@@ -139,6 +140,7 @@ public class LocalFile implements Part {
         IOUtils.writeUnsignedShort(out, fileNameLength_16bit);
         IOUtils.writeUnsignedShort(out, extraFieldLength_16bit);
         if (fileName != null) {
+            // FIXME: Support Cp417 depending on flag 11.
             IOUtils.writeUTF8(out, fileName);
         }
         if (extraField != null) {
