@@ -20,6 +20,7 @@ import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Statistics on a reassembly task.
@@ -296,21 +297,25 @@ public class ReassemblyStats {
         }
         if (recompressEntriesBySuffix.size() > 0) {
             buffer.append("Recompressed entries by suffix:\n");
-            append(buffer, "suffix", recompressEntriesBySuffix);
+            append(buffer, "suffix",
+                    new TreeMap<String, Entry>(recompressEntriesBySuffix));
         }
         if (noCompressionEntriesBySuffix.size() > 0) {
             buffer.append("Uncompressed entries by suffix:\n");
-            append(buffer, "suffix",  noCompressionEntriesBySuffix);
+            append(buffer, "suffix",
+                    new TreeMap<String, Entry>(noCompressionEntriesBySuffix));
         }
         if (unknownDeflateEntriesBySuffix.size() > 0) {
             buffer.append("Copied entries by suffix ")
                 .append("(unknown deflate configuration):\n");
-            append(buffer, "suffix",  unknownDeflateEntriesBySuffix);
+            append(buffer, "suffix",
+                    new TreeMap<String, Entry>(unknownDeflateEntriesBySuffix));
         }
         if (unknownTechEntriesBySuffix.size() > 0) {
             buffer.append("Copied entries by suffix ")
                 .append("(unknown compression technology):\n");
-            append(buffer, "suffix",  unknownTechEntriesBySuffix);
+            append(buffer, "suffix",
+                    new TreeMap<String, Entry>(unknownTechEntriesBySuffix));
         }
         return buffer.toString();
     }
