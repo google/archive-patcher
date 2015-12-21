@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher;
+package com.google.archivepatcher.diviner;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -35,6 +35,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.zip.Deflater;
 
+import com.google.archivepatcher.AbstractArchiveTool;
+import com.google.archivepatcher.Archive;
+import com.google.archivepatcher.JreDeflateParameters;
+import com.google.archivepatcher.MicroOptions;
 import com.google.archivepatcher.compat.Implementation;
 import com.google.archivepatcher.compression.DeflateCompressor;
 import com.google.archivepatcher.compression.DeflateUncompressor;

@@ -12,7 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher;
+package com.google.archivepatcher.diviner;
+
+import com.google.archivepatcher.JreDeflateParameters;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
