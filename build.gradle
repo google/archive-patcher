@@ -1,0 +1,45 @@
+defaultTasks 'build', 'check'
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            srcDir 'third_party/javaxdelta/src/main/java'
+        }
+    }
+    examples {
+        java {
+            srcDir 'src/examples/java'
+        }
+    }
+    test {
+        java {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed", "standardOut", "standardError"
+    }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.+'
+    examplesCompile sourceSets.main.output
+}
+
+sourceCompatibility = 1.5
+version = '1.0'
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Archive Patcher',
+                   'Implementation-Version': version
+    }
+}

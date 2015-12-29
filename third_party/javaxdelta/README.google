@@ -11,10 +11,10 @@ implementation of a delta algorithm that can be applied per-resource.
 
 Local Modifications:
 LICENSE.TXT renamed to LICENSE and moved to this directory.
-Moved src/main/java/com/ to just src/com/
 Deleted **/package-info.java
-Deleted all other files and directories, as they are unnecessary in this
-implementation. Note that this means the initial checkin does not compile.
+Deleted all other files and directories other than src/main/java, as they are
+unnecessary in this implementation. Note that this means the initial checkin
+does not compile.
 
 Modified the following two files to use java.util.HashMap<Long, Integer> instead
 of the Trove-based LongIntHashMap, eliminating the dependency upon Trove:

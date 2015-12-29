@@ -60,7 +60,8 @@ public class ArchiveTest {
     @Test
     @SuppressWarnings("javadoc")
     public void testWriteArchive_1File() throws IOException {
-        final String ARCHIVE = "test/UNITTEST_1File.zip";
+        // TODO: Load from classpath instead of hardcoding the path here
+        final String ARCHIVE = "src/test/java/UNITTEST_1File.zip";
         SimpleArchive archive = new SimpleArchive();
         archive.add(PATH1, LAST_MODIFIED_MILLIS, contentIn1, true);
         FileOutputStream out = new FileOutputStream(ARCHIVE);
@@ -91,7 +92,8 @@ public class ArchiveTest {
     @Test
     @SuppressWarnings("javadoc")
     public void testWriteArchive_2Files() throws IOException {
-        final String ARCHIVE = "test/UNITTEST_2Files.zip";
+        // TODO: Load from classpath instead of hardcoding the path here
+        final String ARCHIVE = "src/test/java/UNITTEST_2Files.zip";
         SimpleArchive archive = new SimpleArchive();
         archive.add(PATH1, LAST_MODIFIED_MILLIS, contentIn1, true);
         archive.add(PATH2, LAST_MODIFIED_MILLIS, contentIn2, true);
