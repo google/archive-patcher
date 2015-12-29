@@ -12,5 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+archivesBaseName = 'archivepatcher-third_party-javaxdelta'
+group = 'com.google.archivepatcher'
+version = '1.0'
+
 defaultTasks 'build', 'check'
 sourceCompatibility = 1.5

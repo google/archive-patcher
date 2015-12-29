@@ -16,5 +16,20 @@ subprojects {
     apply plugin: 'java'
     repositories {
         mavenCentral()
+        flatDir {
+            // This repository is for convenience, to allow the android apps in
+            // the 'android' subdirectory to be consume dependencies from a
+            // repository instead of trying to access their sources directly.
+            // This decouples the Android code from the non-Android code very
+            // cleanly and makes clean future separation simpler.
+            name "localFileRepo"
+            dirs file(rootProject.projectDir.absolutePath + "/local-build-repo")
+        }
     }
+    uploadArchives {
+        repositories {
+            add project.repositories.localFileRepo
+        }
+    }
+
 }

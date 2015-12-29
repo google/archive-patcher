@@ -12,10 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+archivesBaseName = 'archivepatcher-tools-policy'
+group = 'com.google.archivepatcher'
+version = '1.0'
+
 apply plugin: 'application'
 defaultTasks 'build', 'check'
 sourceCompatibility = 1.5
 mainClassName = 'com.google.archivepatcher.tools.policy.PolicyTool'
 dependencies {
     compile project(':core')
+}
+
+distributions {
+    main {
+        baseName = archivesBaseName
+    }
 }
