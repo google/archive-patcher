@@ -158,7 +158,7 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
         } else if (options.has("baseline-code")) {
             emitBaselineCode();
         } else {
-            if (!isCompatible()) {
+            if (!isCompatible(null)) {
                 System.exit(-1);
             }
         }
@@ -166,9 +166,11 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
 
     /**
      * Checks for compatibility with the baseline.
+     * @param outBuffer if non-null, an output buffer to which the results will
+     * be written in a human-readable text format
      * @return true if compatible, otherwise false.
      */
-    private final boolean isCompatible() {
+    public final boolean isCompatible(StringBuilder outBuffer) {
         try {
             Map<JreDeflateParameters, String> baseline = readBaseline();
             Map<JreDeflateParameters, String> computed = compute();
@@ -178,7 +180,7 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
             } else {
                 logVerbose("Incompatible.");
             }
-            if (isVerbose()) {
+            if (isVerbose() || outBuffer != null) {
                 StringBuilder buffer = new StringBuilder();
                 for (JreDeflateParameters parameters : baseline.keySet()) {
                     final String baselineSHA256 = baseline.get(parameters);
@@ -194,6 +196,9 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
                         .append("\n");
                 }
                 logVerbose(buffer.toString());
+                if (outBuffer != null) {
+                    outBuffer.append(buffer);
+                }
             }
             return compatible;
         } catch (IOException e) {
