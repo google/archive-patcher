@@ -12,9 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-subprojects {
-    apply plugin: 'java'
-    repositories {
-        mavenCentral()
+package com.google.archivepatcher.tools.policy;
+
+/**
+ * Disallows comments in entries.
+ */
+public class DisallowEntryCommentsRule extends EntryRule {
+    @Override
+    protected void checkInternal() {
+        if (cdf.getFileCommentLength_16bit() != 0) {
+            notOk(cdf.getFileName(),
+                "central directory specified a comment for this entry");
+        }
+        if (cdf.getFileComment() != null && !cdf.getFileComment().isEmpty()) {
+            notOk(cdf.getFileName(),
+                "central directory contains a comment for this entry");
+        }
     }
 }

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-subprojects {
-    apply plugin: 'java'
-    repositories {
-        mavenCentral()
-    }
-}
+include 'third_party/javaxdelta'
+include 'core'
+include 'tools/diviner'
+include 'tools/policy'
+include 'tools/reassembler'
+include 'examples'

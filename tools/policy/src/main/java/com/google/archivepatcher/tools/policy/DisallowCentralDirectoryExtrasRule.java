@@ -12,9 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-subprojects {
-    apply plugin: 'java'
-    repositories {
-        mavenCentral()
+package com.google.archivepatcher.tools.policy;
+
+/**
+ * Disallows any "extras" section in the central directory.
+ */
+public class DisallowCentralDirectoryExtrasRule extends EntryRule {
+    @Override
+    protected void checkInternal() {
+        if (cdf.getExtraFieldLength_16bit() > 0) {
+            notOk(cdf.getFileName(),
+                "non-empty extras field in central directory");
+        }
     }
 }

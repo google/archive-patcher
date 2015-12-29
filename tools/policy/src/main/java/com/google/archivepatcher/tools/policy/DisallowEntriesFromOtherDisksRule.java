@@ -12,9 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-subprojects {
-    apply plugin: 'java'
-    repositories {
-        mavenCentral()
+package com.google.archivepatcher.tools.policy;
+
+/**
+ * Disallows any entry on any disk other than the first.
+ */
+public class DisallowEntriesFromOtherDisksRule extends EntryRule {
+    @Override
+    protected void checkInternal() {
+        if (cdf.getDiskNumberStart_16bit() != 0) {
+            notOk(cdf.getFileName(),
+                "central directory specifies a non-zero disk number");
+        }
     }
 }
