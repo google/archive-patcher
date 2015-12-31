@@ -29,7 +29,7 @@ public class ReassemblyStats {
     /**
      * One entry in {@link ReassemblyStats}.
      */
-    private static class Entry {
+    public static class Entry {
 
         /**
          * The number of entries that were processed.

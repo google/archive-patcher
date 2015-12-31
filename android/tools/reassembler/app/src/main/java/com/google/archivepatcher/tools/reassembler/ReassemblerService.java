@@ -92,7 +92,7 @@ public class ReassemblerService extends IntentService {
         }
         final boolean verify = intent.getBooleanExtra(VERIFY_PARAM, false);
         handleActionReassemble(
-            inputArchive, directivesDir, outputDir, verify);
+                inputArchive, directivesDir, outputDir, verify);
     }
 
     private File safeFile(String path) {
@@ -128,19 +128,32 @@ public class ReassemblerService extends IntentService {
             outputDir, inputArchive.getName() + ".stats");
         final File tempStatsOutputFile = new File(
             outputDir, inputArchive.getName() + ".stats.temp");
+        final File statsCsvOutputFile = new File(
+                outputDir, inputArchive.getName() + ".stats.csv");
+        final File tempStatsCsvOutputFile = new File(
+                outputDir, inputArchive.getName() + ".stats.csv.temp");
         final List<File> archives = new LinkedList<>();
         archives.add(inputArchive);
         FileWriter statsOut = null;
+        FileWriter statsCsvOut = null;
         try {
             Reassembler reassembler = new Reassembler();
             ReassemblyBatchResult result = reassembler.reassemble(
                     archives, 1, outputDir, directivesDir, verify);
+
+            // Dump stats to file
             statsOut = new FileWriter(tempStatsOutputFile);
             statsOut.write(result.toString());
             statsOut.flush();
-            // Atomic rename once done
             tempStatsOutputFile.renameTo(statsOutputFile);
-            Log.i(TAG, "Reassembly complete.");
+
+            // Dump csv stats to file
+            statsCsvOut = new FileWriter(tempStatsCsvOutputFile);
+            statsCsvOut.write(result.toSimplifiedCsv(true /* output header */));
+            statsCsvOut.flush();
+            tempStatsCsvOutputFile.renameTo(statsCsvOutputFile);
+            Log.i(TAG, "Reassembly completed in " +
+                    result.getAggregateStats().totalMillisRebuilding + "ms");
         } catch (Exception e) {
             Log.e(TAG, "Reassembly failed.", e);
         } finally {

@@ -161,6 +161,12 @@ if [ "$exists" == "true" ]; then
   if [ "${verbose}" ]; then echo "deleting old stats from device at ${safe_device_stats_file}"; fi
   adb shell rm ${safe_device_stats_file}
 fi
+safe_device_stats_csv_file="${safe_device_work_path}/${archive_name}.stats.csv"
+exists=$(checkFile "${safe_device_stats_csv_file}")
+if [ "$exists" == "true" ]; then
+  if [ "${verbose}" ]; then echo "deleting old stats CSV from device at ${safe_device_stats_csv_file}"; fi
+  adb shell rm ${safe_device_stats_csv_file}
+fi
 
 # Ensure the service has necessary permissions on Android M or later where there
 # is no prompt at install time.
@@ -199,14 +205,24 @@ while [ "$exists" == "false" ]; do
   sleep .1
   exists=$(checkFile "${safe_device_stats_file}")
 done
-
 if [ "${verbose}" ]; then echo "found stats on device in ${safe_device_stats_file}"; fi
-
-# Now pull stats to the output directory
 output_stats_file="${output_dir}/${archive_name}.stats"
 adb pull ${safe_device_stats_file} ${output_stats_file}
 
+# Same for CSV stats.
+if [ "${verbose}" ]; then echo "awaiting csv stats on device in ${safe_device_stats_csv_file}"; fi
+exists=$(checkFile "${safe_device_stats_csv_file}")
+while [ "$exists" == "false" ]; do
+  sleep .1
+  exists=$(checkFile "${safe_device_stats_csv_file}")
+done
+if [ "${verbose}" ]; then echo "found csv stats on device in ${safe_device_stats_csv_file}"; fi
+output_stats_csv_file="${output_dir}/${archive_name}.stats.csv"
+adb pull ${safe_device_stats_csv_file} ${output_stats_csv_file}
+
 echo "-------------------------------------------------------------------------------"
-echo "Done. Results: ${output_stats_file}"
+echo "Done."
+echo "Detailed results: ${output_stats_file}"
+echo "Comma-separated values: ${output_stats_csv_file}"
 echo "-------------------------------------------------------------------------------"
 cat ${output_stats_file}

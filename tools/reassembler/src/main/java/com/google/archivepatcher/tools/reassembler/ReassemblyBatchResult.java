@@ -177,4 +177,58 @@ public final class ReassemblyBatchResult {
         }
         return buffer.toString();
     }
+
+    /**
+     * Returns a header row for use with {@link #toSimplifiedCsv(boolean)},
+     * likely useful with typical applications that process comma-separated
+     * values.
+     * @return as described
+     */
+    public static String getSimplifiedCsvHeader() {
+        return "archive_name,success_bool,total_bytes," +
+            "total_reassembly_time_ms,average_reassembly_bytes_per_second";
+    }
+
+    /**
+     * Convert the result into a comma-separated-value form that is friendly to
+     * analysis but less useful to humans. Each row is a tuple of the following
+     * values:
+     * (archive_name,success_bool,total_bytes,total_reassembly_time_ms,
+     * average_reassembly_bytes_per_second)
+     * @param includeHeader if true, start by outputting a header on the first
+     * line.
+     * @return as described
+     */
+    public String toSimplifiedCsv(boolean includeHeader) {
+        StringBuilder buffer = new StringBuilder();
+        if (includeHeader) {
+            buffer.append(getSimplifiedCsvHeader());
+        }
+        boolean firstRow = !includeHeader;
+        for (ReassemblyResult one : allResultsByInputFilePath.values()) {
+            // For convenience use an empty stats if no stats are available
+            if (firstRow) {
+                firstRow = false;
+            } else {
+                // Next line
+                buffer.append("\n");
+            }
+
+            ReassemblyStats stats = one.stats;
+            if (stats == null) {
+                stats = new ReassemblyStats();
+            }
+            double reassemblyBytesPerSecond = 0d;
+            if (stats.totalMillisRebuilding > 0) {
+                reassemblyBytesPerSecond = stats.totalArchiveBytes /
+                    (stats.totalMillisRebuilding / 1000d);
+            }
+            buffer.append(one.inputFile.getName())
+                .append(",").append(one.error == null)
+                .append(",").append(stats.totalArchiveBytes)
+                .append(",").append(stats.totalMillisRebuilding)
+                .append(",").append((long) reassemblyBytesPerSecond);
+        }
+        return buffer.toString();
+    }
 }

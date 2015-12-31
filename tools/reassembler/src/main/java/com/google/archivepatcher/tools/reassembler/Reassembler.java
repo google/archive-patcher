@@ -98,6 +98,9 @@ public class Reassembler extends AbstractArchiveTool {
         options.option("verify").isUnary().describedAs(
             "Verify that the reassembled file has the same SHA256 as the " +
             "original. This may add significant time to reassembly.");
+        options.option("csv").isUnary().describedAs(
+            "Output a simplified CSV report instead of the normal detailed " +
+            "output.");
     }
 
     @Override
@@ -130,8 +133,13 @@ public class Reassembler extends AbstractArchiveTool {
         }
         ReassemblyBatchResult result = reassemble(
             archives, jobs, outputDir, directivesDir, verify);
+
         // Print report for the user
-        log(result.toString());
+        if (options.has("csv")) {
+            log(result.toSimplifiedCsv(true));
+        } else {
+            log(result.toString());
+        }
     }
 
     /**
