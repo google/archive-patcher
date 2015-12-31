@@ -7,7 +7,7 @@ android {
     defaultConfig {
         applicationId "com.google.archivepatcher.tools.reassembler"
         minSdkVersion 9
-        targetSdkVersion 23
+        targetSdkVersion 9
         versionCode 1
         versionName "1.0"
     }
