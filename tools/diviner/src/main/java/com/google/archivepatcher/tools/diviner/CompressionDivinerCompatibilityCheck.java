@@ -29,6 +29,7 @@ import com.google.archivepatcher.AbstractArchiveTool;
 import com.google.archivepatcher.MicroOptions;
 import com.google.archivepatcher.compression.DeflateCompressor;
 import com.google.archivepatcher.compression.JreDeflateParameters;
+import com.google.archivepatcher.util.MiscUtils;
 
 
 /**
@@ -290,7 +291,7 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
                         throw new RuntimeException(
                             "System doesn't support SHA-256", e);
                     }
-                    String sha256String = hexString(sha256OfCompressedData);
+                    String sha256String = MiscUtils.hexString(sha256OfCompressedData);
                     result.put(parameters, sha256String);
                 }
             }
@@ -329,23 +330,5 @@ public class CompressionDivinerCompatibilityCheck extends AbstractArchiveTool {
             result.put(parameters, sha256);
         }
         return result;
-    }
-
-    /**
-     * Convert the specified bytes to a fixed-length hex string.
-     * @param bytes the bytes to convert
-     * @return a string exactly twice as long as the number of bytes in the
-     * input, representing the bytes as a continuous hexadecimal stream
-     */
-    private final static String hexString(byte[] bytes) {
-        StringBuilder buffer = new StringBuilder();
-        for (int x=0; x<bytes.length; x++) {
-            int value = bytes[x] & 0xff;
-            if (value < 0x10) {
-                buffer.append('0');
-            }
-            buffer.append(Integer.toHexString(value));
-        }
-        return buffer.toString();
     }
 }

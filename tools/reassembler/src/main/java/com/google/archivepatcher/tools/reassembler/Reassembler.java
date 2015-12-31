@@ -14,6 +14,28 @@
 
 package com.google.archivepatcher.tools.reassembler;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.ZipFile;
+
 import com.google.archivepatcher.AbstractArchiveTool;
 import com.google.archivepatcher.Archive;
 import com.google.archivepatcher.MicroOptions;
@@ -27,28 +49,7 @@ import com.google.archivepatcher.parts.LocalSectionParts;
 import com.google.archivepatcher.tools.diviner.CompressionDiviner;
 import com.google.archivepatcher.tools.diviner.DeflateInfo;
 import com.google.archivepatcher.util.MiscUtils;
-
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.zip.Deflater;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.ZipFile;
+import com.google.archivepatcher.util.ThreadTiming;
 
 /**
  * Reassemble the contents of an archive based on data from the
@@ -94,10 +95,14 @@ public class Reassembler extends AbstractArchiveTool {
             "same names as the archives, but should be suffixed with the " +
             "string '.directives'. Defaults to whatever directory the " +
             "archives are in.");
+        options.option("verify").isUnary().describedAs(
+            "Verify that the reassembled file has the same SHA256 as the " +
+            "original. This may add significant time to reassembly.");
     }
 
     @Override
     protected void run(MicroOptions options) throws Exception {
+        // Parameter parsing
         if (!options.has("archive") && !options.has("archive-list")) {
             throw new IllegalArgumentException("specify one of --archive " +
                 "or --archive-list");
@@ -114,27 +119,49 @@ public class Reassembler extends AbstractArchiveTool {
             archives = MiscUtils.getFileList(options.getArg("archive-list"));
         }
 
-        // Prepare output directory.
+        final int jobs = Integer.parseInt(options.getArg("jobs", "1"));
+        final boolean verify = options.has("verify");
         final File outputDir = new File(options.getArg("output-dir"));
-        if (!outputDir.exists()) {
-            outputDir.mkdirs();
-        }
-        if (!outputDir.exists()) {
-            throw new RuntimeException("Cannot create output direcotry: "
-                    + options.getArg("output-dir"));
-        }
-
-        // Find the directives directory if it was specified
         final File directivesDir;
         if (options.has("directives-in-dir")) {
             directivesDir = new File(options.getArg("directives-in-dir"));
         } else {
             directivesDir = null;
         }
+        ReassemblyBatchResult result = reassemble(
+            archives, jobs, outputDir, directivesDir, verify);
+        // Print report for the user
+        log(result.toString());
+    }
+
+    /**
+     * Run the reassembler with the specified parameters. See command line
+     * options for detailed usage instructions.
+     * @param archives one or more archives to be reassembled
+     * @param jobs the number of jobs to run in parallel
+     * @param outputDir the directory to output reassembled archives to
+     * @param directivesDir where to find directives files
+     * @param verify if true, verify that the reassembled file has the same
+     * SHA256 as the original
+     * @return the statistics from the reassembly process
+     * @throws ExecutionException if there is an error during execution
+     * @throws InterruptedException if interrupted while awaiting completion
+     */
+    public ReassemblyBatchResult reassemble(final List<File> archives,
+        final int jobs, final File outputDir, final File directivesDir,
+        final boolean verify) throws ExecutionException, InterruptedException {
+        // Prepare output directory.
+        if (!outputDir.exists()) {
+            outputDir.mkdirs();
+        }
+        if (!outputDir.exists()) {
+            throw new RuntimeException("Cannot create output directory: "
+                    + outputDir);
+        }
 
         // Generate tasks for each archive
-        final List<Callable<ReassemblyStats>> tasks =
-                new ArrayList<Callable<ReassemblyStats>>(archives.size());
+        final List<Callable<ReassemblyResult>> tasks =
+                new ArrayList<Callable<ReassemblyResult>>(archives.size());
         for (File archiveFile : archives) {
             // Figure out where the directives are for this archive file
             final File directivesFile;
@@ -156,33 +183,30 @@ public class Reassembler extends AbstractArchiveTool {
                     archiveFile.getName() + REASSEMBLED_SUFFIX);
             // Finally, generate the task.
             tasks.add(new ReassembleTask(
-                    archiveFile, directivesFile, outputFile));
+                    archiveFile, directivesFile, outputFile, verify));
         }
 
         // Submit tasks to the pool and wait for completion
-        final int jobs = Integer.parseInt(options.getArg("jobs", "1"));
         ExecutorService executor = Executors.newFixedThreadPool(
             Math.min(archives.size(), jobs));
-        final List<ReassemblyStats> allStats =
-            new ArrayList<ReassemblyStats>(archives.size());
+        ReassemblyBatchResult finalResult = new ReassemblyBatchResult();
         try {
-            List<Future<ReassemblyStats>> results =
+            List<Future<ReassemblyResult>> results =
                 executor.invokeAll(tasks);
-            for (Future<ReassemblyStats> future : results) {
-                allStats.add(future.get());
+            for (Future<ReassemblyResult> future : results) {
+                ReassemblyResult oneResult = null;
+                try {
+                    oneResult = future.get();
+                } catch (Exception e) {
+                    // Unhandled exception in code, fail.
+                    throw new RuntimeException(e);
+                }
+                finalResult.append(oneResult);
             }
         } finally {
             executor.shutdownNow();
         }
-
-        // Merge all stats
-        ReassemblyStats finalStats = new ReassemblyStats();
-        for (ReassemblyStats oneResult : allStats) {
-            finalStats.accumulate(oneResult);
-        }
-
-        // Print report for the user
-        log(finalStats.toString());
+        return finalResult;
     }
 
     /**
@@ -239,18 +263,12 @@ public class Reassembler extends AbstractArchiveTool {
             final Map<String, JreDeflateParameters> deflateParametersByPath,
             DataOutputStream out) throws IOException {
         // Check for ability to track thread CPU time
-        ThreadMXBean mxbean = null;
-        boolean trackCompressionTime = false;
-        try {
-            mxbean = ManagementFactory.getThreadMXBean();
-            trackCompressionTime =
-                    mxbean.isCurrentThreadCpuTimeSupported();
-        } catch (Exception ignored) {
-            // Nothing to be done
-        }
-        if (!trackCompressionTime) {
+        final ThreadTiming timing;
+        if (!ThreadTiming.isTimingSupported()) {
             log("warning: thread time tracking not available");
-            mxbean = null;
+            timing = null;
+        } else {
+            timing = new ThreadTiming();
         }
 
         // Parse input archive to get access to all the low-level bits that are
@@ -264,9 +282,9 @@ public class Reassembler extends AbstractArchiveTool {
         // Track start time
         final ReassemblyStats result = new ReassemblyStats();
         result.totalArchiveBytes = archiveIn.length();
-        long startNanos = -1;
-        if (mxbean != null) {
-            startNanos = mxbean.getCurrentThreadCpuTime();
+        long startMillis = 0;
+        if (timing != null) {
+            startMillis = timing.getThreadCpuTimeMillis();
         }
 
         // Cheat: Use a ZipFile as a proxy to get the uncompressed data, since
@@ -282,14 +300,14 @@ public class Reassembler extends AbstractArchiveTool {
             logVerbose("Writing local section");
         }
         try {
-            // Iterate in the original file order, writing each part back to disk
-            // in serial to produce an identical archive.
+            // Iterate in the original file order, writing each part back to
+            // disk in serial to produce an identical archive.
             for (final LocalSectionParts lsp : archive.getLocal().entries()) {
                 final JreDeflateParameters deflateParameters =
                         deflateParametersByPath.get(
                                 lsp.getLocalFilePart().getFileName());
                 reassembleLocalSectionParts(
-                        result, mxbean, deflateParameters, out, dataProxy,
+                        result, timing, deflateParameters, out, dataProxy,
                         buffer, lsp);
             }
         } finally {
@@ -304,10 +322,10 @@ public class Reassembler extends AbstractArchiveTool {
             cdf.write(out);
         }
         cds.getEocd().write(out);
-        if (mxbean != null) {
-            final long endNanos = mxbean.getCurrentThreadCpuTime();
-            final long elapsedNanos = endNanos - startNanos;
-            result.totalNanosRebuilding += elapsedNanos;
+        if (timing != null) {
+            final long endMillis = timing.getThreadCpuTimeMillis();
+            final long elapsedMillis = endMillis - startMillis;
+            result.totalMillisRebuilding += elapsedMillis;
         }
         return result;
     }
@@ -315,7 +333,7 @@ public class Reassembler extends AbstractArchiveTool {
     /**
      * Reassemble the {@link LocalSectionParts} for one entry.
      * @param stats stats object to accumulate into
-     * @param mxbean the bean used for measuring time
+     * @param timing the object used for measuring time (may be null)
      * @param deflateParameters deflate configuration information, if relevant
      * @param out the stream for the archive being written
      * @param dataProxy a zip file being used to access the file content lazily
@@ -326,7 +344,7 @@ public class Reassembler extends AbstractArchiveTool {
      */
     private void reassembleLocalSectionParts(
         final ReassemblyStats stats,
-        final ThreadMXBean mxbean,
+        final ThreadTiming timing,
         final JreDeflateParameters deflateParameters,
         final DataOutputStream out, final ZipFile dataProxy,
         final byte[] buffer, final LocalSectionParts lsp)
@@ -337,8 +355,8 @@ public class Reassembler extends AbstractArchiveTool {
         lf.write(out);
 
         // Check if the resource was deflated and, if so, recompress it.
-        long dataStartNanos = 0L;
-        long dataEndNanos = 0L;
+        long dataStartMillis = 0L;
+        long dataEndMillis = 0L;
         if (deflateParameters != null) {
             if (isVerbose()) {
                 logVerbose("Recompressing " + lf.getFileName());
@@ -354,8 +372,8 @@ public class Reassembler extends AbstractArchiveTool {
                     new BufferedInputStream(oldInput);
             final DeflaterOutputStream deflateOut =
                     new DeflaterOutputStream(out, deflater, 16384);
-            if (mxbean != null) {
-                dataStartNanos = mxbean.getCurrentThreadCpuTime();
+            if (timing != null) {
+                dataStartMillis = timing.getThreadCpuTimeMillis();
             }
             int numRead = 0;
             while ((numRead = bufferedOldIn.read(buffer)) >= 0) {
@@ -363,20 +381,20 @@ public class Reassembler extends AbstractArchiveTool {
             }
             deflateOut.finish(); // DO NOT close the underlying stream yet!
             deflater.end();
-            if (mxbean != null) {
-                dataEndNanos = mxbean.getCurrentThreadCpuTime();
+            if (timing != null) {
+                dataEndMillis = timing.getThreadCpuTimeMillis();
             }
         } else {
             // Just copy the data
             if (isVerbose()) {
                 logVerbose("Copying " + lf.getFileName());
             }
-            if (mxbean != null) {
-                dataStartNanos = mxbean.getCurrentThreadCpuTime();
+            if (timing != null) {
+                dataStartMillis = timing.getThreadCpuTimeMillis();
             }
             out.write(lsp.getFileDataPart().getData());
-            if (mxbean != null) {
-                dataEndNanos = mxbean.getCurrentThreadCpuTime();
+            if (timing != null) {
+                dataEndMillis = timing.getThreadCpuTimeMillis();
             }
         }
 
@@ -386,11 +404,11 @@ public class Reassembler extends AbstractArchiveTool {
         }
 
         // Gather timing data
-        final long dataNanos;
-        if (mxbean != null) {
-            dataNanos = dataEndNanos - dataStartNanos;
+        final long dataMillis;
+        if (timing != null) {
+            dataMillis = dataEndMillis - dataStartMillis;
         } else {
-            dataNanos = 0;
+            dataMillis = 0;
         }
 
         // Record statistics
@@ -398,7 +416,7 @@ public class Reassembler extends AbstractArchiveTool {
             stats.accumulateRecompressStats(
                     lf.getFileName(), deflateParameters,
                     lf.getCompressedSize_32bit(),
-                    lf.getUncompressedSize_32bit(), dataNanos);
+                    lf.getUncompressedSize_32bit(), dataMillis);
         } else {
             final CompressionMethod method = lf.getCompressionMethod();
             final ReassemblyTechnique technique;
@@ -413,7 +431,7 @@ public class Reassembler extends AbstractArchiveTool {
             stats.accumulateCopyStats(lf.getFileName(), technique,
                     lf.getCompressedSize_32bit(),
                     lf.getUncompressedSize_32bit(),
-                    dataNanos);
+                    dataMillis);
         }
     }
 
@@ -421,7 +439,7 @@ public class Reassembler extends AbstractArchiveTool {
      * Process one archive with its directives and reassemble it to the
      * specified destination.
      */
-    private class ReassembleTask implements Callable<ReassemblyStats> {
+    private class ReassembleTask implements Callable<ReassemblyResult> {
         /**
          * The archive to read.
          */
@@ -438,40 +456,79 @@ public class Reassembler extends AbstractArchiveTool {
         private final File directivesFile;
 
         /**
+         * If true, verify that the reassembled file has the same SHA256 as the
+         * original.
+         */
+        private final boolean verify;
+
+        /**
          * Create a new task to work on the specified inputs.
          * @param archiveIn the archive to read
          * @param directivesFile the directives file with deflate configuration
          * information for recompression
          * @param archiveOut the archive to write
+         * @param verify if true, verify that the reassembled file has the same
+         * SHA256 as the original.
          */
         public ReassembleTask(File archiveIn, File directivesFile,
-                File archiveOut) {
+                File archiveOut, boolean verify) {
             this.archiveIn = archiveIn;
             this.directivesFile = directivesFile;
             this.archiveOut = archiveOut;
+            this.verify = verify;
         }
 
         @Implementation
-        public ReassemblyStats call() throws Exception {
-            // Parse directives to determine what parameters will be used for
-            // each resource
-            final Map<String, JreDeflateParameters> deflateParametersByPath =
-                    parseDirectives(directivesFile);
+        public ReassemblyResult call() throws Exception {
+            Throwable error = null;
+            ReassemblyStats stats = null;
+            boolean verified = false;
 
-            // Load the archive and prepare to walk it.
-            final DataOutputStream dataOut = new DataOutputStream(
-                    new BufferedOutputStream(new FileOutputStream(archiveOut)));
             try {
-                return reassemble(archiveIn, deflateParametersByPath, dataOut);
-            } finally {
+                // Parse directives to determine what parameters will be used for
+                // each resource
+                final Map<String, JreDeflateParameters> deflateParametersByPath =
+                        parseDirectives(directivesFile);
+    
+                // Load the archive and prepare to walk it.
+                final DataOutputStream dataOut = new DataOutputStream(
+                        new BufferedOutputStream(new FileOutputStream(archiveOut)));
+
                 try {
-                    dataOut.flush();
-                    dataOut.close();
-                } catch (Exception e) {
-                    // Ignore.
+                    stats = reassemble(
+                        archiveIn, deflateParametersByPath, dataOut);
+                } finally {
+                    try {
+                        dataOut.flush();
+                        dataOut.close();
+                    } catch (Exception e) {
+                        // Ignore.
+                    }
+                }
+            } catch (Throwable t) {
+                // Track error
+                error = t;
+            }
+
+            // If all is ok and verification was requested, compute SHA256 now.
+            String sha256Original = null;
+            String sha256Reassembled = null;
+            if (verify && error == null) {
+                sha256Original =
+                    MiscUtils.hexString(MiscUtils.sha256(archiveIn));
+                sha256Reassembled =
+                    MiscUtils.hexString(MiscUtils.sha256(archiveOut));
+                if (sha256Original.equals(sha256Reassembled)) {
+                    verified = true;
+                } else {
+                    error = new RuntimeException(
+                        "Verification failed! Reassembled archive is not " +
+                        "the same as the original.");
                 }
             }
+            return new ReassemblyResult(
+                archiveIn, archiveOut, verify, verified, sha256Original,
+                sha256Reassembled, error, stats);
         }
-        
     }
 }

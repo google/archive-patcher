@@ -16,6 +16,7 @@ package com.google.archivepatcher.util;
 
 import com.google.archivepatcher.compat.Implementation;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -23,6 +24,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -242,5 +245,60 @@ public class MiscUtils {
                 "unsupported path: " + archiveListPath);
         }
         return result;
+    }
+
+    /**
+     * Compute the SHA-256 of a file.
+     * @param file the file to compute the hash for
+     * @return the hash
+     */
+    public static final byte[] sha256(final File file) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            // Highly unlikely.
+            throw new RuntimeException("System doesn't support SHA-256", e);
+        }
+        FileInputStream in = null;
+        byte[] buffer = new byte[32768];
+        try {
+            in = new FileInputStream(file);
+            BufferedInputStream buffered = new BufferedInputStream(in);
+            int numRead = 0;
+            while ((numRead = buffered.read(buffer)) >= 0) {
+                digest.update(buffer, 0, numRead);
+            }
+            return digest.digest();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Exception ignored) {
+                    // Nothing to be done.
+                }
+            }
+        }
+        
+    }
+
+    /**
+     * Convert the specified bytes to a fixed-length hex string.
+     * @param bytes the bytes to convert
+     * @return a string exactly twice as long as the number of bytes in the
+     * input, representing the bytes as a continuous hexadecimal stream
+     */
+    public final static String hexString(byte[] bytes) {
+        StringBuilder buffer = new StringBuilder();
+        for (int x=0; x<bytes.length; x++) {
+            int value = bytes[x] & 0xff;
+            if (value < 0x10) {
+                buffer.append('0');
+            }
+            buffer.append(Integer.toHexString(value));
+        }
+        return buffer.toString();
     }
 }

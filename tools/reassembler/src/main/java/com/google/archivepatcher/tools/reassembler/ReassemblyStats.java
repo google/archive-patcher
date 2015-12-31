@@ -52,7 +52,7 @@ public class ReassemblyStats {
          * Since most of this is done in a streaming fashion the interaction
          * between these three processes is complex.
          */
-        public long nanosElapsed = 0;
+        public long millisElapsed = 0;
     }
 
     /**
@@ -62,7 +62,7 @@ public class ReassemblyStats {
      * archive, parsing it, compressing and writing the result.
      */
     // FIXME: Our parser is unnecessarily slow, so this skews the results.
-    public long totalNanosRebuilding = 0;
+    public long totalMillisRebuilding = 0;
 
     /**
      * The total number of bytes in the input archive.
@@ -112,12 +112,12 @@ public class ReassemblyStats {
      * @param params the compression parameters
      * @param numCompressedBytes the number of compressed bytes
      * @param numUncompressedBytes the number of uncompressed bytes
-     * @param nanosSpentCompressing time spent recompressing, in ns
+     * @param millisSpentCompressing time spent recompressing, in ms
      */
     public void accumulateRecompressStats(
             String fileName, JreDeflateParameters params,
             long numCompressedBytes, long numUncompressedBytes,
-            long nanosSpentCompressing) {
+            long millisSpentCompressing) {
         Entry byParams =
                 recompressEntriesByDeflateParameters.get(params);
         if (byParams == null) {
@@ -126,7 +126,7 @@ public class ReassemblyStats {
         }
         byParams.numCompressedBytes += numCompressedBytes;
         byParams.numUncompressedBytes += numUncompressedBytes;
-        byParams.nanosElapsed += nanosSpentCompressing;
+        byParams.millisElapsed += millisSpentCompressing;
         byParams.numResources++;
 
         Entry bySuffix = recompressEntriesBySuffix.get(getSuffix(fileName));
@@ -136,7 +136,7 @@ public class ReassemblyStats {
         }
         bySuffix.numCompressedBytes += numCompressedBytes;
         bySuffix.numUncompressedBytes += numUncompressedBytes;
-        bySuffix.nanosElapsed += nanosSpentCompressing;
+        bySuffix.millisElapsed += millisSpentCompressing;
         bySuffix.numResources++;
     }
 
@@ -168,7 +168,7 @@ public class ReassemblyStats {
                 other.unknownDeflateEntriesBySuffix);
         accumulate(unknownTechEntriesBySuffix,
                 other.unknownTechEntriesBySuffix);
-        totalNanosRebuilding += other.totalNanosRebuilding;
+        totalMillisRebuilding += other.totalMillisRebuilding;
         totalArchiveBytes += other.totalArchiveBytes;
     }
 
@@ -187,7 +187,7 @@ public class ReassemblyStats {
                 ourEntry = new Entry();
                 ours.put(theirKey, ourEntry);
             }
-            ourEntry.nanosElapsed += theirEntry.nanosElapsed;
+            ourEntry.millisElapsed += theirEntry.millisElapsed;
             ourEntry.numCompressedBytes += theirEntry.numCompressedBytes;
             ourEntry.numResources += theirEntry.numResources;
             ourEntry.numUncompressedBytes += theirEntry.numUncompressedBytes;
@@ -200,12 +200,12 @@ public class ReassemblyStats {
      * @param technique the technique that was used for reassembly
      * @param numCompressedBytes the number of compressed bytes
      * @param numUncompressedBytes the number of uncompressed bytes
-     * @param nanosSpentCopying time spent copying, in ns
+     * @param millisSpentCopying time spent copying, in ms
      */
     public void accumulateCopyStats(final String fileName,
             final ReassemblyTechnique technique,
             long numCompressedBytes, long numUncompressedBytes,
-            long nanosSpentCopying) {
+            long millisSpentCopying) {
         Map<String, Entry> map;
         switch(technique) {
             case COPY_NO_COMPRESSION:
@@ -227,7 +227,7 @@ public class ReassemblyStats {
         }
         entry.numCompressedBytes += numCompressedBytes;
         entry.numUncompressedBytes += numUncompressedBytes;
-        entry.nanosElapsed += nanosSpentCopying;
+        entry.millisElapsed += millisSpentCopying;
         entry.numResources++;
     }
 
@@ -265,8 +265,8 @@ public class ReassemblyStats {
     public String toString() {
         final NumberFormat format =
                 NumberFormat.getNumberInstance(Locale.US);
-        final double totalSeconds = totalNanosRebuilding / (1000*1000*1000d);
-        final long totalMillis = totalNanosRebuilding / (1000*1000);
+        final double totalSeconds = totalMillisRebuilding / 1000d;
+        final long totalMillis = totalMillisRebuilding;
         final long archiveBytesPerSecond;
         if (totalMillis > 0) {
             archiveBytesPerSecond = (long) (totalArchiveBytes / totalSeconds);
@@ -332,8 +332,8 @@ public class ReassemblyStats {
                 NumberFormat.getNumberInstance(Locale.US);
         for (final T key : map.keySet()) {
             final Entry entry = map.get(key);
-            final double seconds = entry.nanosElapsed / (1000*1000*1000d);
-            final long milliseconds = entry.nanosElapsed / (1000*1000);
+            final double seconds = entry.millisElapsed / 1000d;
+            final long milliseconds = entry.millisElapsed;
             final long compressedBytesPerSecond;
             final long uncompressedBytesPerSecond;
             if (milliseconds > 0) {
