@@ -40,7 +40,7 @@ do
       shift 2
       ;;
       "-h" | "--help")
-      echo "Usage: run_reassembler_on_devices.sh --archive <archive> --directives-in-dir <directives_dir> --output-dir <output_dir> [--verify]"
+      echo "Usage: run_reassembler_on_devices.sh --archive <archive> --directives-in-dir <directives_dir> --output-dir <output_dir> [--verify] [--recover] [--noclean] [--verbose]"
       exit 0
       ;;
       "--verify") # Verify that reassembled archive matches original
@@ -126,9 +126,6 @@ mkdir -p ${output_dir}
 [[ ! -d "${output_dir}" ]] && { echo "output dir doesn't exist and couldn't be created: ${output_dir}" ; exit 1; }
 [[ ! -w "${output_dir}" ]] && { echo "output dir exists but cannot be written to: ${output_dir}" ; exit 1; }
 
-# From here on, everything should succeed. Abort on any error.
-set -e
-
 is_msys=""
 if [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
     is_msys="yes"
@@ -177,7 +174,7 @@ adb shell "mkdir -p ${DEVICE_WORK_DIR}"
 
 # Copy files if they don't already exist
 function checkFile {
-  result=$(adb shell "ls $1 > /dev/null && echo -n 'found'")
+  result=$(adb shell "ls \"$1\" > /dev/null && echo -n 'found'")
   if [ "${result}" == "found" ]; then
     echo "true"
   else
@@ -227,9 +224,9 @@ start_command="
 adb shell am startservice \
   -n com.google.archivepatcher.tools.reassembler/.ReassemblerService \
   -a com.google.archivepatcher.tools.reassembler.action.REASSEMBLE \
-  --es com.google.archivepatcher.tools.reassembler.extra.INPUT_ARCHIVE ${safe_device_archive_path} \
-  --es com.google.archivepatcher.tools.reassembler.extra.DIRECTIVES_DIR ${safe_device_work_path} \
-  --es com.google.archivepatcher.tools.reassembler.extra.OUTPUT_DIR ${safe_device_work_path} \
+  --es com.google.archivepatcher.tools.reassembler.extra.INPUT_ARCHIVE \"${safe_device_archive_path}\" \
+  --es com.google.archivepatcher.tools.reassembler.extra.DIRECTIVES_DIR \"${safe_device_work_path}\" \
+  --es com.google.archivepatcher.tools.reassembler.extra.OUTPUT_DIR \"${safe_device_work_path}\" \
   --ez com.google.archivepatcher.tools.reassembler.extra.VERIFY ${verify}"
 if [ "${verbose}" ]; then
     echo "Running: ${start_command}"
