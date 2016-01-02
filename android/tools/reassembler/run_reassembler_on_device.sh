@@ -21,6 +21,8 @@ SCRIPT_DIR=$( cd $(dirname $0) ; pwd -P )
 PROJECT_ROOT=$( cd ${SCRIPT_DIR}/../../.. ; pwd -P )
 DEVICE_WORK_DIR=/mnt/sdcard/archive-patcher/reassembler
 verify="false"
+cleanup="true"
+recover="false"
 
 while [[ $# -gt 0 ]] ;
 do
@@ -43,6 +45,14 @@ do
       ;;
       "--verify") # Verify that reassembled archive matches original
       verify="true"
+      shift
+      ;;
+      "--noclean") # Don't clean up before and after
+      cleanup="false"
+      shift
+      ;;
+      "--recover") # Skip if stats and csv in output directory already exist
+      recover="true"
       shift
       ;;
       "--verbose")
@@ -75,6 +85,39 @@ set -e
 # Check that directives file exists
 archive_name=$( basename ${archive} )
 directives_file="${directives_in_dir}/${archive_name}.directives"
+device_archive_path="${DEVICE_WORK_DIR}/${archive_name}"
+device_directives_path="${DEVICE_WORK_DIR}/${archive_name}.directives"
+output_stats_file="${output_dir}/${archive_name}.stats"
+output_stats_csv_file="${output_dir}/${archive_name}.stats.csv"
+
+function cleanup {
+  if [ "${cleanup}" == "true" ]; then
+    if [ "${verbose}" ]; then echo "Cleaning up ${DEVICE_WORK_DIR} on device"; fi
+    adb shell "rm -rf ${DEVICE_WORK_DIR}"
+  fi
+}
+
+function finish {
+  echo "-------------------------------------------------------------------------------"
+  echo "Done."
+  echo "Detailed results: ${output_stats_file}"
+  echo "Comma-separated values: ${output_stats_csv_file}"
+  echo "-------------------------------------------------------------------------------"
+  cat ${output_stats_file}
+  exit 0
+}
+
+# If outputs already exist and using --recover, we are done.
+if [ "${recover}" == "true" ]; then
+  if [[ -f "${output_stats_csv_file}" ]]; then
+    if [[ -f "${output_stats_file}" ]]; then
+      if [ "${verbose}" ]; then echo "skipping ${archive} because results already exist in ${output_dir}"; fi
+      finish
+    fi
+  fi
+fi
+
+
 [[ ! -f "${directives_file}" ]] && { echo "directives file does not exist: ${directives_file}" ; exit 1; }
 [[ ! -r "${directives_file}" ]] && { echo "cannot read directives file: ${directives_file}" ; exit 1; }
 
@@ -85,9 +128,6 @@ mkdir -p ${output_dir}
 
 # From here on, everything should succeed. Abort on any error.
 set -e
-
-device_archive_path="${DEVICE_WORK_DIR}/${archive_name}"
-device_directives_path="${DEVICE_WORK_DIR}/${archive_name}.directives"
 
 is_msys=""
 if [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
@@ -125,6 +165,7 @@ if [ "${verbose}" ]; then
 fi
 
 # Make working directory on the device
+cleanup
 adb shell "mkdir -p ${DEVICE_WORK_DIR}"
 
 # Copy files if they don't already exist
@@ -206,7 +247,6 @@ while [ "$exists" == "false" ]; do
   exists=$(checkFile "${safe_device_stats_file}")
 done
 if [ "${verbose}" ]; then echo "found stats on device in ${safe_device_stats_file}"; fi
-output_stats_file="${output_dir}/${archive_name}.stats"
 adb pull ${safe_device_stats_file} ${output_stats_file}
 
 # Same for CSV stats.
@@ -217,12 +257,7 @@ while [ "$exists" == "false" ]; do
   exists=$(checkFile "${safe_device_stats_csv_file}")
 done
 if [ "${verbose}" ]; then echo "found csv stats on device in ${safe_device_stats_csv_file}"; fi
-output_stats_csv_file="${output_dir}/${archive_name}.stats.csv"
 adb pull ${safe_device_stats_csv_file} ${output_stats_csv_file}
 
-echo "-------------------------------------------------------------------------------"
-echo "Done."
-echo "Detailed results: ${output_stats_file}"
-echo "Comma-separated values: ${output_stats_csv_file}"
-echo "-------------------------------------------------------------------------------"
-cat ${output_stats_file}
+cleanup
+finish
