@@ -164,6 +164,13 @@ if [ "${verbose}" ]; then
     echo
 fi
 
+# Kill the service if it is currently running.
+stop_command="adb shell am stopservice -n com.google.archivepatcher.tools.reassembler/.ReassemblerService"
+if [ "${verbose}" ]; then
+    echo "Running: ${stop_command}"
+fi
+${stop_command}
+
 # Make working directory on the device
 cleanup
 adb shell "mkdir -p ${DEVICE_WORK_DIR}"
@@ -215,8 +222,7 @@ if [ "${verbose}" ]; then echo "granting read+write permissions to tool"; fi
 adb shell pm grant com.google.archivepatcher.tools.reassembler android.permission.READ_EXTERNAL_STORAGE
 adb shell pm grant com.google.archivepatcher.tools.reassembler android.permission.WRITE_EXTERNAL_STORAGE
 
-# Kill the service if it is currently running, then (re-)launch it.
-stop_command="adb shell am stopservice -n com.google.archivepatcher.tools.reassembler/.ReassemblerService"
+# Launch the service.
 start_command="
 adb shell am startservice \
   -n com.google.archivepatcher.tools.reassembler/.ReassemblerService \
@@ -225,14 +231,6 @@ adb shell am startservice \
   --es com.google.archivepatcher.tools.reassembler.extra.DIRECTIVES_DIR ${safe_device_work_path} \
   --es com.google.archivepatcher.tools.reassembler.extra.OUTPUT_DIR ${safe_device_work_path} \
   --ez com.google.archivepatcher.tools.reassembler.extra.VERIFY ${verify}"
-
-# Kill!
-if [ "${verbose}" ]; then
-    echo "Running: ${stop_command}"
-fi
-${stop_command}
-
-# Launch!
 if [ "${verbose}" ]; then
     echo "Running: ${start_command}"
 fi
