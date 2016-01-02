@@ -150,6 +150,7 @@ public class ReassemblerService extends IntentService {
             // Dump csv stats to file
             statsCsvOut = new FileWriter(tempStatsCsvOutputFile);
             statsCsvOut.write(result.toSimplifiedCsv(true /* output header */));
+            statsCsvOut.write("\n"); // For convenience in batch processing of CSV files
             statsCsvOut.flush();
             tempStatsCsvOutputFile.renameTo(statsCsvOutputFile);
             Log.i(TAG, "Reassembly completed in " +
