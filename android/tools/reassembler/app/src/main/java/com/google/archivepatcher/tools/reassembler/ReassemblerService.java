@@ -165,6 +165,13 @@ public class ReassemblerService extends IntentService {
                     // Nothing to be done.
                 }
             }
+            if (statsCsvOut != null) {
+                try {
+                    statsCsvOut.close();
+                } catch (Exception ignored) {
+                    // Nothing to be done.
+                }
+            }
         }
     }
 }

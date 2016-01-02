@@ -162,11 +162,14 @@ if [ "${verbose}" ]; then
 fi
 
 # Kill the service if it is currently running.
-stop_command="adb shell am stopservice -n com.google.archivepatcher.tools.reassembler/.ReassemblerService"
-if [ "${verbose}" ]; then
+function stopService {
+  stop_command="adb shell am stopservice -n com.google.archivepatcher.tools.reassembler/.ReassemblerService"
+  if [ "${verbose}" ]; then
     echo "Running: ${stop_command}"
-fi
-${stop_command}
+  fi
+  ${stop_command}
+}
+stopService
 
 # Make working directory on the device
 cleanup
@@ -253,6 +256,11 @@ while [ "$exists" == "false" ]; do
 done
 if [ "${verbose}" ]; then echo "found csv stats on device in ${safe_device_stats_csv_file}"; fi
 adb pull ${safe_device_stats_csv_file} ${output_stats_csv_file}
+
+# Give a bit of time for the service to finish up and close references and such
+sleep 1
+stopService
+sleep 1
 
 cleanup
 finish
