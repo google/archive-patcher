@@ -27,6 +27,7 @@ directives_in_dir=
 output_dir=
 sleep_interval_multiplier=2
 verbose=
+verify=
 while [[ $# -gt 0 ]] ;
 do
     case "$1" in
@@ -47,8 +48,12 @@ do
       shift 2
       ;;
       "-h" | "--help")
-      echo "Usage: batch_run_reassembler_on_devices.sh --archive-list <archive_list_file> --directives-in-dir <directives_dir> --output-dir <output_dir> [--sleep-interval-multiplier <value>] [--verbose]"
+      echo "Usage: batch_run_reassembler_on_devices.sh --archive-list <archive_list_file> --directives-in-dir <directives_dir> --output-dir <output_dir> [--sleep-interval-multiplier <value>] [--verify] [--verbose]"
       exit 0
+      ;;
+      "--verify")
+      verbose="verify"
+      shift
       ;;
       "--verbose")
       verbose="verbose"
@@ -82,6 +87,10 @@ mkdir -p ${output_dir}
 [[ ! -w "${output_dir}" ]] && { echo "output dir exists but cannot be written to: ${output_dir}" ; exit 1; }
 
 # Prep args
+verify_arg=""
+if [ "${verify}" ]; then
+  verify_arg="--verify"
+fi
 verbose_arg=""
 if [ "${verbose}" ]; then
   verbose_arg="--verbose"
@@ -102,11 +111,11 @@ cat ${archive_list} | while read archive; do
     fi
     start=$SECONDS
     echo "Starting on archive ${archive} at $(date)"
-    ${SCRIPT_DIR}/run_reassembler_on_device.sh --verify --recover \
+    ${SCRIPT_DIR}/run_reassembler_on_device.sh --recover \
       --archive ${archive} \
       --directives-in-dir ${directives_in_dir} \
       --output-dir ${output_dir} \
-      ${verbose_arg}
+      ${verbose_arg} ${verify_arg}
     now=$SECONDS
     elapsed=$(( ${now} - ${start} ))
     next_sleep_interval=$(( ${elapsed} * ${sleep_interval_multiplier} ))
