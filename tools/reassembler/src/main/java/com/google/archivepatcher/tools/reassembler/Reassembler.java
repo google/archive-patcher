@@ -22,7 +22,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +99,10 @@ public class Reassembler extends AbstractArchiveTool {
             "original. This may add significant time to reassembly.");
         options.option("csv").isUnary().describedAs(
             "Output a simplified CSV report instead of the normal detailed " +
-            "output.");
+            "human-readable output.");
+        options.option("detailed-csv").isUnary().describedAs(
+            "Output a detailed CSV report instead of the normal detailed " +
+            "human-readable output.");
     }
 
     @Override
@@ -135,7 +137,9 @@ public class Reassembler extends AbstractArchiveTool {
             archives, jobs, outputDir, directivesDir, verify);
 
         // Print report for the user
-        if (options.has("csv")) {
+        if (options.has("detailed-csv")) {
+            log(result.toDetailedCsv(true));
+        } else if (options.has("csv")) {
             log(result.toSimplifiedCsv(true));
         } else {
             log(result.toString());
@@ -287,13 +291,8 @@ public class Reassembler extends AbstractArchiveTool {
         final Archive archive = Archive.fromFile(
                 archiveIn.getAbsolutePath());
 
-        // Track start time
         final ReassemblyStats result = new ReassemblyStats();
-        result.totalArchiveBytes = archiveIn.length();
-        long startMillis = 0;
-        if (timing != null) {
-            startMillis = timing.getThreadCpuTimeMillis();
-        }
+        result.updateTotalArchiveBytes(archiveIn.length());
 
         // Cheat: Use a ZipFile as a proxy to get the uncompressed data, since
         // it will allow (and indeed require) streaming decompression, which is
@@ -330,11 +329,6 @@ public class Reassembler extends AbstractArchiveTool {
             cdf.write(out);
         }
         cds.getEocd().write(out);
-        if (timing != null) {
-            final long endMillis = timing.getThreadCpuTimeMillis();
-            final long elapsedMillis = endMillis - startMillis;
-            result.totalMillisRebuilding += elapsedMillis;
-        }
         return result;
     }
 
@@ -491,6 +485,8 @@ public class Reassembler extends AbstractArchiveTool {
             Throwable error = null;
             ReassemblyStats stats = null;
             boolean verified = false;
+            final ThreadTiming timing = new ThreadTiming();
+            final long startMillis = timing.getThreadCpuTimeMillis();
 
             try {
                 // Parse directives to determine what parameters will be used for
@@ -522,10 +518,14 @@ public class Reassembler extends AbstractArchiveTool {
             String sha256Original = null;
             String sha256Reassembled = null;
             if (verify && error == null) {
+                final long verifyStartMillis = timing.getThreadCpuTimeMillis();
                 sha256Original =
                     MiscUtils.hexString(MiscUtils.sha256(archiveIn));
                 sha256Reassembled =
                     MiscUtils.hexString(MiscUtils.sha256(archiveOut));
+                final long verifyEndMillis = timing.getThreadCpuTimeMillis();
+                stats.updateTotalMillisVerifyingArchiveSignature(
+                    verifyEndMillis - verifyStartMillis);
                 if (sha256Original.equals(sha256Reassembled)) {
                     verified = true;
                 } else {
@@ -534,6 +534,8 @@ public class Reassembler extends AbstractArchiveTool {
                         "the same as the original.");
                 }
             }
+            final long endMillis = timing.getThreadCpuTimeMillis();
+            stats.updateTotalMillisReassembling(endMillis - startMillis);
             return new ReassemblyResult(
                 archiveIn, archiveOut, verify, verified, sha256Original,
                 sha256Reassembled, error, stats);

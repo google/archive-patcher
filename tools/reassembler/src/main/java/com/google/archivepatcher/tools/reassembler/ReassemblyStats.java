@@ -14,7 +14,9 @@
 
 package com.google.archivepatcher.tools.reassembler;
 
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -23,28 +25,43 @@ import java.util.TreeMap;
 import com.google.archivepatcher.compression.JreDeflateParameters;
 
 /**
- * Statistics on a reassembly task.
+ * Very detailed statistics for a reassembly task, breaking down the time and
+ * space of the task across a number of useful dimensions. This object is
+ * intended to be passed into the guts of reassembly tasks so that data can be
+ * incrementally accumulated.
+ * <p>
+ * To accumulate more data from a single resource, call either
+ * {@link #accumulateRecompressStats(String, JreDeflateParameters, long, long, long)}
+ * or
+ * {@link #accumulateCopyStats(String, ReassemblyTechnique, long, long, long)}
+ * as appropriate for the resource.
+ * <p>
+ * To accumulate another stats object into this one, use
+ * {@link #accumulate(ReassemblyStats)}.
+ * <p>
+ * Some specific values are updated at the beginning or end of an archive-wide
+ * operation. For these use
+ * 
  */
 public class ReassemblyStats {
     /**
      * One entry in {@link ReassemblyStats}.
      */
     public static class Entry {
-
         /**
          * The number of entries that were processed.
          */
-        public long numResources = 0;
+        private long numResources = 0;
   
         /**
-         * The number of bytes after compression;
+         * The number of bytes after compression.
          */
-        public long numCompressedBytes = 0;
+        private long numCompressedBytes = 0;
   
         /**
-         * The number of bytes before compression;
+         * The number of bytes before compression.
          */
-        public long numUncompressedBytes = 0;
+        private long numUncompressedBytes = 0;
 
         /**
          * The time spent working. This may include time spent reading
@@ -52,28 +69,107 @@ public class ReassemblyStats {
          * Since most of this is done in a streaming fashion the interaction
          * between these three processes is complex.
          */
-        public long millisElapsed = 0;
+        private long millisElapsed = 0;
+
+        /**
+         * Returns the number of entries that were processed.
+         * @return as described
+         */
+        public final long getNumResources() {
+            return numResources;
+        }
+
+        /**
+         * Returns the number of bytes after compression.
+         * @return as described
+         */
+        public final long getNumCompressedBytes() {
+            return numCompressedBytes;
+        }
+
+        /**
+         * Returns the number of bytes before compression.
+         * @return as described
+         */
+        public final long getNumUncompressedBytes() {
+            return numUncompressedBytes;
+        }
+
+        /**
+         * Returns the time spent working. This may include time spent reading
+         * the source bytes, compressing, and writing the destination bytes.
+         * Since most of this is done in a streaming fashion the interaction
+         * between these three processes is complex.
+         * @return as described
+         */
+        public final long getMillisElapsed() {
+            return millisElapsed;
+        }
     }
 
     /**
      * Includes time spent reading the input files as well as writing the
-     * outputs. This does not include time spent reading or parsing the
-     * directives file but does include time spent reading the source
-     * archive, parsing it, compressing and writing the result.
+     * outputs. Includes time spent reading or parsing the directives file but,
+     * reading the source archive, parsing it, compressing and writing the
+     * result, verifying (if verification was requested) and all other overhead.
+     * Some finer-grained timing may be obtained from the other fields in this
+     * object.
      */
-    // FIXME: Our parser is unnecessarily slow, so this skews the results.
-    public long totalMillisRebuilding = 0;
+    private long totalMillisReassembling = 0;
+
+    /**
+     * Time spent specifically recompressing resources, and nothing else.
+     */
+    private long totalMillisRecompressing = 0;
+
+    /**
+     * Time spent copying resources, and nothing else.
+     */
+    private long totalMillisCopying = 0;
+
+    /**
+     * Time spent verifying the signature match during reassembly, and nothing
+     * else.
+     */
+    private long totalMillisVerifyingArchiveSignature = 0;
 
     /**
      * The total number of bytes in the input archive.
      */
-    public long totalArchiveBytes = 0;
+    private long totalArchiveBytes = 0;
+
+    /**
+     * The total number of recompressed bytes that were written.
+     */
+    private long totalRecompressedCompressedBytes = 0;
+
+    /**
+     * The total number of raw uncompressed bytes that were recompressed.
+     */
+    private long totalRecompressedUncompressedBytes = 0;
+
+    /**
+     * The total number of bytes copied from entries with no compression at all.
+     */
+    private long totalCopiedNoCompressionBytes = 0;
+
+    /**
+     * The total number of bytes copied from entries where the deflate
+     * parameters could not be determined.
+     */
+    private long totalCopiedUnknownDeflateBytes = 0;
+
+    /**
+     * The total number of bytes copied from entries where the compression
+     * technology could not be determined.
+     */
+    private long totalCopiedUnknownTechBytes = 0;
 
     /**
      * For each configuration of deflate, the results that were obtained for
      * recompression.
      */
-    public Map<JreDeflateParameters, Entry>
+    private Map<JreDeflateParameters, Entry>
         recompressEntriesByDeflateParameters =
         new HashMap<JreDeflateParameters, Entry>();
 
@@ -81,14 +177,14 @@ public class ReassemblyStats {
      * For each suffix encountered in the entries, the results that were
      * obtained for recompression.
      */
-    public Map<String, Entry> recompressEntriesBySuffix =
+    private Map<String, Entry> recompressEntriesBySuffix =
             new HashMap<String, Entry>();
 
     /**
      * For each suffix encountered in the entries, the results that were
      * obtained for copying uncompressed resources.
      */
-    public Map<String, Entry> noCompressionEntriesBySuffix =
+    private Map<String, Entry> noCompressionEntriesBySuffix =
             new HashMap<String, ReassemblyStats.Entry>();
 
     /**
@@ -96,15 +192,81 @@ public class ReassemblyStats {
      * obtained for copying resources whose deflate output could not be
      * deterministically reproduced.
      */
-    public Map<String, Entry> unknownDeflateEntriesBySuffix =
+    private Map<String, Entry> unknownDeflateEntriesBySuffix =
             new HashMap<String, ReassemblyStats.Entry>();
 
     /**
      * For each suffix encountered in the entries, the results that were
      * obtained for copying resources whose technology could not be determined.
      */
-    public Map<String, Entry> unknownTechEntriesBySuffix =
+    private Map<String, Entry> unknownTechEntriesBySuffix =
             new HashMap<String, ReassemblyStats.Entry>();
+
+    /**
+     * For each compression level, the results that were obtained. Ignores
+     * strategies and wrapping mode. Entries that were stored (no compression)
+     * are not stored. This map only contains entries that were recompressed.
+     */
+    private Map<Integer, Entry> recompressEntriesByCompressionLevel =
+            new HashMap<Integer, ReassemblyStats.Entry>();
+
+    /**
+     * Convenience value: {@link #totalMillisReassembling} as seconds.
+     */
+    private double totalSecondsReassembling = 0L;
+
+    /**
+     * Convenience value: The total overhead time, which is
+     * {@link #totalMillisReassembling} minus all other recorded timings.
+     */
+    private long overheadMillis = 0L;
+
+    /**
+     * Convenience value: The total overhead bytes in the archive, which is
+     * {@link #totalArchiveBytes} minus all other measured bytes. This is, in
+     * most cases, the total number of bytes used by the central directory and
+     * the headers in the local section entries for each file in the archive.
+     */
+    private long totalArchiveOverheadBytes = 0L;
+
+    /**
+     * Convenience value: The percent of {@link #totalArchiveBytes} that
+     * comprises data that was recompressed.
+     */
+    private double percentRecompressibleBytes = 0d;
+
+    /**
+     * Convenience value: The percent of {@link #totalArchiveBytes} that
+     * comprises data that was stored without compression. This data is simply
+     * copied to the new archive.
+     */
+    private double percentCopiedUncompressedBytes = 0d;
+
+    /**
+     * Convenience value: The percent of {@link #totalArchiveBytes} that
+     * comprises data that was compressed with an unknown configuration of
+     * deflate. This data is simply copied to the new archive.
+     */
+    private double percentCopiedUnknownDeflateBytes = 0d;
+
+    /**
+     * Convenience value: The percent of {@link #totalArchiveBytes} that
+     * comprises data that was compressed with an unknown compression algorithm.
+     * This data is simply copied to the new archive.
+     */
+    private double percentCopiedUnknownTechBytes = 0d;
+
+    /**
+     * Convenience value:
+     * {@link #totalArchiveOverheadBytes} / {@link #totalArchiveBytes}.
+     */
+    private double percentOverheadBytes = 0d;
+
+    /**
+     * Convenience value:
+     * {@link #totalArchiveBytes} / {@link #totalSecondsReassembling}.
+     */
+    private long archiveBytesPerSecond = 0L;
 
     /**
      * Accumulate statistics for a file that was recompressed.
@@ -138,6 +300,23 @@ public class ReassemblyStats {
         bySuffix.numUncompressedBytes += numUncompressedBytes;
         bySuffix.millisElapsed += millisSpentCompressing;
         bySuffix.numResources++;
+
+        Entry byCompressionLevel = recompressEntriesByCompressionLevel.get(
+            params.level);
+        if (byCompressionLevel == null) {
+            byCompressionLevel = new Entry();
+            recompressEntriesByCompressionLevel.put(
+                params.level, byCompressionLevel);
+        }
+        byCompressionLevel.numCompressedBytes += numCompressedBytes;
+        byCompressionLevel.numUncompressedBytes += numUncompressedBytes;
+        byCompressionLevel.millisElapsed += millisSpentCompressing;
+        byCompressionLevel.numResources++;
+
+        totalMillisRecompressing += millisSpentCompressing;
+        totalRecompressedCompressedBytes += numCompressedBytes;
+        totalRecompressedUncompressedBytes += numUncompressedBytes;
+        recalculateConvenienceStats();
     }
 
     /**
@@ -145,7 +324,7 @@ public class ReassemblyStats {
      * @param fileName the name of the file to extract the suffix for
      * @return as described
      */
-    private static String getSuffix(String fileName) {
+    private static final String getSuffix(String fileName) {
         int indexOfLastDot = fileName.lastIndexOf('.');
         if (indexOfLastDot >= 0 && indexOfLastDot < fileName.length() - 1) {
             return fileName.substring(indexOfLastDot + 1);
@@ -168,8 +347,20 @@ public class ReassemblyStats {
                 other.unknownDeflateEntriesBySuffix);
         accumulate(unknownTechEntriesBySuffix,
                 other.unknownTechEntriesBySuffix);
-        totalMillisRebuilding += other.totalMillisRebuilding;
+        totalMillisCopying += other.totalMillisCopying;
+        totalMillisReassembling += other.totalMillisReassembling;
+        totalMillisRecompressing += other.totalMillisRecompressing;
         totalArchiveBytes += other.totalArchiveBytes;
+        totalMillisVerifyingArchiveSignature +=
+            other.totalMillisVerifyingArchiveSignature;
+        totalRecompressedCompressedBytes +=
+            other.totalRecompressedCompressedBytes;
+        totalRecompressedUncompressedBytes +=
+            other.totalRecompressedUncompressedBytes;
+        totalCopiedNoCompressionBytes += other.totalCopiedNoCompressionBytes;
+        totalCopiedUnknownDeflateBytes += other.totalCopiedUnknownDeflateBytes;
+        totalCopiedUnknownTechBytes += other.totalCopiedUnknownTechBytes;
+        recalculateConvenienceStats();
     }
 
     /**
@@ -210,12 +401,15 @@ public class ReassemblyStats {
         switch(technique) {
             case COPY_NO_COMPRESSION:
                 map = noCompressionEntriesBySuffix;
+                totalCopiedNoCompressionBytes += numUncompressedBytes;
                 break;
             case COPY_UNKNOWN_DEFLATE_PARAMETERS:
                 map = unknownDeflateEntriesBySuffix;
+                totalCopiedUnknownDeflateBytes += numCompressedBytes;
                 break;
             case COPY_UNKNOWN_TECH:
                 map = unknownTechEntriesBySuffix;
+                totalCopiedUnknownTechBytes += numCompressedBytes;
                 break;
             default:
                 throw new IllegalArgumentException();
@@ -229,6 +423,8 @@ public class ReassemblyStats {
         entry.numUncompressedBytes += numUncompressedBytes;
         entry.millisElapsed += millisSpentCopying;
         entry.numResources++;
+        totalMillisCopying += millisSpentCopying;
+        recalculateConvenienceStats();
     }
 
     /**
@@ -237,7 +433,7 @@ public class ReassemblyStats {
      * @param map the map to count the number of resources within
      * @return the sum of all the resource counters in the entries
      */
-    private static <T> long countEntries(Map<T, Entry> map) {
+    private static final <T> long countEntries(Map<T, Entry> map) {
         long result = 0;
         for (Entry entry : map.values()) {
             result += entry.numResources;
@@ -249,7 +445,7 @@ public class ReassemblyStats {
      * Return the total number of resources processed.
      * @return as described
      */
-    private long getTotalResourcesProcessed() {
+    public final long getTotalResourcesProcessed() {
         long result = 0;
         result += countEntries(recompressEntriesBySuffix);
         result += countEntries(unknownDeflateEntriesBySuffix);
@@ -259,41 +455,130 @@ public class ReassemblyStats {
     }
 
     /**
-     * Generate a nice human-readable report.
+     * Recalculate all convenience statistics immediately.
      */
-    @Override
-    public String toString() {
-        final NumberFormat format =
-                NumberFormat.getNumberInstance(Locale.US);
-        final double totalSeconds = totalMillisRebuilding / 1000d;
-        final long totalMillis = totalMillisRebuilding;
-        final long archiveBytesPerSecond;
-        if (totalMillis > 0) {
-            archiveBytesPerSecond = (long) (totalArchiveBytes / totalSeconds);
+    private final void recalculateConvenienceStats() {
+        totalSecondsReassembling = totalMillisReassembling / 1000d;
+        overheadMillis = totalMillisReassembling -
+            totalMillisCopying - totalMillisRecompressing -
+            totalMillisVerifyingArchiveSignature;
+        totalArchiveOverheadBytes = totalArchiveBytes -
+            totalRecompressedCompressedBytes -
+            totalCopiedNoCompressionBytes -
+            totalCopiedUnknownDeflateBytes -
+            totalCopiedUnknownTechBytes;
+        percentRecompressibleBytes =
+            totalRecompressedCompressedBytes / (double) totalArchiveBytes;
+        percentCopiedUncompressedBytes =
+            totalCopiedNoCompressionBytes / (double) totalArchiveBytes;
+        percentCopiedUnknownDeflateBytes =
+            totalCopiedUnknownDeflateBytes / (double) totalArchiveBytes;
+        percentCopiedUnknownTechBytes =
+            totalCopiedUnknownTechBytes / (double) totalArchiveBytes;
+        percentOverheadBytes =
+            totalArchiveOverheadBytes / (double) totalArchiveBytes;
+        if (totalMillisReassembling > 0) {
+            archiveBytesPerSecond = (long) (totalArchiveBytes / totalSecondsReassembling);
         } else {
             // Non-sensical to discuss bytes processed so fast we couldn't even
             // measure a meaningful amount of time passing
             archiveBytesPerSecond = 0;
         }
+    }
+
+    /**
+     * Generate a nice human-readable report.
+     */
+    @Override
+    public String toString() {
+        final NumberFormat longFormat =
+            NumberFormat.getNumberInstance(Locale.US);
+        final NumberFormat percentFormat =
+            new DecimalFormat("00.00%");
         StringBuilder buffer = new StringBuilder();
         buffer.append("Summary: ")
-            .append(format.format(getTotalResourcesProcessed()))
+            .append(longFormat.format(getTotalResourcesProcessed()))
             .append(" resources from archives totalling ")
-            .append(format.format(totalArchiveBytes))
+            .append(longFormat.format(totalArchiveBytes))
             .append(" bytes processed in ")
-            .append(format.format(totalMillis))
-            .append("ms (");
+            .append(longFormat.format(totalMillisReassembling))
+            .append("ms\n  ");
         if (archiveBytesPerSecond > 0) {
-            buffer.append(format.format(archiveBytesPerSecond))
+            buffer.append(longFormat.format(archiveBytesPerSecond))
                 .append(" bytes/second overall processing speed");
         } else {
             buffer.append("too fast/small to measure");
         }
-        buffer.append(")\n");
+        buffer.append("\n  ")
+            .append(longFormat.format(totalMillisRecompressing))
+            .append("ms recompressing, ")
+            .append(longFormat.format(totalMillisCopying))
+            .append("ms copying, ")
+            .append(longFormat.format(totalMillisVerifyingArchiveSignature))
+            .append("ms verifying archive signature, ")
+            .append(longFormat.format(overheadMillis))
+            .append("ms general overhead\n")
+            .append("Byte breakdown: of ")
+            .append(longFormat.format(totalArchiveBytes))
+            .append(" bytes in the original apk:\n");
+
+        if (totalRecompressedCompressedBytes > 0) {
+            buffer
+                .append("  ")
+                .append(longFormat.format(totalRecompressedCompressedBytes))
+                .append(" bytes (")
+                .append(percentFormat.format(percentRecompressibleBytes))
+                .append(" of total) comprise recompressible data\n");
+        }
+
+        if (totalCopiedNoCompressionBytes > 0) {
+            buffer
+                .append("  ")
+                .append(longFormat.format(totalCopiedNoCompressionBytes))
+                .append(" bytes (")
+                .append(percentFormat.format(percentCopiedUncompressedBytes))
+                .append(" of total) comprise data that was stored without ")
+                .append("compression\n");
+        }
+
+        if (totalCopiedUnknownDeflateBytes > 0) {
+            buffer
+                .append("  ")
+                .append(longFormat.format(totalCopiedUnknownDeflateBytes))
+                .append(" bytes (")
+                .append(percentFormat.format(percentCopiedUnknownDeflateBytes))
+                .append(" of total) comprise data that was compressed with ")
+                .append("deflate in an unknown configuration\n");
+        }
+
+        if (totalCopiedUnknownTechBytes > 0) {
+            buffer
+                .append("  ")
+                .append(longFormat.format(totalCopiedUnknownTechBytes))
+                .append(" bytes (")
+                .append(percentFormat.format(percentCopiedUnknownTechBytes))
+                .append(" of total) comprise data that was compressed with ")
+                .append("an unknown compression technology\n");
+        }
+
+        if (totalArchiveOverheadBytes > 0) {
+            buffer
+                .append("  ")
+                .append(longFormat.format(totalArchiveOverheadBytes))
+                .append(" bytes (")
+                .append(percentFormat.format(percentOverheadBytes))
+                .append(" of total) comprise archive overhead\n");
+        }
+
         if (recompressEntriesByDeflateParameters.size() > 0) {
             buffer.append("Recompressed entries by deflate config:\n");
             append(buffer, "deflate config",
                     recompressEntriesByDeflateParameters);
+        }
+        if (recompressEntriesByCompressionLevel.size() > 0) {
+            buffer.append("Recompressend entries by compression level:\n");
+            append(buffer, "compression level",
+                recompressEntriesByCompressionLevel);
         }
         if (recompressEntriesBySuffix.size() > 0) {
             buffer.append("Recompressed entries by suffix:\n");
@@ -373,5 +658,294 @@ public class ReassemblyStats {
             }
             buffer.append(")\n");
         }
+    }
+
+    /**
+     * Returns the total time spent reassembling, in milliseconds.
+     * @return as described
+     */
+    public final long getTotalMillisReassembling() {
+        return totalMillisReassembling;
+    }
+
+    /**
+     * Returns the time spent specifically recompressing resources in
+     * milliseconds.
+     * @return as described
+     */
+    public final long getTotalMillisRecompressing() {
+        return totalMillisRecompressing;
+    }
+
+    /**
+     * Returns the total time spent copying resources in milliseconds.
+     * @return as described
+     */
+    public final long getTotalMillisCopying() {
+        return totalMillisCopying;
+    }
+
+    /**
+     * Returns the total time spent verifying the signature match during
+     * reassembly, if verification was requested (in milliseconds).
+     * @return as described
+     */
+    public final long getTotalMillisVerifyingArchiveSignature() {
+        return totalMillisVerifyingArchiveSignature;
+    }
+
+    /**
+     * Returns the total number of bytes in the input archive. Assuming that
+     * the output archive matches (i.e. if verification was requested and did
+     * succeed), this is also the total number of bytes in the output archive.
+     * @return as described
+     */
+    public final long getTotalArchiveBytes() {
+        return totalArchiveBytes;
+    }
+
+    /**
+     * Returns the total number of recompressed bytes that were written.
+     * @return as described
+     */
+    public final long getTotalRecompressedCompressedBytes() {
+        return totalRecompressedCompressedBytes;
+    }
+
+    /**
+     * Returns the total number of raw uncompressed bytes that were
+     * recompressed.
+     * @return as described
+     */
+    public final long getTotalRecompressedUncompressedBytes() {
+        return totalRecompressedUncompressedBytes;
+    }
+
+    /**
+     * Returns the total number of bytes copied from entries that were stored
+     * without compression.
+     * @return as described
+     */
+    public final long getTotalCopiedNoCompressionBytes() {
+        return totalCopiedNoCompressionBytes;
+    }
+
+    /**
+     * Returns the total number of bytes copied from entries where the deflate
+     * parameters could not be determined.
+     * @return as described
+     */
+    public final long getTotalCopiedUnknownDeflateBytes() {
+        return totalCopiedUnknownDeflateBytes;
+    }
+
+    /**
+     * Returns the total number of bytes copied from entries where the
+     * compression technology could not be determined.
+     * @return as described
+     */
+    public final long getTotalCopiedUnknownTechBytes() {
+        return totalCopiedUnknownTechBytes;
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each configuration of
+     * deflate to the results that were obtained for recompression.
+     * @return as described
+     */
+    public final Map<JreDeflateParameters, Entry>
+        getRecompressEntriesByDeflateParameters() {
+        return Collections.unmodifiableMap(
+            recompressEntriesByDeflateParameters);
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each suffix encountered
+     * in the entries to the results that were obtained for recompression.
+     * @return as described
+     */
+    public final Map<String, Entry> getRecompressEntriesBySuffix() {
+        return Collections.unmodifiableMap(recompressEntriesBySuffix);
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each suffix encountered
+     * in the entries to the results that were obtained for copying uncompressed
+     * resources.
+     * @return as described
+     */
+    public final Map<String, Entry> getNoCompressionEntriesBySuffix() {
+        return Collections.unmodifiableMap(noCompressionEntriesBySuffix);
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each suffix encountered
+     * in the entries to the results that were obtained for copying resources
+     * whose deflate output could not be deterministically reproduced.
+     * @return as described
+     */
+    public final Map<String, Entry> getUnknownDeflateEntriesBySuffix() {
+        return Collections.unmodifiableMap(unknownDeflateEntriesBySuffix);
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each suffix encountered
+     * in the entries to the results that were obtained for copying resources
+     * whose technology could not be determined.
+     * @return as described
+     */
+    public final Map<String, Entry> getUnknownTechEntriesBySuffix() {
+        return Collections.unmodifiableMap(unknownTechEntriesBySuffix);
+    }
+
+    /**
+     * Returns a live, read-only view of a mapping from each compression level
+     * to the results that were obtained. Ignores strategies and wrapping mode.
+     * Entries that were stored (no compression) are not stored. This map only
+     * contains entries that were recompressed.
+     * @return as described
+     */
+    public final Map<Integer, Entry> getRecompressEntriesByCompressionLevel() {
+        return Collections.unmodifiableMap(recompressEntriesByCompressionLevel);
+    }
+
+    /**
+     * Convenience value: {@link #getTotalMillisReassembling()} as seconds.
+     * @return as described
+     */
+    public final double getTotalSecondsReassembling() {
+        return totalSecondsReassembling;
+    }
+
+    /**
+     * Convenience value: the total overhead time, which is
+     * {@link #getTotalMillisReassembling()} minus all other recorded timings.
+     * @return as described
+     */
+    public final long getOverheadMillis() {
+        return overheadMillis;
+    }
+
+    /**
+     * Convenience value: the total overhead bytes in the archive, which is
+     * {@link #getTotalArchiveBytes()} minus all other measured bytes. This is,
+     * in most cases, the total number of bytes used by the central directory
+     * and the headers in the local section entries for each file in the
+     * archive.
+     * @return as described
+     */
+    public final long getTotalArchiveOverheadBytes() {
+        return totalArchiveOverheadBytes;
+    }
+
+    /**
+     * Convenience value: the percent of {@link #getTotalArchiveBytes()} that
+     * comprises data that was recompressed.
+     * @return as described
+     */
+    public final double getPercentRecompressibleBytes() {
+        return percentRecompressibleBytes;
+    }
+
+    /**
+     * Convenience value: The percent of {@link #getTotalArchiveBytes()} that
+     * comprises data that was stored without compression. This data is simply
+     * copied to the new archive.
+     * @return as described
+     */
+    public final double getPercentCopiedUncompressedBytes() {
+        return percentCopiedUncompressedBytes;
+    }
+
+    /**
+     * Convenience value: The percent of {@link #getTotalArchiveBytes()} that
+     * comprises data that was compressed with an unknown configuration of
+     * deflate. This data is simply copied to the new archive.
+     * @return as described
+     */
+    public final double getPercentCopiedUnknownDeflateBytes() {
+        return percentCopiedUnknownDeflateBytes;
+    }
+
+    /**
+     * Convenience value: The percent of {@link #getTotalArchiveBytes()} that
+     * comprises data that was compressed with an unknown compression algorithm.
+     * This data is simply copied to the new archive.
+     * @return as described
+     */
+    public final double getPercentCopiedUnknownTechBytes() {
+        return percentCopiedUnknownTechBytes;
+    }
+
+    /**
+     * Convenience value: The percent of {@link #getTotalArchiveBytes()} that
+     * comprises data that was copied for any reason (the sum of the values in
+     * {@link #getPercentCopiedUncompressedBytes()},
+     * {@link #getPercentCopiedUnknownDeflateBytes()}, and
+     * {@link #getPercentCopiedUnknownTechBytes()}).
+     * @return as described
+     */
+    public final double getPercentCopiedBytes() {
+        // For accuracy, recompute instead of adding the imprecise percentages.
+        return (totalCopiedNoCompressionBytes +
+            totalCopiedUnknownDeflateBytes +
+            totalCopiedUnknownDeflateBytes) / (double) totalArchiveBytes;
+    }
+
+    /**
+     * Convenience value: {@link #getTotalArchiveOverheadBytes()} /
+     * {@link #getTotalArchiveBytes()}.
+     * @return as described
+     */
+    public final double getPercentOverheadBytes() {
+        return percentOverheadBytes;
+    }
+
+    /**
+     * Convenience value: {@link #getTotalArchiveBytes()} /
+     * {@link #getTotalSecondsReassembling()}.
+     * @return as described
+     */
+    public final long getArchiveBytesPerSecond() {
+        return archiveBytesPerSecond;
+    }
+
+    /**
+     * Convenience value: {@link #getTotalCopiedNoCompressionBytes()} +
+     * {@link #getTotalCopiedUnknownDeflateBytes()} +
+     * {@link #getTotalCopiedUnknownTechBytes()}.
+     * @return as described
+     */
+    public final long getTotalCopiedBytes() {
+        return totalCopiedNoCompressionBytes + totalCopiedUnknownDeflateBytes +
+            totalCopiedUnknownTechBytes;
+    }
+
+    /**
+     * Updates the total size of the archive, in bytes.
+     * @param value the value to set
+     */
+    public void updateTotalArchiveBytes(final long value) {
+        totalArchiveBytes = value;
+        recalculateConvenienceStats();
+    }
+
+    /**
+     * Updates the total time, in millis, spent reassembling the archive.
+     * @param value the value to set
+     */
+    public void updateTotalMillisReassembling(final long value) {
+        totalMillisReassembling = value;
+        recalculateConvenienceStats();
+    }
+
+    /**
+     * Updates the total time, in millis, spent verifying the signatures of the
+     * original and reassembled archives.
+     * @param value the value to set
+     */
+    public void updateTotalMillisVerifyingArchiveSignature(final long value) {
+        totalMillisVerifyingArchiveSignature = value;
+        recalculateConvenienceStats();
     }
 }
