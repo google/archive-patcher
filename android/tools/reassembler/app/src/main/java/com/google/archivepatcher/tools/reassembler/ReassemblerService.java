@@ -149,12 +149,12 @@ public class ReassemblerService extends IntentService {
 
             // Dump csv stats to file
             statsCsvOut = new FileWriter(tempStatsCsvOutputFile);
-            statsCsvOut.write(result.toSimplifiedCsv(true /* output header */));
+            statsCsvOut.write(result.toDetailedCsv(true /* output header */));
             statsCsvOut.write("\n"); // For convenience in batch processing of CSV files
             statsCsvOut.flush();
             tempStatsCsvOutputFile.renameTo(statsCsvOutputFile);
             Log.i(TAG, "Reassembly completed in " +
-                    result.getAggregateStats().totalMillisRebuilding + "ms");
+                    result.getAggregateStats().getTotalMillisReassembling() + "ms");
         } catch (Exception e) {
             Log.e(TAG, "Reassembly failed.", e);
         } finally {
