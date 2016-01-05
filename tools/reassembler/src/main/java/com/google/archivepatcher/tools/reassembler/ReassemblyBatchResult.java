@@ -213,7 +213,9 @@ public final class ReassemblyBatchResult {
             .append(",Num Bytes Recompressed")
             .append(",Percent Recompressed")
             .append(",Time Recompressing (ms)")
-            .append(",Recompression Throughput (bytes/sec)");
+            .append(",Recompression Throughput (bytes/sec)")
+            .append(",Num Bytes Overhead")
+            .append(",Overhead Time (ms)");
         for (int level=1; level <= 9; level++) {
             buffer.append(",Num Bytes Recompressed at Level ")
             .append(level)
@@ -282,7 +284,8 @@ public final class ReassemblyBatchResult {
      * copy_throughput_bytes_per_sec,
      * bytes_recompressed_from_original_archive,
      * percent_compressed_from_original_archive,
-     * total_recompression_time_ms, recompression_throughput_bytes_per_sec).
+     * total_recompression_time_ms, recompression_throughput_bytes_per_sec,
+     * num_bytes_overhead, overhead_time_ms).
      * In addition there are 8 more tuples of (num_bytes, percent_bytes,
      * time_ms, percent_time, throughput_bytes_per_sec) representing the number
      * of bytes, percent of total APK bytes, amount of time spent recompressing,
@@ -357,7 +360,7 @@ public final class ReassemblyBatchResult {
                 .append(",")
                 .append(copyThroughput)
 
-                // Stats for recompression (bytes, percent, time, throughput)
+                // Stats for recompression: bytes, percent, time, throughput
                 .append(",")
                 .append(stats.getTotalRecompressedCompressedBytes())
                 .append(",")
@@ -365,7 +368,13 @@ public final class ReassemblyBatchResult {
                 .append(",")
                 .append(stats.getTotalMillisRecompressing())
                 .append(",")
-                .append(recompressionThroughput);
+                .append(recompressionThroughput)
+
+                // Stats for overhead: bytes, time
+                .append(",")
+                .append(stats.getTotalArchiveOverheadBytes())
+                .append(",")
+                .append(stats.getOverheadMillis());
 
             // Stats for each compression level: num bytes, time recompressing
             // Note that there is output for levels 1 through 9 EVEN IF THEY ARE
