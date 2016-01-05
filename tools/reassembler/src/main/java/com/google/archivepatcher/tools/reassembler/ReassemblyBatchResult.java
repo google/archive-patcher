@@ -379,8 +379,11 @@ public final class ReassemblyBatchResult {
                 }
                 final double percentCompressed = entry.getNumCompressedBytes() /
                     (double) stats.getTotalArchiveBytes();
-                final double percentCompressionTime = entry.getMillisElapsed() /
-                    (double) stats.getTotalMillisRecompressing();
+                double percentCompressionTime = 0;
+                if (stats.getTotalMillisRecompressing() > 0) {
+                    percentCompressionTime = entry.getMillisElapsed() /
+                        (double) stats.getTotalMillisRecompressing();
+                }
                 long throughput;
                 if (entry.getMillisElapsed() > 0) {
                     throughput = (long) (entry.getNumCompressedBytes() /
