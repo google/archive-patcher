@@ -887,9 +887,7 @@ public class ReassemblyStats {
      */
     public final double getPercentCopiedBytes() {
         // For accuracy, recompute instead of adding the imprecise percentages.
-        return (totalCopiedNoCompressionBytes +
-            totalCopiedUnknownDeflateBytes +
-            totalCopiedUnknownDeflateBytes) / (double) totalArchiveBytes;
+        return getTotalCopiedBytes() / (double) totalArchiveBytes;
     }
 
     /**
