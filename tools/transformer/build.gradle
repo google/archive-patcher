@@ -1,4 +1,4 @@
-// Copyright 2015 Google Inc. All rights reserved.
+// Copyright 2016 Google Inc. All rights reserved.
 // 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-include 'core'
-include 'examples'
-include 'third_party/javaxdelta'
-include 'tools/diviner'
-include 'tools/policy'
-include 'tools/reassembler'
-include 'tools/transformer'
+archivesBaseName = 'archivepatcher-tools-transformer'
+group = 'com.google.archivepatcher'
+version = '1.0'
+
+apply plugin: 'application'
+defaultTasks 'build', 'check'
+sourceCompatibility = 1.5
+mainClassName = 'com.google.archivepatcher.tools.transformer.TransformTool'
+dependencies {
+    compile project(':core')
+    compile project(':tools/diviner')
+}
+
+distributions {
+    main {
+        baseName = archivesBaseName
+    }
+}
