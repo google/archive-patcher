@@ -26,8 +26,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -528,5 +530,47 @@ public class CompressionDiviner extends AbstractArchiveTool {
         }
         return Arrays.equals(sha256OfCompressedData,
             sha256OfOriginalCompressedData);
+    }
+
+    /**
+     * Parse a directives file and return a map whose keys are file paths
+     * within an archive and whose values are the parameters necessary to
+     * reproduce the compressed artifact at that path.
+     * @param directivesFile the path to the directives file to read
+     * @return the mapping described above
+     * @throws IOException if unable to parse the file
+     */
+    public static Map<String, JreDeflateParameters> parseDirectives(
+            File directivesFile) throws IOException {
+        final Map<String, JreDeflateParameters> deflateParametersByPath =
+                new HashMap<String, JreDeflateParameters>();
+        final List<String> directiveLines = MiscUtils.readLines(
+                directivesFile, '#');
+        for (final String directiveLine : directiveLines) {
+            // <entry_path>,<tech>[,<level>,<strategy>,<nowrap>]
+            final String[] parts = directiveLine.split(",");
+            final String path = parts[0];
+            final String tech = parts[1];
+            if (tech.equals("unknown")) {
+                // Cannot recompress this file (unknown non-deflate tech),
+                // skip it. Stats will be derived during reassembly.
+            } else if (tech.equals("no_compression")) {
+                // Not to be compressed, skip it.
+                // Stats will be derived during reassembly.
+            } else if (tech.equals(DeflateInfo.UNKNOWN_DEFLATE)) {
+                // Cannot recompress this file (unknown deflate
+                // implementation), skip it.
+                // Stats will be derived during reassembly.
+            } else if (tech.equals(DeflateInfo.JRE_DEFLATE)) {
+                // CAN recompress, track parameters for use later.
+                final int level = Integer.parseInt(parts[2]);
+                final int strategy = Integer.parseInt(parts[3]);
+                final boolean nowrap = Boolean.parseBoolean(parts[4]);
+                final JreDeflateParameters parameters =
+                        new JreDeflateParameters(level, strategy, nowrap);
+                deflateParametersByPath.put(path, parameters);
+            }
+        }
+        return deflateParametersByPath;
     }
 }

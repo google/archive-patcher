@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="tools/diviner/src/main/java"/>
+	<classpathentry kind="src" path="tools/transformer/src/main/java"/>
 	<classpathentry kind="src" path="tools/policy/src/main/java"/>
 	<classpathentry kind="src" path="examples/src/main/java"/>
 	<classpathentry kind="src" path="core/src/main/java"/>

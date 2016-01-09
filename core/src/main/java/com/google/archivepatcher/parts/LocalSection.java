@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: This should be a part.
+
 /**
  * Represents the "local" section of an archive, which includes an ordered list
  * of {@link LocalSectionParts} entries. Convenience methods are provided to

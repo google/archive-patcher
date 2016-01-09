@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO: This should be a Part.
+
 /**
  * Represents the "central directory" section of an archive, which includes an
  * ordered list of {@link CentralDirectoryFile} entries and an
