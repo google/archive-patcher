@@ -149,7 +149,7 @@ public class UncompressTransformer {
             cdf.setRelativeOffsetOfLocalHeader_32bit(
                 newOffset);
             long expectedOffset = -1;
-            if (params == null) {
+            if (params == null || !shouldTransform(inputArchive, lsp, params)) {
                 // Record the copy with the original offset. Length will not be
                 // changed.
                 lsp.write(countingOutputArchiveStream);
@@ -263,5 +263,20 @@ public class UncompressTransformer {
 
         // The archive is now completely written in the new form.
         return result;
+    }
+
+    /**
+     * Subclass-overridable filter to determine whether or not a given entry
+     * should be transformed to its uncompressed form. The default
+     * implementation accepts all resources for transformation.
+     * @param archive the archive being processed
+     * @param lsp the {@link LocalSectionParts} for the entry being processed
+     * @param deflateParameters the original parameters that were used to
+     * compress the resource
+     * @return true if the resource should be uncompressed during this transform
+     */
+    protected boolean shouldTransform(Archive archive, LocalSectionParts lsp,
+        JreDeflateParameters deflateParameters) {
+        return true;
     }
 }

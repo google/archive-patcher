@@ -27,7 +27,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.google.archivepatcher.AbstractArchiveTool;
+import com.google.archivepatcher.Archive;
 import com.google.archivepatcher.MicroOptions;
+import com.google.archivepatcher.parts.LocalSection;
+import com.google.archivepatcher.tools.transformer.TransformationRecord.Operation;
 import com.google.archivepatcher.util.MiscUtils;
 
 /**
@@ -64,6 +67,11 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
             "When using a list file, paths should be either absolute or " +
             "relative, in which case they are relative to the directory in " +
             "which the archive list file resides.");
+        options.option("for-delta-against").describedAs(
+            "optionally, the path to a 'new' archive to optimize the " +
+            "uncompression transformation for; only entries that are in both " +
+            "archives will be uncompressed. Cannot be used with " +
+            "'--archive-list'.");
         options.option("jobs").describedAs("run up to this many jobs in " +
             "parallel. The default is 1.");
         options.option("output-dir").isRequired().describedAs(
@@ -100,6 +108,12 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
         } else {
             archives = MiscUtils.getFileList(options.getArg("archive-list"));
         }
+        if (options.has("for-delta-against")) {
+            if (options.has("archive-list")) {
+                throw new IllegalArgumentException("cannot use both " +
+                    "--archive-list and --for-delta-against at once.");
+            }
+        }
 
         final int jobs = Integer.parseInt(options.getArg("jobs", "1"));
         final boolean verify = options.has("verify");
@@ -110,8 +124,14 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
         } else {
             directivesDir = null;
         }
+        final File forDeltaAgainst;
+        if (options.has("for-delta-against")) {
+            forDeltaAgainst = new File(options.getArg("for-delta-against"));
+        } else {
+            forDeltaAgainst = null;
+        }
         Map<File, TransformationRecord> result = transform(
-            archives, jobs, outputDir, directivesDir, verify);
+            archives, forDeltaAgainst, jobs, outputDir, directivesDir, verify);
 
         // Print report for the user
         if (options.has("verbose")) {
@@ -135,6 +155,8 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
      * Run the transformer with the specified parameters. See command line
      * options for detailed usage instructions.
      * @param archives one or more archives to be transformed
+     * @param deltaAgainstArchive optionally, a "new" archive to optimize the
+     * delta for. Cannot be used if archives.size() > 1.
      * @param jobs the number of jobs to run in parallel
      * @param outputDir the directory to output transformed archives to
      * @param directivesDir where to find directives files
@@ -145,8 +167,9 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
      * @throws InterruptedException if interrupted while awaiting completion
      */
     public Map<File, TransformationRecord> transform(final List<File> archives,
-        final int jobs, final File outputDir, final File directivesDir,
-        final boolean verify) throws ExecutionException, InterruptedException {
+        final File deltaAgainstArchive, final int jobs, final File outputDir,
+        final File directivesDir, final boolean verify)
+            throws ExecutionException, InterruptedException {
         // Prepare output directory.
         if (!outputDir.exists()) {
             outputDir.mkdirs();
@@ -182,8 +205,8 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
                     archiveFile.getName() + TRANSFORMATION_RECORD_SUFFIX);
             // Finally, generate the task.
             tasks.add(new UncompressTransformTask(
-                    archiveFile, directivesFile, archiveOutputFile,
-                    recordOutputFile, verify));
+                    archiveFile, directivesFile, deltaAgainstArchive,
+                    archiveOutputFile, recordOutputFile, verify));
         }
 
         // Submit tasks to the pool and wait for completion
@@ -222,6 +245,11 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
         private final File archiveOut;
 
         /**
+         * Optionally, a "new" archive to optimize transformation for.
+         */
+        private final File forDeltaAgainst;
+
+        /**
          * Where to store the {@link TransformationRecord}.
          */
         private final File recordOut;
@@ -242,34 +270,71 @@ public class UncompressTransformerTool extends AbstractArchiveTool {
          * @param archiveIn the archive to read
          * @param directivesFile the directives file with deflate configuration
          * information
+         * @param forDeltaAgainst optionally, a "new" archive to optimize the
+         * transformation for
          * @param archiveOut the archive to write
          * @param recordOut where to store the transformation record
          * @param verify if true, verify that the transformation can be reversed
          * to obtain the original archive.
          */
         public UncompressTransformTask(File archiveIn, File directivesFile,
-                File archiveOut, File recordOut, boolean verify) {
+            File forDeltaAgainst, File archiveOut, File recordOut,
+            boolean verify) {
             this.archiveIn = archiveIn;
             this.directivesFile = directivesFile;
+            this.forDeltaAgainst = forDeltaAgainst;
             this.archiveOut = archiveOut;
             this.recordOut = recordOut;
             this.verify = verify;
         }
 
         public Result call() throws Exception {
-            UncompressTransformer transformer = new UncompressTransformer();
             if (isVerbose()) {
                 log("Transforming archive:");
-                log("  Input archive: " + archiveIn.getAbsolutePath());
-                log("  Directives:    " + directivesFile.getAbsolutePath());
-                
+                log("  Input archive:       " + archiveIn.getAbsolutePath());
+                log("  Directives:          " +
+                    directivesFile.getAbsolutePath());
+                log("  Delta-optimized for: " +
+                    (forDeltaAgainst == null ? "None" :
+                        forDeltaAgainst.getAbsolutePath()));
             }
+            final UncompressTransformer transformer;
+            if (forDeltaAgainst == null) {
+                transformer = new UncompressTransformer();
+            } else {
+                Archive deltaAgainst =
+                    Archive.fromFile(forDeltaAgainst.getAbsolutePath());
+                DeltaOptimizingUncompressTransformer deltaOptimized =
+                    new DeltaOptimizingUncompressTransformer();
+                deltaOptimized.setNewArchive(deltaAgainst);
+                transformer = deltaOptimized;
+            }
+
             TransformationRecord result = transformer.transform(
                 archiveIn, directivesFile, archiveOut, recordOut);
             if (isVerbose()) {
                 log("Transformation complete:");
                 log("  Transformed archive:   " + archiveOut.getAbsolutePath());
                 log("  Transformation record: " + recordOut.getAbsolutePath());
+                Archive original =
+                    Archive.fromFile(archiveIn.getAbsolutePath());
+                LocalSection localSection = original.getLocal();
+                long totalUncompressedBytes = 0;
+                long totalUncompressedEntries = 0;
+                for (Operation operation : result.getOperations()) {
+                    if (operation.getId() == TransformationRecord.UNCOMPRESS) {
+                        TransformationRecord.Uncompress uncompress =
+                            (TransformationRecord.Uncompress) operation;
+                        totalUncompressedEntries++;
+                        totalUncompressedBytes +=
+                            localSection.getByPath(uncompress.getPath())
+                                .getFileDataPart().getStructureLength();
+                    }
+                }
+                log("  Total entries for recompression: " +
+                    totalUncompressedEntries);
+                log("  Total bytes for recompression:   " +
+                    totalUncompressedBytes);
             }
             if (verify) {
                 if (isVerbose()) {

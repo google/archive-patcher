@@ -42,6 +42,11 @@ public class TransformTool extends AbstractArchiveTool {
         options.option("transform-to").isRequired().describedAs(
             "either 'uncompressed', to transform to the uncompressed space, " +
             "or 'original' to transform back to the original space.");
+        options.option("for-delta-against").describedAs(
+            "for '--transform-to uncompressed', the path to a 'new' archive " +
+            "to optimize the uncompression transformation for; only entries " +
+            "that are in both archives will be uncompressed. Cannot be used " +
+            "with '--archive-list'.");
         options.option("archive").describedAs(
             "one archive to transform");
         options.option("archive-list").describedAs(
@@ -96,6 +101,10 @@ public class TransformTool extends AbstractArchiveTool {
             if (options.has("metadata-in-dir")) {
                 args.add("--directives-in-dir");
                 args.add(options.getArg("metadata-in-dir"));
+            }
+            if (options.has("for-delta-against")) {
+                args.add("--for-delta-against");
+                args.add(options.getArg("for-delta-against"));
             }
             if (options.has("verify")) {
                 args.add("--verify");
