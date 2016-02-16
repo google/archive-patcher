@@ -26,10 +26,13 @@ import java.util.zip.DeflaterOutputStream;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link DeflateUncompressor}.
  */
+@RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class DeflateUncompressorTest {
   private final static int CONTENT_LENGTH = 50000;
