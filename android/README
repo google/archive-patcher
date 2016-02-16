@@ -1,5 +1,0 @@
-This directory contains independent Android applications that access their
-archive-patcher dependencies via a local file repository. Build that repository
-in the parent directory by executing "gradle uploadArchives", which will
-"upload" the JARs to "../local-build-repo". Use this path as input to a
-"flatDir" gradle repository to access all the built artifacts.

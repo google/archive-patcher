@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="tools/diviner/src/main/java"/>
-	<classpathentry kind="src" path="tools/transformer/src/main/java"/>
-	<classpathentry kind="src" path="tools/policy/src/main/java"/>
-	<classpathentry kind="src" path="examples/src/main/java"/>
-	<classpathentry kind="src" path="core/src/main/java"/>
-	<classpathentry kind="src" path="core/src/test/java"/>
-	<classpathentry kind="src" path="tools/reassembler/src/main/java"/>
-	<classpathentry kind="src" path="third_party/javaxdelta/src/main/java">
-		<attributes>
-			<attribute name="ignore_optional_problems" value="true"/>
-		</attributes>
-	</classpathentry>
+	<classpathentry kind="src" path="shared/src/main/java"/>
+	<classpathentry kind="src" path="shared/src/test/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
