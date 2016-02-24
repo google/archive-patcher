@@ -41,7 +41,9 @@ public final class JreDeflateParameters {
    * @param nowrap whether or not nowrap is enabled for the deflate compressor
    */
   public JreDeflateParameters(int level, int strategy, boolean nowrap) {
-    super();
+    if (level < 1 || level > 9 || strategy < 0 || strategy > 2) {
+      throw new IllegalArgumentException("Only levels 1-9 and strategies 0-2 are valid.");
+    }
     this.level = level;
     this.strategy = strategy;
     this.nowrap = nowrap;
@@ -75,8 +77,8 @@ public final class JreDeflateParameters {
   }
 
   /**
-   * Given an input string formatted like the output of {@link #toString()},
-   * parse the string into an instance of this class.
+   * Given an input string formatted like the output of {@link #toString()}, parse the string into
+   * an instance of this class.
    * @param input the input string to parse
    * @return an equivalent object of this class
    */

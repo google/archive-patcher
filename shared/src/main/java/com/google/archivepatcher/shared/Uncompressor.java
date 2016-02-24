@@ -19,15 +19,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * An interface for implementing an uncompressor. An uncompressor may be used to
- * uncompress data that was previously compressed by the corresponding
- * {@link Compressor} implementation.
+ * An interface for implementing a streaming uncompressor. An uncompressor may be used to uncompress
+ * data that was previously compressed by the corresponding {@link Compressor} implementation, and
+ * always operates in a streaming manner.
  */
 public interface Uncompressor {
   /**
-   * Uncompresses data that was previously processed by the corresponding
-   * {@link Compressor} implementation, writing the uncompressed data into
-   * uncompressedOut.
+   * Uncompresses data that was previously processed by the corresponding {@link Compressor}
+   * implementation, writing the uncompressed data into uncompressedOut.
    *
    * @param compressedIn the compressed data
    * @param uncompressedOut the uncompressed data

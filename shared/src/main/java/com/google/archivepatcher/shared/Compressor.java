@@ -19,8 +19,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 /**
- * An interface for implementing a compressor. A compressor may be used to
- * compress arbitrary binary data.
+ * An interface for implementing a streaming compressor. A compressor may be used to compress
+ * arbitrary binary data, but is always capable of doing so in a streaming manner.
  */
 public interface Compressor {
   /**
