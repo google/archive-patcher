@@ -313,7 +313,6 @@ public class DefaultDeflateCompatibilityWindow {
    */
   public Map<JreDeflateParameters, String> getSystemValues() {
     Map<JreDeflateParameters, String> result = new HashMap<JreDeflateParameters, String>();
-    byte[] corpus = getCorpus();
     MessageDigest digester;
     try {
       digester = MessageDigest.getInstance("SHA-256");
@@ -321,11 +320,15 @@ public class DefaultDeflateCompatibilityWindow {
       throw new RuntimeException("System doesn't support SHA-256", e);
     }
 
+    DeflateCompressor compressor = new DeflateCompressor();
+    compressor.setCaching(true);  // Makes this computation lighter weight.
     boolean[] nowrapValues = {true, false};
     int[] strategies = {Deflater.DEFAULT_STRATEGY, Deflater.FILTERED, Deflater.HUFFMAN_ONLY};
     int[] levels = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     for (final boolean nowrap : nowrapValues) {
+      compressor.setNowrap(nowrap);
       for (final int strategy : strategies) {
+        compressor.setStrategy(strategy);
         final int[] relevantLevels;
         if (strategy == Deflater.HUFFMAN_ONLY) {
           // There is no concept of a compression level with this
@@ -335,14 +338,10 @@ public class DefaultDeflateCompatibilityWindow {
           relevantLevels = levels;
         }
         for (final int level : relevantLevels) {
-          JreDeflateParameters parameters = new JreDeflateParameters(level, strategy, nowrap);
-          DeflateCompressor compressor = new DeflateCompressor();
           compressor.setCompressionLevel(level);
-          compressor.setStrategy(strategy);
-          compressor.setNowrap(nowrap);
           ByteArrayOutputStream buffer = new ByteArrayOutputStream();
           try {
-            compressor.compress(new ByteArrayInputStream(corpus), buffer);
+            compressor.compress(new ByteArrayInputStream(CorpusHolder.CORPUS_INSTANCE), buffer);
           } catch (IOException e) {
             throw new RuntimeException(e); // This should never occur as it's all in-memory.
           }
@@ -350,6 +349,7 @@ public class DefaultDeflateCompatibilityWindow {
           digester.reset();
           byte[] sha256OfCompressedData = digester.digest(compressedData);
           String sha256String = hexString(sha256OfCompressedData);
+          JreDeflateParameters parameters = new JreDeflateParameters(level, strategy, nowrap);
           result.put(parameters, sha256String);
         }
       }
