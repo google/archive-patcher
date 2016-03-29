@@ -1,0 +1,288 @@
+// Copyright 2016 Google Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package com.google.archivepatcher.generator;
+
+import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.RandomAccessFileInputStream;
+import com.google.archivepatcher.shared.TypedRange;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Plans archive transformations to be made prior to differencing.
+ */
+class PreDiffPlanner {
+  /**
+   * The old archive.
+   */
+  private final File oldFile;
+
+  /**
+   * The new archive.
+   */
+  private final File newFile;
+
+  /**
+   * The entries in the old archive, with paths as keys.
+   */
+  private final Map<ByteArrayHolder, MinimalZipEntry> oldArchiveZipEntriesByPath;
+
+  /**
+   * The entries in the new archive, with paths as keys.
+   */
+  private final Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath;
+
+  /**
+   * The divined parameters for compression of the entries in the new archive, with paths as keys.
+   */
+  private final Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath;
+
+  /**
+   * Constructs a new planner that will work on the specified inputs
+   * @param oldFile the old file, used to compare bytes between old and new entries as necessary
+   * @param oldArchiveZipEntriesByPath the entries in the old archive, with paths as keys
+   * @param newFile the new file, used to compare bytes between old and new entries as necessary
+   * @param newArchiveZipEntriesByPath the entries in the new archive, with paths as keys
+   * @param newArchiveJreDeflateParametersByPath the {@link JreDeflateParameters} for each entry in
+   * the new archive, with paths as keys
+   */
+  PreDiffPlanner(
+      File oldFile,
+      Map<ByteArrayHolder, MinimalZipEntry> oldArchiveZipEntriesByPath,
+      File newFile,
+      Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath,
+      Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath) {
+    this.oldFile = oldFile;
+    this.oldArchiveZipEntriesByPath = oldArchiveZipEntriesByPath;
+    this.newFile = newFile;
+    this.newArchiveZipEntriesByPath = newArchiveZipEntriesByPath;
+    this.newArchiveJreDeflateParametersByPath = newArchiveJreDeflateParametersByPath;
+  }
+
+  /**
+   * Generates and returns the plan for archive transformations to be made prior to differencing.
+   * The resulting {@link PreDiffPlan} has the old and new file uncompression plans set. The
+   * delta-friendly new file recompression plan is <em>not</em> set at this time.
+   * @return the plan
+   * @throws IOException if there are any problems reading the input files
+   */
+  PreDiffPlan generatePreDiffPlan() throws IOException {
+    List<TypedRange<Void>> oldFilePlan = new ArrayList<>();
+    List<TypedRange<JreDeflateParameters>> newFilePlan = new ArrayList<>();
+
+    // Iterate over every pair of entries and get a recommendation for what to do.
+    for (Map.Entry<ByteArrayHolder, MinimalZipEntry> oldEntry : oldArchiveZipEntriesByPath.entrySet()) {
+      // First, find all the data and skip entries that are not common to both archives.
+      ByteArrayHolder path = oldEntry.getKey();
+      MinimalZipEntry newZipEntry = newArchiveZipEntriesByPath.get(path);
+      if (newZipEntry == null) {
+        continue;
+      }
+      MinimalZipEntry oldZipEntry = oldEntry.getValue();
+
+      // Get a recommendation for the entry tuple
+      Recommendation recommendation = getRecommendation(oldZipEntry, newZipEntry);
+
+      // Record recommendations for the old and new files.
+      if (recommendation.uncompressOldEntry) {
+        long offset = oldZipEntry.getFileOffsetOfCompressedData();
+        long length = oldZipEntry.getCompressedSize();
+        TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
+        oldFilePlan.add(range);
+      }
+      if (recommendation.uncompressNewEntry) {
+        long offset = newZipEntry.getFileOffsetOfCompressedData();
+        long length = newZipEntry.getCompressedSize();
+        JreDeflateParameters newJreDeflateParameters =
+            newArchiveJreDeflateParametersByPath.get(path);
+        TypedRange<JreDeflateParameters> range =
+            new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
+        newFilePlan.add(range);
+      }
+    }
+
+    Collections.sort(oldFilePlan);
+    Collections.sort(newFilePlan);
+    return new PreDiffPlan(
+        Collections.unmodifiableList(oldFilePlan), Collections.unmodifiableList(newFilePlan));
+  }
+
+  /**
+   * Recommendations for how to uncompress entries in old and new archives.
+   */
+  private static enum Recommendation {
+    UNCOMPRESS_OLD(true, false),
+    UNCOMPRESS_NEW(false, true),
+    UNCOMPRESS_BOTH(true, true),
+    UNCOMPRESS_NEITHER(false, false);
+    final boolean uncompressOldEntry;
+    final boolean uncompressNewEntry;
+
+    private Recommendation(boolean uncompressOldEntry, boolean uncompressNewEntry) {
+      this.uncompressOldEntry = uncompressOldEntry;
+      this.uncompressNewEntry = uncompressNewEntry;
+    }
+  }
+
+  /**
+   * Determines the right {@link Recommendation} for handling the (oldEntry, newEntry) tuple.
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return the recommendation
+   * @throws IOException if there are any problems reading the input files
+   */
+  private Recommendation getRecommendation(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
+      throws IOException {
+
+    // Reject anything that is unsuitable for uncompressed diffing.
+    if (unsuitable(oldEntry, newEntry)) {
+      return Recommendation.UNCOMPRESS_NEITHER;
+    }
+
+    // If both entries are already uncompressed there is nothing to do.
+    if (bothEntriesUncompressed(oldEntry, newEntry)) {
+      return Recommendation.UNCOMPRESS_NEITHER;
+    }
+
+    // The following are now true:
+    // 1. At least one of the entries is compressed.
+    // 1. The old entry is either uncompressed, or is compressed with deflate.
+    // 2. The new entry is either uncompressed, or is reproducibly compressed with deflate.
+
+    if (uncompressedChangedToCompressed(oldEntry, newEntry)) {
+      return Recommendation.UNCOMPRESS_NEW;
+    }
+
+    if (compressedChangedToUncompressed(oldEntry, newEntry)) {
+      return Recommendation.UNCOMPRESS_OLD;
+    }
+
+    // At this point, both entries must be compressed with deflate.
+    if (compressedBytesChanged(oldEntry, newEntry)) {
+      return Recommendation.UNCOMPRESS_BOTH;
+    }
+
+    // If the compressed bytes have not changed, there is no need to do anything.
+    return Recommendation.UNCOMPRESS_NEITHER;
+  }
+
+  /**
+   * Returns true if the entries are unsuitable for doing an uncompressed diff. This method returns
+   * true if either of the entries is compressed in an unsupported way (a non-deflate compression
+   * algorithm) or if the new entry is compressed in a supported but unreproducible way.
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return true if unsuitable
+   */
+  private boolean unsuitable(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    if (oldEntry.getCompressionMethod() != 0 && !oldEntry.isDeflateCompressed()) {
+      // The old entry is compressed in a way that is not supported. It cannot be uncompressed, so
+      // no uncompressed diff is possible; leave both old and new alone.
+      return true;
+    }
+    if (newEntry.getCompressionMethod() != 0 && !newEntry.isDeflateCompressed()) {
+      // The new entry is compressed in a way that is not supported. Same result as above.
+      return true;
+    }
+    JreDeflateParameters newJreDeflateParameters =
+        newArchiveJreDeflateParametersByPath.get(new ByteArrayHolder(newEntry.getFileNameBytes()));
+    if (newEntry.isDeflateCompressed() && newJreDeflateParameters == null) {
+      // The new entry is compressed via deflate, but the parameters were undivinable. Therefore the
+      // new entry cannot be recompressed, so leave both old and new alone.
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Returns true if the entries are already optimal for doing an uncompressed diff. This method
+   * returns true if both of the entries are already uncompressed, i.e. are already in the best form
+   * for diffing.
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return as described
+   */
+  private boolean bothEntriesUncompressed(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    return oldEntry.getCompressionMethod() == 0 && newEntry.getCompressionMethod() == 0;
+  }
+
+  /**
+   * Returns true if the entry is uncompressed in the old archive and compressed in the new archive.
+   * This method does not check whether or not the compression is reproducible. It is assumed that
+   * any compressed entries encountered are reproducibly compressed.
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return as described
+   */
+  private boolean uncompressedChangedToCompressed(
+      MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    return oldEntry.getCompressionMethod() == 0 && newEntry.getCompressionMethod() != 0;
+  }
+
+  /**
+   * Returns true if the entry is compressed in the old archive and uncompressed in the new archive.
+   * This method does not check whether or not the compression is reproducible because that
+   * information is irrelevant to this decision (it does not matter whether the compression in the
+   * old archive is reproducible or not, because that data does not need to be recompressed at patch
+   * apply time).
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return as described
+   */
+  private boolean compressedChangedToUncompressed(
+      MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    return newEntry.getCompressionMethod() == 0 && oldEntry.getCompressionMethod() != 0;
+  }
+
+  /**
+   * Checks if the compressed bytes in the specified entries have changed. No attempt is made to
+   * inflate, this method just examines the raw bytes that represent the content in the specified
+   * entries and returns true if they are different.
+   * @param oldEntry the entry in the old archive
+   * @param newEntry the entry in the new archive
+   * @return true as described above
+   * @throws IOException if unable to read
+   */
+  private boolean compressedBytesChanged(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
+      throws IOException {
+    if (oldEntry.getCompressedSize() != newEntry.getCompressedSize()) {
+      // Length is not the same, so content cannot match.
+      return true;
+    }
+    byte[] buffer = new byte[4096];
+    int numRead = 0;
+    try (RandomAccessFileInputStream oldRafis =
+            new RandomAccessFileInputStream(
+                oldFile, oldEntry.getFileOffsetOfCompressedData(), oldEntry.getCompressedSize());
+        RandomAccessFileInputStream newRafis =
+            new RandomAccessFileInputStream(
+                newFile, newEntry.getFileOffsetOfCompressedData(), newEntry.getCompressedSize());
+        MatchingOutputStream matcher = new MatchingOutputStream(oldRafis, 4096)) {
+      while ((numRead = newRafis.read(buffer)) >= 0) {
+        try {
+          matcher.write(buffer, 0, numRead);
+        } catch (MismatchException mismatched) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+}

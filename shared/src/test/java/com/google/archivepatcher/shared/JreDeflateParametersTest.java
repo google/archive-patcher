@@ -27,11 +27,11 @@ import org.junit.runners.JUnit4;
 public class JreDeflateParametersTest {
 
   @Test
-  public void testConstructor_AllValidValues() {
+  public void testOf_AllValidValues() {
     for (int level = 1; level <= 9; level++) {
       for (int strategy = 0; strategy <= 2; strategy++) {
         for (boolean nowrap : new boolean[] {true, false}) {
-          new JreDeflateParameters(level, strategy, nowrap);
+          JreDeflateParameters.of(level, strategy, nowrap);
         }
       }
     }
@@ -39,7 +39,7 @@ public class JreDeflateParametersTest {
 
   private void assertIllegalArgumentException(int level, int strategy, boolean nowrap) {
     try {
-      new JreDeflateParameters(level, strategy, nowrap);
+      JreDeflateParameters.of(level, strategy, nowrap);
       Assert.fail("Invalid configuration allowed");
     } catch (IllegalArgumentException expected) {
       // Pass
@@ -47,40 +47,19 @@ public class JreDeflateParametersTest {
   }
 
   @Test
-  public void testConstructor_InvalidValues() {
+  public void testOf_InvalidValues() {
     // All of these should fail.
     assertIllegalArgumentException(0, 0, true); // Bad compression level (store)
-    assertIllegalArgumentException(-1, 0, true); // Bad cmpressiong level (insane value < 0)
-    assertIllegalArgumentException(10, 0, true); // Bad cmpressiong level (insane value > 9)
+    assertIllegalArgumentException(-1, 0, true); // Bad compression level (insane value < 0)
+    assertIllegalArgumentException(10, 0, true); // Bad compression level (insane value > 9)
     assertIllegalArgumentException(1, -1, true); // Bad strategy (insane value < 0)
     assertIllegalArgumentException(1, 3, true); // Bad strategy (valid in zlib, unsupported in JRE)
   }
 
   @Test
-  public void testHashCode() {
-    int hash1 = new JreDeflateParameters(1, 0, true).hashCode();
-    int hash2 = new JreDeflateParameters(2, 0, true).hashCode();
-    Assert.assertNotEquals(0, hash1);
-    Assert.assertNotEquals(0, hash2);
-    Assert.assertNotEquals(hash1, hash2); // Ensure two non-equivalent objects don't share a hash
-    int hash1b = new JreDeflateParameters(1, 0, true).hashCode();
-    Assert.assertEquals(hash1, hash1b); // Ensure two separate but equivalent objects share a hash
-  }
-
-  @Test
-  public void testEquals() {
-    JreDeflateParameters params = new JreDeflateParameters(1, 0, true);
-    Assert.assertEquals(params, params); // Identity case
-    Assert.assertEquals(params, new JreDeflateParameters(1, 0, true)); // Equivalence case
-    Assert.assertNotEquals(params, new JreDeflateParameters(2, 0, true)); // Different level
-    Assert.assertNotEquals(params, new JreDeflateParameters(1, 1, true)); // Different strategy
-    Assert.assertNotEquals(params, new JreDeflateParameters(1, 0, false)); // Different nowrap
-  }
-
-  @Test
   public void testToString() {
     // Ensure that toString() doesn't crash and produces a non-empty string.
-    Assert.assertTrue(new JreDeflateParameters(1, 0, true).toString().length() > 0);
+    Assert.assertTrue(JreDeflateParameters.of(1, 0, true).toString().length() > 0);
   }
 
   @Test
@@ -88,7 +67,7 @@ public class JreDeflateParametersTest {
     for (int level = 1; level <= 9; level++) {
       for (int strategy = 0; strategy <= 2; strategy++) {
         for (boolean nowrap : new boolean[] {true, false}) {
-          JreDeflateParameters params = new JreDeflateParameters(level, strategy, nowrap);
+          JreDeflateParameters params = JreDeflateParameters.of(level, strategy, nowrap);
           String asString = params.toString();
           JreDeflateParameters fromString = JreDeflateParameters.parseString(asString);
           Assert.assertEquals(params, fromString);

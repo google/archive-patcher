@@ -32,7 +32,7 @@ public class DefaultDeflateCompatibilityWindowTest {
 
   private DefaultDeflateCompatibilityWindow window = null;
 
-  private final JreDeflateParameters brokenParameters = new JreDeflateParameters(1, 0, true);
+  private final JreDeflateParameters brokenParameters = JreDeflateParameters.of(1, 0, true);
 
   /**
    * Trivial subclass for testing, always fails compatibility checks.
@@ -78,13 +78,13 @@ public class DefaultDeflateCompatibilityWindowTest {
   private void ensureHasAllKeys(Map<JreDeflateParameters, String> mappings) {
     for (int level = 1; level <= 9; level++) {
       for (int strategy = 0; strategy <= 1; strategy++) {
-        Assert.assertTrue(mappings.containsKey(new JreDeflateParameters(level, strategy, true)));
-        Assert.assertTrue(mappings.containsKey(new JreDeflateParameters(level, strategy, false)));
+        Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(level, strategy, true)));
+        Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(level, strategy, false)));
       }
     }
     // Manually scan for presence of the strategy-2 values, only set for compression level 1....
-    Assert.assertTrue(mappings.containsKey(new JreDeflateParameters(1, 2, true)));
-    Assert.assertTrue(mappings.containsKey(new JreDeflateParameters(1, 2, false)));
+    Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, true)));
+    Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, false)));
     Assert.assertEquals(mappings.size(), 38);
   }
 
