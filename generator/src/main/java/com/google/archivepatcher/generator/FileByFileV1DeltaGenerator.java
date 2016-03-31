@@ -46,10 +46,8 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
         TempFileHolder deltaFile = new TempFileHolder();
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
-      PreDiffExecutor preDiffExecutor =
-          new PreDiffExecutor(
-              oldFile, newFile, deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
-      PreDiffPlan preDiffPlan = preDiffExecutor.prepareForDiffing();
+      PreDiffPlan preDiffPlan = PreDiffExecutor.prepareForDiffing(
+          oldFile, newFile, deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);

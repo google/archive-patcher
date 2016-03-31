@@ -6,6 +6,8 @@
   <classpathentry kind="src" path="generator/src/test/java"/>
   <classpathentry kind="src" path="applier/src/main/java"/>
   <classpathentry kind="src" path="applier/src/test/java"/>
+  <classpathentry kind="src" path="explainer/src/main/java"/>
+  <classpathentry kind="src" path="explainer/src/test/java"/>
   <classpathentry kind="src" path="integrationtest/src/test/java"/>
   <classpathentry kind="src" path="tools/src/main/java"/>
   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>

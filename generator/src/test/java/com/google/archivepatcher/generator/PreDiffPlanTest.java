@@ -49,21 +49,34 @@ public class PreDiffPlanTest {
 
   @Test
   public void testConstructor_OrderOK() {
-    new PreDiffPlan(SORTED_VOID_LIST, SORTED_DEFLATE_LIST);
+    new PreDiffPlan(
+        Collections.<QualifiedRecommendation>emptyList(), SORTED_VOID_LIST, SORTED_DEFLATE_LIST);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_OldFileUncompressionOrderNotOK() {
-    new PreDiffPlan(reverse(SORTED_VOID_LIST), SORTED_DEFLATE_LIST, SORTED_DEFLATE_LIST);
+    new PreDiffPlan(
+        Collections.<QualifiedRecommendation>emptyList(),
+        reverse(SORTED_VOID_LIST),
+        SORTED_DEFLATE_LIST,
+        SORTED_DEFLATE_LIST);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_NewFileUncompressionOrderNotOK() {
-    new PreDiffPlan(SORTED_VOID_LIST, reverse(SORTED_DEFLATE_LIST), SORTED_DEFLATE_LIST);
+    new PreDiffPlan(
+        Collections.<QualifiedRecommendation>emptyList(),
+        SORTED_VOID_LIST,
+        reverse(SORTED_DEFLATE_LIST),
+        SORTED_DEFLATE_LIST);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_NewFileRecompressionOrderNotOK() {
-    new PreDiffPlan(SORTED_VOID_LIST, SORTED_DEFLATE_LIST, reverse(SORTED_DEFLATE_LIST));
+    new PreDiffPlan(
+        Collections.<QualifiedRecommendation>emptyList(),
+        SORTED_VOID_LIST,
+        SORTED_DEFLATE_LIST,
+        reverse(SORTED_DEFLATE_LIST));
   }
 }

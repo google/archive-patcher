@@ -42,8 +42,11 @@ import com.google.archivepatcher.shared.TypedRange;
  * The {@link JreDeflateParameters} metadata indicate the settings to use during recompression. The
  * file produced by executing this plan is the new archive, i.e. it reverse the transform of the
  * new file uncompression plan.
+ * <p>
+ * Finally, a {@link List} of all the {@link QualifiedRecommendation}s upon which all the plans are
+ * based is available via {@link #getQualifiedRecommendations()}.
  */
-class PreDiffPlan {
+public class PreDiffPlan {
   /**
    * The plan for uncompressing the old file, in file order.
    */
@@ -60,30 +63,40 @@ class PreDiffPlan {
   private final List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan;
 
   /**
+   * The recommendations upon which the plans are based.
+   */
+  private final List<QualifiedRecommendation> qualifiedRecommendations;
+
+  /**
    * Constructs a new plan.
+   * @param qualifiedRecommendations the recommendations upon which the plans are based
    * @param oldFileUncompressionPlan the plan for uncompressing the old file, in file order
    * @param newFileUncompressionPlan the plan for uncompressing the new file, in file order
    */
-  PreDiffPlan(
+  public PreDiffPlan(
+      List<QualifiedRecommendation> qualifiedRecommendations,
       List<TypedRange<Void>> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan) {
-    this(oldFileUncompressionPlan, newFileUncompressionPlan, null);
+    this(qualifiedRecommendations, oldFileUncompressionPlan, newFileUncompressionPlan, null);
   }
 
   /**
    * Constructs a new plan.
+   * @param qualifiedRecommendations the recommendations upon which the plans are based
    * @param oldFileUncompressionPlan the plan for uncompressing the old file, in file order
    * @param newFileUncompressionPlan the plan for uncompressing the new file, in file order
    * @param deltaFriendlyNewFileRecompressionPlan the plan for recompression the delta-friendly new
    * file, in file order
    */
-  PreDiffPlan(
+  public PreDiffPlan(
+      List<QualifiedRecommendation> qualifiedRecommendations,
       List<TypedRange<Void>> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan) {
     ensureOrdered(oldFileUncompressionPlan);
     ensureOrdered(newFileUncompressionPlan);
     ensureOrdered(deltaFriendlyNewFileRecompressionPlan);
+    this.qualifiedRecommendations = qualifiedRecommendations;
     this.oldFileUncompressionPlan = oldFileUncompressionPlan;
     this.newFileUncompressionPlan = newFileUncompressionPlan;
     this.deltaFriendlyNewFileRecompressionPlan = deltaFriendlyNewFileRecompressionPlan;
@@ -108,29 +121,35 @@ class PreDiffPlan {
   }
 
   /**
-   * Returns a read-only view of the plan for uncompressing the old file to create the
-   * delta-friendly old file.
+   * Returns the plan for uncompressing the old file to create the delta-friendly old file.
    * @return the plan
    */
-  final List<TypedRange<Void>> getOldFileUncompressionPlan() {
+  public final List<TypedRange<Void>> getOldFileUncompressionPlan() {
     return oldFileUncompressionPlan;
   }
 
   /**
-   * Returns a read-only view of the plan for uncompressing the new file to create the
-   * delta-friendly new file.
+   * Returns the plan for uncompressing the new file to create the delta-friendly new file.
    * @return the plan
    */
-  final List<TypedRange<JreDeflateParameters>> getNewFileUncompressionPlan() {
+  public final List<TypedRange<JreDeflateParameters>> getNewFileUncompressionPlan() {
     return newFileUncompressionPlan;
   }
 
   /**
-   * Returns a read-only view of the plan for recompressing the delta-friendly new file to
-   * regenerate the original new file.
+   * Returns the plan for recompressing the delta-friendly new file to regenerate the original new
+   * file.
    * @return the plan
    */
-  final List<TypedRange<JreDeflateParameters>> getDeltaFriendlyNewFileRecompressionPlan() {
+  public final List<TypedRange<JreDeflateParameters>> getDeltaFriendlyNewFileRecompressionPlan() {
     return deltaFriendlyNewFileRecompressionPlan;
+  }
+
+  /**
+   * Returns the recommendations upon which the plans are based.
+   * @return the recommendations
+   */
+  public final List<QualifiedRecommendation> getQualifiedRecommendations() {
+    return qualifiedRecommendations;
   }
 }

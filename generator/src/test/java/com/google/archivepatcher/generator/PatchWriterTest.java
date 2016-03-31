@@ -69,6 +69,7 @@ public class PatchWriterTest {
 
   private static final PreDiffPlan PLAN =
       new PreDiffPlan(
+          Collections.<QualifiedRecommendation>emptyList(),
           OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN,
           NEW_DELTA_FRIENDLY_UNCOMPRESS_PLAN,
           NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN);

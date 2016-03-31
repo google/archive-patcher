@@ -31,57 +31,36 @@ import java.util.Map;
 /**
  * Prepares resources for differencing.
  */
-class PreDiffExecutor {
-  /**
-   * The old archive to read from.
-   */
-  private final File originalOldFile;
+public class PreDiffExecutor {
 
   /**
-   * The new archive to read from.
-   */
-  private final File originalNewFile;
-
-  /**
-   * The delta-friendly old archive to write.
-   */
-  private final File deltaFriendlyOldFile;
-
-  /**
-   * The delta-friendly new archive to write.
-   */
-  private final File deltaFriendlyNewFile;
-
-  /**
-   * Creates an executor that will prepare resources for diffing using the specified input and
-   * output files
+   * Prepare resources for diffing and returns the completed plan. This is equivalent to calling
+   * {@link #generatePreDiffPlan(File, File)} and
+   * {@link #generateDeltaFriendlyFiles(PreDiffPlan, File, File, File, File)} in order and returning
+   * a {@link PreDiffPlan} that contains the information from both calls.
    * @param originalOldFile the original old file to read (will not be modified)
    * @param originalNewFile the original new file to read (will not be modified)
    * @param deltaFriendlyOldFile the file to write the delta-friendly version of the original old
    * file to (will be created, overwriting if it already exists)
    * @param deltaFriendlyNewFile the file to write the delta-friendly version of the original new
    * file to (will be created, overwriting if it already exists)
+   * @throws IOException if unable to complete the operation due to an I/O error
    */
-  PreDiffExecutor(
+  public static PreDiffPlan prepareForDiffing(
       File originalOldFile,
       File originalNewFile,
       File deltaFriendlyOldFile,
-      File deltaFriendlyNewFile) {
-    this.originalOldFile = originalOldFile;
-    this.originalNewFile = originalNewFile;
-    this.deltaFriendlyOldFile = deltaFriendlyOldFile;
-    this.deltaFriendlyNewFile = deltaFriendlyNewFile;
-  }
-
-  /**
-   * Prepare resources for diffing and returns the completed plan.
-   * @throws IOException if unable to complete the operation due to an I/O error
-   */
-  PreDiffPlan prepareForDiffing() throws IOException {
-    PreDiffPlan preDiffPlan = generatePreDiffPlan();
+      File deltaFriendlyNewFile) throws IOException {
+    PreDiffPlan preDiffPlan = generatePreDiffPlan(originalOldFile, originalNewFile);
     List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan =
-        generateDeltaFriendlyFiles(preDiffPlan);
+        generateDeltaFriendlyFiles(
+            preDiffPlan,
+            originalOldFile,
+            originalNewFile,
+            deltaFriendlyOldFile,
+            deltaFriendlyNewFile);
     return new PreDiffPlan(
+        preDiffPlan.getQualifiedRecommendations(),
         preDiffPlan.getOldFileUncompressionPlan(),
         preDiffPlan.getNewFileUncompressionPlan(),
         Collections.unmodifiableList(deltaFriendlyNewFileRecompressionPlan));
@@ -91,10 +70,21 @@ class PreDiffExecutor {
    * Generate the delta-friendly files and return the plan for recompressing the delta-friendly
    * new file back into the original new file.
    * @param preDiffPlan the plan to execute
+   * @param originalOldFile the original old file to read (will not be modified)
+   * @param originalNewFile the original new file to read (will not be modified)
+   * @param deltaFriendlyOldFile the file to write the delta-friendly version of the original old
+   * file to (will be created, overwriting if it already exists)
+   * @param deltaFriendlyNewFile the file to write the delta-friendly version of the original new
+   * file to (will be created, overwriting if it already exists)
    * @return as described
    * @throws IOException if anything goes wrong
    */
-  private List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(PreDiffPlan preDiffPlan)
+  public static List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(
+      PreDiffPlan preDiffPlan,
+      File originalOldFile,
+      File originalNewFile,
+      File deltaFriendlyOldFile,
+      File deltaFriendlyNewFile)
       throws IOException {
     try (FileOutputStream out = new FileOutputStream(deltaFriendlyOldFile);
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
@@ -111,11 +101,15 @@ class PreDiffExecutor {
   /**
    * Analyze the original old and new files and generate a plan to transform them into their
    * delta-friendly equivalents.
+   * @param originalOldFile the original old file to read (will not be modified)
+   * @param originalNewFile the original new file to read (will not be modified)
    * @return the plan, which does not yet contain information for recompressing the delta-friendly
    * new archive.
    * @throws IOException if anything goes wrong
    */
-  private PreDiffPlan generatePreDiffPlan() throws IOException {
+  public static PreDiffPlan generatePreDiffPlan(
+      File originalOldFile,
+      File originalNewFile) throws IOException {
     Map<ByteArrayHolder, MinimalZipEntry> originalOldArchiveZipEntriesByPath =
         new HashMap<ByteArrayHolder, MinimalZipEntry>();
     Map<ByteArrayHolder, MinimalZipEntry> originalNewArchiveZipEntriesByPath =

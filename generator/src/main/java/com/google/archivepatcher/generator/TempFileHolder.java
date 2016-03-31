@@ -22,7 +22,7 @@ import java.io.IOException;
  * A closeable container for a temp file that deletes itself on {@link #close()}. This is convenient
  * for try-with-resources constructs that need to use temp files in scope.
  */
-class TempFileHolder implements Closeable {
+public class TempFileHolder implements Closeable {
   /**
    * The file that is wrapped by this holder.
    */

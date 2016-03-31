@@ -86,6 +86,7 @@ class PreDiffPlanner {
   PreDiffPlan generatePreDiffPlan() throws IOException {
     List<TypedRange<Void>> oldFilePlan = new ArrayList<>();
     List<TypedRange<JreDeflateParameters>> newFilePlan = new ArrayList<>();
+    List<QualifiedRecommendation> qualifiedRecommendations = new ArrayList<>();
 
     // Iterate over every pair of entries and get a recommendation for what to do.
     for (Map.Entry<ByteArrayHolder, MinimalZipEntry> oldEntry : oldArchiveZipEntriesByPath.entrySet()) {
@@ -97,17 +98,18 @@ class PreDiffPlanner {
       }
       MinimalZipEntry oldZipEntry = oldEntry.getValue();
 
-      // Get a recommendation for the entry tuple
-      Recommendation recommendation = getRecommendation(oldZipEntry, newZipEntry);
+      // Get a recommendation for the entry tuple and store it in the plan
+      QualifiedRecommendation recommendation = getRecommendation(oldZipEntry, newZipEntry);
+      qualifiedRecommendations.add(recommendation);
 
       // Record recommendations for the old and new files.
-      if (recommendation.uncompressOldEntry) {
+      if (recommendation.getRecommendation().uncompressOldEntry) {
         long offset = oldZipEntry.getFileOffsetOfCompressedData();
         long length = oldZipEntry.getCompressedSize();
         TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
         oldFilePlan.add(range);
       }
-      if (recommendation.uncompressNewEntry) {
+      if (recommendation.getRecommendation().uncompressNewEntry) {
         long offset = newZipEntry.getFileOffsetOfCompressedData();
         long length = newZipEntry.getCompressedSize();
         JreDeflateParameters newJreDeflateParameters =
@@ -121,44 +123,38 @@ class PreDiffPlanner {
     Collections.sort(oldFilePlan);
     Collections.sort(newFilePlan);
     return new PreDiffPlan(
-        Collections.unmodifiableList(oldFilePlan), Collections.unmodifiableList(newFilePlan));
+        Collections.unmodifiableList(qualifiedRecommendations),
+        Collections.unmodifiableList(oldFilePlan),
+        Collections.unmodifiableList(newFilePlan));
   }
 
   /**
-   * Recommendations for how to uncompress entries in old and new archives.
-   */
-  private static enum Recommendation {
-    UNCOMPRESS_OLD(true, false),
-    UNCOMPRESS_NEW(false, true),
-    UNCOMPRESS_BOTH(true, true),
-    UNCOMPRESS_NEITHER(false, false);
-    final boolean uncompressOldEntry;
-    final boolean uncompressNewEntry;
-
-    private Recommendation(boolean uncompressOldEntry, boolean uncompressNewEntry) {
-      this.uncompressOldEntry = uncompressOldEntry;
-      this.uncompressNewEntry = uncompressNewEntry;
-    }
-  }
-
-  /**
-   * Determines the right {@link Recommendation} for handling the (oldEntry, newEntry) tuple.
+   * Determines the right {@link QualifiedRecommendation} for handling the (oldEntry, newEntry)
+   * tuple.
    * @param oldEntry the entry in the old archive
    * @param newEntry the entry in the new archive
    * @return the recommendation
    * @throws IOException if there are any problems reading the input files
    */
-  private Recommendation getRecommendation(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
+  private QualifiedRecommendation getRecommendation(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
 
     // Reject anything that is unsuitable for uncompressed diffing.
     if (unsuitable(oldEntry, newEntry)) {
-      return Recommendation.UNCOMPRESS_NEITHER;
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_NEITHER,
+          RecommendationReason.UNSUITABLE);
     }
 
     // If both entries are already uncompressed there is nothing to do.
     if (bothEntriesUncompressed(oldEntry, newEntry)) {
-      return Recommendation.UNCOMPRESS_NEITHER;
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_NEITHER,
+          RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED);
     }
 
     // The following are now true:
@@ -167,20 +163,36 @@ class PreDiffPlanner {
     // 2. The new entry is either uncompressed, or is reproducibly compressed with deflate.
 
     if (uncompressedChangedToCompressed(oldEntry, newEntry)) {
-      return Recommendation.UNCOMPRESS_NEW;
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_NEW,
+          RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
     }
 
     if (compressedChangedToUncompressed(oldEntry, newEntry)) {
-      return Recommendation.UNCOMPRESS_OLD;
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_OLD,
+          RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
     }
 
     // At this point, both entries must be compressed with deflate.
     if (compressedBytesChanged(oldEntry, newEntry)) {
-      return Recommendation.UNCOMPRESS_BOTH;
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_BOTH,
+          RecommendationReason.COMPRESSED_BYTES_CHANGED);
     }
 
     // If the compressed bytes have not changed, there is no need to do anything.
-    return Recommendation.UNCOMPRESS_NEITHER;
+    return new QualifiedRecommendation(
+        oldEntry,
+        newEntry,
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.COMPRESSED_BYTES_IDENTICAL);
   }
 
   /**

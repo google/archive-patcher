@@ -250,6 +250,16 @@ public class PreDiffPlannerTest {
     return preDiffPlanner.generatePreDiffPlan();
   }
 
+  private void checkRecommendation(
+      PreDiffPlan plan, QualifiedRecommendation expected) {
+    Assert.assertNotNull(plan.getQualifiedRecommendations());
+    Assert.assertEquals(1, plan.getQualifiedRecommendations().size());
+    QualifiedRecommendation actual = plan.getQualifiedRecommendations().get(0);
+    Assert.assertEquals(expected.getOldEntry().getFileName(), actual.getOldEntry().getFileName());
+    Assert.assertEquals(expected.getNewEntry().getFileName(), actual.getNewEntry().getFileName());
+    Assert.assertEquals(expected.getRecommendation(), actual.getRecommendation());
+    Assert.assertEquals(expected.getReason(), actual.getReason());
+  }
   @Test
   public void testGeneratePreDiffPlan_OneCompressedEntry_Unchanged() throws IOException {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
@@ -260,6 +270,11 @@ public class PreDiffPlannerTest {
     // The plan should be to leave the entry alone in both the old and new archives (empty plans).
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_LEVEL_6),
+        findEntry(newFile, ENTRY_A_LEVEL_6),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.COMPRESSED_BYTES_IDENTICAL));
   }
 
   @Test
@@ -279,6 +294,11 @@ public class PreDiffPlannerTest {
     Assert.assertEquals(1, plan.getNewFileUncompressionPlan().size());
     Assert.assertEquals(
         findRangeWithParams(newFile, ENTRY_A_LEVEL_9), plan.getNewFileUncompressionPlan().get(0));
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_LEVEL_6),
+        findEntry(newFile, ENTRY_A_LEVEL_9),
+        Recommendation.UNCOMPRESS_BOTH,
+        RecommendationReason.COMPRESSED_BYTES_CHANGED));
   }
 
   @Test
@@ -303,6 +323,11 @@ public class PreDiffPlannerTest {
     Assert.assertEquals(
         findRangeWithParams(newFile, FIXED_LENGTH_ENTRY_C2_LEVEL_6),
         plan.getNewFileUncompressionPlan().get(0));
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, FIXED_LENGTH_ENTRY_C1_LEVEL_6),
+        findEntry(newFile, FIXED_LENGTH_ENTRY_C2_LEVEL_6),
+        Recommendation.UNCOMPRESS_BOTH,
+        RecommendationReason.COMPRESSED_BYTES_CHANGED));
   }
 
   @Test
@@ -318,6 +343,11 @@ public class PreDiffPlannerTest {
     // The plan should be to do nothing because both entries are already uncompressed
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_STORED),
+        findEntry(newFile, ENTRY_A_STORED),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED));
   }
 
   @Test
@@ -336,6 +366,11 @@ public class PreDiffPlannerTest {
         findRangeWithoutParams(oldFile, ENTRY_A_LEVEL_9),
         plan.getOldFileUncompressionPlan().get(0));
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_LEVEL_9),
+        findEntry(newFile, ENTRY_A_STORED),
+        Recommendation.UNCOMPRESS_OLD,
+        RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED));
   }
 
   @Test
@@ -353,6 +388,11 @@ public class PreDiffPlannerTest {
     Assert.assertEquals(1, plan.getNewFileUncompressionPlan().size());
     Assert.assertEquals(
         findRangeWithParams(newFile, ENTRY_A_LEVEL_6), plan.getNewFileUncompressionPlan().get(0));
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_STORED),
+        findEntry(newFile, ENTRY_A_LEVEL_6),
+        Recommendation.UNCOMPRESS_NEW,
+        RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED));
   }
 
   @Test
@@ -368,10 +408,15 @@ public class PreDiffPlannerTest {
     PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
     Assert.assertNotNull(plan);
     // The plan WOULD be to do nothing in the old archive (empty plan) and uncompress the entry in
-    // the new archive, but because the new entry is un-divinable it cannot be recompresse and so
+    // the new archive, but because the new entry is un-divinable it cannot be recompressed and so
     // the plan for the new archive should be empty as well.
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_STORED),
+        findEntry(newFile, ENTRY_A_LEVEL_6),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.UNSUITABLE));
   }
 
   @Test
@@ -390,6 +435,11 @@ public class PreDiffPlannerTest {
     // cannot be recompressed so cannot be touched).
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_STORED),
+        findEntry(newFile, ENTRY_A_LEVEL_9),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.UNSUITABLE));
   }
 
   @Test
@@ -407,6 +457,11 @@ public class PreDiffPlannerTest {
     // not compressed with deflate, so there is no point in trying to do anything at all.
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_LEVEL_9),
+        findEntry(newFile, ENTRY_A_STORED),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.UNSUITABLE));
   }
 
   @Test
@@ -425,6 +480,11 @@ public class PreDiffPlannerTest {
     // deflate
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(plan, new QualifiedRecommendation(
+        findEntry(oldFile, ENTRY_A_LEVEL_6),
+        findEntry(newFile, ENTRY_A_LEVEL_9),
+        Recommendation.UNCOMPRESS_NEITHER,
+        RecommendationReason.UNSUITABLE));
   }
 
   @Test
@@ -440,6 +500,7 @@ public class PreDiffPlannerTest {
     // entry B is only in the new archive, so there is nothing to diff.
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    Assert.assertTrue(plan.getQualifiedRecommendations().isEmpty());
   }
 
   @Test

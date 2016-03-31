@@ -30,7 +30,7 @@ import java.util.LinkedList;
 /**
  * Simple command-line tool for generating and applying patches.
  */
-public class FileByFileTool {
+public class FileByFileTool extends AbstractTool {
 
   /**
    * Usage instructions for the command line.
@@ -68,8 +68,19 @@ public class FileByFileTool {
 
   /**
    * Runs the tool. See usage instructions for more information.
+   * @param args command line arguments
+   * @throws IOException if anything goes wrong
    */
   public static void main(String... args) throws IOException {
+    new FileByFileTool().run(args);
+  }
+
+  /**
+   * Run the tool.
+   * @param args command line arguments
+   * @throws IOException if anything goes wrong
+   */
+  public void run(String... args) throws IOException {
     String oldPath = null;
     String newPath = null;
     String patchPath = null;
@@ -102,45 +113,6 @@ public class FileByFileTool {
       File patchFile = getRequiredFileOrDie(patchPath, "patch file");
       applyPatch(oldFile, patchFile, new File(newPath));
     }
-  }
-
-  /**
-   * Pop an argument from the argument iterator or exit with a usage message about the expected
-   * type of argument that was supposed to be found.
-   * @param iterator the iterator to take an element from if available
-   * @param expectedType description for the thing that was supposed to be in the iterator, for
-   * error messages
-   * @return the element retrieved from the iterator
-   */
-  private static String popOrDie(Iterator<String> iterator, String expectedType) {
-    if (!iterator.hasNext()) {
-      exitWithUsage("missing argument for " + expectedType);
-    }
-    return iterator.next();
-  }
-
-  /**
-   * Find and return a readable file if it exists, exit with a usage message if it does not.
-   * @param path the path to check and get a {@link File} for
-   * @param description what the file represents, for error messages
-   * @return a {@link File} representing the path, which exists and is readable
-   */
-  private static File getRequiredFileOrDie(String path, String description) {
-    File result = new File(path);
-    if (!result.exists() || !result.canRead()) {
-      exitWithUsage(description + " does not exist or cannot be read: " + path);
-    }
-    return result;
-  }
-
-  /**
-   * Terminate the program with an error message and usage instructions.
-   * @param message the error message to give to the user prior to the usage instructions
-   */
-  private static void exitWithUsage(String message) {
-    System.err.println("Error: " + message);
-    System.err.println(USAGE);
-    System.exit(1);
   }
 
   /**
@@ -179,5 +151,10 @@ public class FileByFileTool {
       applier.applyDelta(oldFile, bufferedPatchIn, bufferedNewOut);
       bufferedNewOut.flush();
     }
+  }
+
+  @Override
+  protected String getUsage() {
+    return USAGE;
   }
 }

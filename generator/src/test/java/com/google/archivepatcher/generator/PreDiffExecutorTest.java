@@ -125,9 +125,8 @@ public class PreDiffExecutorTest {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_6));
     File oldFile = store(bytes);
     File newFile = store(bytes);
-    PreDiffExecutor executor =
-        new PreDiffExecutor(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan = PreDiffExecutor.prepareForDiffing(
+        oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
     Assert.assertNotNull(plan);
     // The plan should be to leave everything alone because there is no change.
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
@@ -145,9 +144,8 @@ public class PreDiffExecutorTest {
     File oldFile = store(oldBytes);
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_9));
     File newFile = store(newBytes);
-    PreDiffExecutor executor =
-        new PreDiffExecutor(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan = PreDiffExecutor.prepareForDiffing(
+        oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the data in both the old and new files.
     Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
