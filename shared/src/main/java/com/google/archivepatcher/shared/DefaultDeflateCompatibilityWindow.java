@@ -355,6 +355,7 @@ public class DefaultDeflateCompatibilityWindow {
         }
       }
     }
+    compressor.release();
     return result;
   }
 }

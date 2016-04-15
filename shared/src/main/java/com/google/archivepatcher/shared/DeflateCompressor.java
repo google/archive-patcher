@@ -105,8 +105,8 @@ public class DeflateCompressor implements Compressor {
           "compressionLevel must be in the range [0,9]: " + compressionLevel);
     }
     if (deflater != null && compressionLevel != this.compressionLevel) {
-      deflater.setLevel(compressionLevel);
       deflater.reset();
+      deflater.setLevel(compressionLevel);
     }
     this.compressionLevel = compressionLevel;
   }
@@ -126,8 +126,8 @@ public class DeflateCompressor implements Compressor {
    */
   public void setStrategy(int strategy) {
     if (deflater != null && strategy != this.strategy) {
-      deflater.setStrategy(strategy);
       deflater.reset();
+      deflater.setStrategy(strategy);
     }
     this.strategy = strategy;
   }
