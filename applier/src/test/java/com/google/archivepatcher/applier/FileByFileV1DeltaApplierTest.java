@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Tests for {@link FileByFileV1DeltaApplier}.
@@ -50,7 +51,7 @@ public class FileByFileV1DeltaApplierTest {
   //   delta-friendly new file := UNCOMPRESSED_HEADER + UNCOMPRESSED_NEW_CONTENT +
   //                              UNCOMPRESSED_TRAILER
   //   new file := UNCOMPRESSED_HEADER + COMPRESSED_NEW_CONTENT + UNCOMPRESSED_TRAILIER
-  // NB: The patch *applietr* is agnostic to the format of the file, and so it doesn't have to be a
+  // NB: The patch *applier* is agnostic to the format of the file, and so it doesn't have to be a
   //     valid zip or zip-like archive.
   private static final JreDeflateParameters PARAMS1 = JreDeflateParameters.of(6, 0, true);
   private static final String OLD_CONTENT = "This is Content the Old";
@@ -93,10 +94,26 @@ public class FileByFileV1DeltaApplierTest {
    */
   private byte[] oldFileBytes;
 
+  /**
+   * Again, for debugging test issues, it is convenient to be able to see these bytes in the
+   * debugger instead of on the filesystem.
+   */
   private byte[] expectedDeltaFriendlyOldFileBytes;
 
+  /**
+   * To mock the dependency on bsdiff, a subclass of FileByFileV1DeltaApplier is made that always
+   * returns a testing delta applier. This delta applier asserts that the old content is as
+   * expected, and "patches" it by simply writing the expected *new* content to the output stream.
+   */
+  private FileByFileV1DeltaApplier fakeApplier;
+  
   @Before
   public void setUp() throws IOException {
+    // Creates the following resources:
+    // 1. The old file, on disk (and in-memory, for convenience).
+    // 2. The new file, in memory only (for comparing results at the end).
+    // 3. The patch, in memory.
+
     File tempFile = File.createTempFile("foo", "bar");
     tempDir = tempFile.getParentFile();
     tempFile.delete();
@@ -130,6 +147,14 @@ public class FileByFileV1DeltaApplierTest {
 
     // Finally, write the patch that should transform old to new
     patchBytes = writePatch();
+
+    // Initialize fake delta applier to mock out dependency on bsdiff
+    fakeApplier = new FileByFileV1DeltaApplier(tempDir) {
+          @Override
+          protected DeltaApplier getDeltaApplier() {
+            return new FakeDeltaApplier();
+          }
+        };
   }
 
   /**
@@ -219,28 +244,27 @@ public class FileByFileV1DeltaApplierTest {
   @Test
   public void testApplyDelta() throws IOException {
     // Test all aspects of patch apply: copying, uncompressing and recompressing ranges.
-    //
-    // To mock the dependency on bsdiff, a subclass of FileByFileV1DeltaApplier is made that always
-    // returns a testing delta applier. This delta applier asserts that the old content is as
-    // expected, and "patches" it by simply writing the expected *new* content to the output stream.
-    //
-    // The test harness creates the following resources:
-    // 1. The old file, on disk (and in-memory, for convenience).
-    // 2. The new file, in memory only (for comparing results at the end).
-    // 3. The patch, in memory.
-    //
     // This test uses the subclasses applier to apply the test patch to the old file, producing the
     // new file. Along the way the entry is uncompressed, altered by the testing delta applier, and
     // recompressed. It's deceptively simple below, but this is a lot of moving parts.
-    FileByFileV1DeltaApplier applier =
-        new FileByFileV1DeltaApplier(tempDir) {
-          @Override
-          protected DeltaApplier getDeltaApplier() {
-            return new FakeDeltaApplier();
-          }
-        };
     ByteArrayOutputStream actualNewBlobOut = new ByteArrayOutputStream();
-    applier.applyDelta(oldFile, new ByteArrayInputStream(patchBytes), actualNewBlobOut);
+    fakeApplier.applyDelta(oldFile, new ByteArrayInputStream(patchBytes), actualNewBlobOut);
     Assert.assertArrayEquals(expectedNewBytes, actualNewBlobOut.toByteArray());
   }
+
+  @Test
+  public void testApplyDelta_DoesntCloseStream() throws IOException {
+    // Test for https://github.com/andrewhayden/archive-patcher/issues/6
+    final AtomicBoolean closed = new AtomicBoolean(false);
+    ByteArrayOutputStream actualNewBlobOut = new ByteArrayOutputStream() {
+      @Override
+      public void close() throws IOException {
+        closed.set(true);
+      }
+    };
+    fakeApplier.applyDelta(oldFile, new ByteArrayInputStream(patchBytes), actualNewBlobOut);
+    Assert.assertArrayEquals(expectedNewBytes, actualNewBlobOut.toByteArray());
+    Assert.assertFalse(closed.get());
+  }
+
 }

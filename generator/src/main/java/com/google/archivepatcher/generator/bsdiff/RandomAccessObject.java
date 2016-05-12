@@ -437,9 +437,23 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
       if (mFileChannel != null) {
         mFileChannel.close();
       }
+
+      // There is a long-standing bug with memory mapped objects in Java that requires the JVM to
+      // finalize the MappedByteBuffer reference before the unmap operation is performed. This leaks
+      // file handles and fills the virtual address space. Worse, on some systems (Windows for one)
+      // the active mmap prevents the temp file from being deleted - even if File.deleteOnExit() is
+      // used. The only safe way to ensure that file handles and actual files are not leaked by this
+      // class is to force an explicit full gc after explicitly nulling the MappedByteBuffer
+      // reference. This has to be done before attempting file deletion.
+      //
+      // See https://github.com/andrewhayden/archive-patcher/issues/5 for more information.
+      mByteBuffer = null;
+      System.gc();
+
       if (mShouldDeleteFileOnRelease && mFile != null) {
         mFile.delete();
       }
+
     }
   }
 }

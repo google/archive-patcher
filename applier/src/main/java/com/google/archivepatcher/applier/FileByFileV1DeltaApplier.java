@@ -83,25 +83,19 @@ public class FileByFileV1DeltaApplier implements DeltaApplier {
     // takes up the rest of the patch stream - so there is no need to examine the list of
     // DeltaDescriptors in the patch at all.
     long deltaLength = plan.getDeltaDescriptors().get(0).getDeltaLength();
-    PartiallyCompressingOutputStream recompressingNewBlobOut = null;
     DeltaApplier deltaApplier = getDeltaApplier();
     // Don't close this stream, as it is just a limiting wrapper.
     @SuppressWarnings("resource")
     LimitedInputStream limitedDeltaIn = new LimitedInputStream(deltaIn, deltaLength);
-    try {
-      recompressingNewBlobOut =
-          new PartiallyCompressingOutputStream(
-              plan.getDeltaFriendlyNewFileRecompressionPlan(),
-              newBlobOut,
-              DEFAULT_COPY_BUFFER_SIZE);
-      deltaApplier.applyDelta(deltaFriendlyOldBlob, limitedDeltaIn, recompressingNewBlobOut);
-    } finally {
-      try {
-        recompressingNewBlobOut.close();
-      } catch (Exception ignored) {
-        // Nothing
-      }
-    }
+    // Don't close this stream, as it would close the underlying OutputStream (that we don't own).
+    @SuppressWarnings("resource")
+    PartiallyCompressingOutputStream recompressingNewBlobOut =
+        new PartiallyCompressingOutputStream(
+            plan.getDeltaFriendlyNewFileRecompressionPlan(),
+            newBlobOut,
+            DEFAULT_COPY_BUFFER_SIZE);
+    deltaApplier.applyDelta(deltaFriendlyOldBlob, limitedDeltaIn, recompressingNewBlobOut);
+    recompressingNewBlobOut.flush();
   }
 
   /**

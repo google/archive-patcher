@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
+import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
@@ -88,15 +90,41 @@ class PreDiffPlanner {
     List<TypedRange<JreDeflateParameters>> newFilePlan = new ArrayList<>();
     List<QualifiedRecommendation> qualifiedRecommendations = new ArrayList<>();
 
+    // This will be used to find files that have been renamed, but not modified. This is relatively
+    // cheap to construct as it just requires indexing all entries by the uncompressed CRC32, and
+    // the CRC32 is already available in the ZIP headers.
+    SimilarityFinder trivialRenameFinder =
+        new Crc32SimilarityFinder(oldFile, oldArchiveZipEntriesByPath.values());
+
     // Iterate over every pair of entries and get a recommendation for what to do.
-    for (Map.Entry<ByteArrayHolder, MinimalZipEntry> oldEntry : oldArchiveZipEntriesByPath.entrySet()) {
-      // First, find all the data and skip entries that are not common to both archives.
-      ByteArrayHolder path = oldEntry.getKey();
-      MinimalZipEntry newZipEntry = newArchiveZipEntriesByPath.get(path);
-      if (newZipEntry == null) {
+    for (Map.Entry<ByteArrayHolder, MinimalZipEntry> newEntry :
+        newArchiveZipEntriesByPath.entrySet()) {
+      ByteArrayHolder newEntryPath = newEntry.getKey();
+      MinimalZipEntry oldZipEntry = oldArchiveZipEntriesByPath.get(newEntryPath);
+      if (oldZipEntry == null) {
+        // The path is only present in the new archive, not in the old archive. Try to find a
+        // similar file in the old archive that can serve as a diff base for the new file.
+        List<MinimalZipEntry> identicalEntriesInOldArchive =
+            trivialRenameFinder.findSimilarFiles(newFile, newEntry.getValue());
+        if (!identicalEntriesInOldArchive.isEmpty()) {
+          // An identical file exists in the old archive at a different path. Use it for the
+          // recommendation and carry on with the normal logic.
+          // All entries in the returned list are identical, so just pick the first one.
+          // NB, in principle it would be optimal to select the file that required the least work
+          // to apply the patch - in practice, it is unlikely that an archive will contain multiple
+          // copies of the same file that are compressed differently, so don't bother with that
+          // degenerate case.
+          oldZipEntry = identicalEntriesInOldArchive.get(0);
+        }
+      }
+
+      // If the attempt to find a suitable diff base for the new entry has failed, oldZipEntry is
+      // null. Give up.
+      if (oldZipEntry == null) {
         continue;
       }
-      MinimalZipEntry oldZipEntry = oldEntry.getValue();
+
+      MinimalZipEntry newZipEntry = newEntry.getValue();
 
       // Get a recommendation for the entry tuple and store it in the plan
       QualifiedRecommendation recommendation = getRecommendation(oldZipEntry, newZipEntry);
@@ -113,7 +141,7 @@ class PreDiffPlanner {
         long offset = newZipEntry.getFileOffsetOfCompressedData();
         long length = newZipEntry.getCompressedSize();
         JreDeflateParameters newJreDeflateParameters =
-            newArchiveJreDeflateParametersByPath.get(path);
+            newArchiveJreDeflateParametersByPath.get(newEntryPath);
         TypedRange<JreDeflateParameters> range =
             new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
         newFilePlan.add(range);

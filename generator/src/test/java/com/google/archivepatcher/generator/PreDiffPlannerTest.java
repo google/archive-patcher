@@ -81,6 +81,16 @@ public class PreDiffPlannerTest {
   private static final UnitTestZipEntry FIXED_LENGTH_ENTRY_C2_LEVEL_6 =
       new UnitTestZipEntry("/path C", 6, "rrrrrrrrrrrrrrrrrrrrrrrrrrrr", null);
 
+  // The "shadow" entries are exact copies of ENTRY_A_* but have a different path. These are used
+  // for the detection of renames that don't involve modification (i.e., the uncompressed CRC32 is
+  // exactly the same as the ENTRY_A_* entries)
+  private static final UnitTestZipEntry SHADOW_ENTRY_A_LEVEL_6 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/same as A level 6", 6, "entry A", null);
+  private static final UnitTestZipEntry SHADOW_ENTRY_A_LEVEL_9 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/same as A level 9", 9, "entry A", null);
+  private static final UnitTestZipEntry SHADOW_ENTRY_A_STORED =
+      UnitTestZipArchive.makeUnitTestZipEntry("/same as A stored", 0, "entry A", null);
+
   private List<File> tempFilesCreated;
   private Map<File, Map<ByteArrayHolder, MinimalZipEntry>> entriesByPathByTempFile;
 
@@ -260,6 +270,7 @@ public class PreDiffPlannerTest {
     Assert.assertEquals(expected.getRecommendation(), actual.getRecommendation());
     Assert.assertEquals(expected.getReason(), actual.getReason());
   }
+
   @Test
   public void testGeneratePreDiffPlan_OneCompressedEntry_Unchanged() throws IOException {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
@@ -488,8 +499,9 @@ public class PreDiffPlannerTest {
   }
 
   @Test
-  public void testGeneratePreDiffPlan_TwoEntries_DifferentPaths() throws IOException {
-    // Test the case where file paths are different, i.e. each entry is exclusive to its archive
+  public void testGeneratePreDiffPlan_TwoDifferentEntries_DifferentPaths() throws IOException {
+    // Test the case where file paths are different as well as content within those files, i.e. each
+    // entry is exclusive to its archive and is not the same
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_B_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
@@ -531,4 +543,117 @@ public class PreDiffPlannerTest {
     Assert.assertEquals(
         findRangeWithParams(newFile, ENTRY_A_LEVEL_9), plan.getNewFileUncompressionPlan().get(1));
   }
+
+  @Test
+  public void testGeneratePreDiffPlan_SimpleRename_Unchanged() throws IOException {
+    // Test the case where file paths are different but the uncompressed content is the same.
+    // The compression method used for both entries is identical, as are the compressed bytes.
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
+    byte[] newBytes =
+        UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_6));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    Assert.assertNotNull(plan);
+    // The plan should be to do nothing (empty plans) because the bytes are identical in both files
+    // so the entries should remain compressed. However, unlike the case where there was no match,
+    // there is now a qualified recommendation in the returned list.
+    Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
+    Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_LEVEL_6),
+            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6),
+            Recommendation.UNCOMPRESS_NEITHER,
+            RecommendationReason.COMPRESSED_BYTES_IDENTICAL));
+  }
+
+  @Test
+  public void testGeneratePreDiffPlan_SimpleRename_CompressionLevelChanged() throws IOException {
+    // Test the case where file paths are different but the uncompressed content is the same.
+    // The compression method used for each entry is different but the CRC32 is still the same, so
+    // unlike like the plan with identical entries this time the plan should be to uncompress both
+    // entries, allowing a super-efficient delta.
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
+    byte[] newBytes =
+        UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_9));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    Assert.assertNotNull(plan);
+    // The plan should be to uncompress both entries so that a super-efficient delta can be done.
+    Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithoutParams(oldFile, ENTRY_A_LEVEL_6),
+        plan.getOldFileUncompressionPlan().get(0));
+    Assert.assertEquals(1, plan.getNewFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithParams(newFile, SHADOW_ENTRY_A_LEVEL_9),
+        plan.getNewFileUncompressionPlan().get(0));
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_LEVEL_6),
+            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9),
+            Recommendation.UNCOMPRESS_BOTH,
+            RecommendationReason.COMPRESSED_BYTES_CHANGED));
+  }
+
+  @Test
+  public void testGeneratePreDiffPlan_SimpleRename_CompressedToUncompressed() throws IOException {
+    // Test the case where file paths are different but the uncompressed content is the same.
+    // The compression method is changed from compressed to uncompressed but the rename should still
+    // be detected and the plan should be to uncompress the old entry only.
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
+    byte[] newBytes =
+        UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_STORED));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    Assert.assertNotNull(plan);
+    // The plan should be to uncompress the old entry so that a super-efficient delta can be done.
+    // The new entry isn't touched because it is already uncompressed.
+    Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithoutParams(oldFile, ENTRY_A_LEVEL_6),
+        plan.getOldFileUncompressionPlan().get(0));
+    Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_LEVEL_6),
+            findEntry(newFile, SHADOW_ENTRY_A_STORED),
+            Recommendation.UNCOMPRESS_OLD,
+            RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED));
+  }
+
+  @Test
+  public void testGeneratePreDiffPlan_SimpleRename_UncompressedToCompressed() throws IOException {
+    // Test the case where file paths are different but the uncompressed content is the same.
+    // The compression method is changed from uncompressed to compressed but the rename should still
+    // be detected and the plan should be to uncompress the new entry only.
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_STORED));
+    byte[] newBytes =
+        UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_6));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    Assert.assertNotNull(plan);
+    // The plan should be to uncompress the new entry so that a super-efficient delta can be done.
+    // The old entry isn't touched because it is already uncompressed.
+    Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
+    Assert.assertEquals(1, plan.getNewFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithParams(newFile, SHADOW_ENTRY_A_LEVEL_6),
+        plan.getNewFileUncompressionPlan().get(0));
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_STORED),
+            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6),
+            Recommendation.UNCOMPRESS_NEW,
+            RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED));
+  }
+
 }

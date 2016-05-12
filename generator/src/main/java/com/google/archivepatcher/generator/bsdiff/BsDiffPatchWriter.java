@@ -362,7 +362,7 @@ public class BsDiffPatchWriter {
 
     // Do the suffix search.
     try (final RandomAccessObject groupArray =
-        BsDiff.quickSuffixSort(oldData, randomAccessObjectFactory)) {
+        new QuickSuffixSorter(randomAccessObjectFactory).suffixSort(oldData)) {
       BsDiffMatcher matcher = new BsDiffMatcher(oldData, newData, groupArray, minimumMatchLength);
       generatePatchWithMatcher(oldData, newData, matcher, outputStream);
     }
