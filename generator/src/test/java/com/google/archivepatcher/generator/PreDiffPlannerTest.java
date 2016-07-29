@@ -84,6 +84,8 @@ public class PreDiffPlannerTest {
   // The "shadow" entries are exact copies of ENTRY_A_* but have a different path. These are used
   // for the detection of renames that don't involve modification (i.e., the uncompressed CRC32 is
   // exactly the same as the ENTRY_A_* entries)
+  private static final UnitTestZipEntry SHADOW_ENTRY_A_LEVEL_1 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/uncompressed data same as A", 1, "entry A", null);
   private static final UnitTestZipEntry SHADOW_ENTRY_A_LEVEL_6 =
       UnitTestZipArchive.makeUnitTestZipEntry("/same as A level 6", 6, "entry A", null);
   private static final UnitTestZipEntry SHADOW_ENTRY_A_LEVEL_9 =
@@ -260,15 +262,18 @@ public class PreDiffPlannerTest {
     return preDiffPlanner.generatePreDiffPlan();
   }
 
-  private void checkRecommendation(
-      PreDiffPlan plan, QualifiedRecommendation expected) {
+  private void checkRecommendation(PreDiffPlan plan, QualifiedRecommendation... expected) {
     Assert.assertNotNull(plan.getQualifiedRecommendations());
-    Assert.assertEquals(1, plan.getQualifiedRecommendations().size());
-    QualifiedRecommendation actual = plan.getQualifiedRecommendations().get(0);
-    Assert.assertEquals(expected.getOldEntry().getFileName(), actual.getOldEntry().getFileName());
-    Assert.assertEquals(expected.getNewEntry().getFileName(), actual.getNewEntry().getFileName());
-    Assert.assertEquals(expected.getRecommendation(), actual.getRecommendation());
-    Assert.assertEquals(expected.getReason(), actual.getReason());
+    Assert.assertEquals(expected.length, plan.getQualifiedRecommendations().size());
+    for (int x = 0; x < expected.length; x++) {
+      QualifiedRecommendation actual = plan.getQualifiedRecommendations().get(x);
+      Assert.assertEquals(
+          expected[x].getOldEntry().getFileName(), actual.getOldEntry().getFileName());
+      Assert.assertEquals(
+          expected[x].getNewEntry().getFileName(), actual.getNewEntry().getFileName());
+      Assert.assertEquals(expected[x].getRecommendation(), actual.getRecommendation());
+      Assert.assertEquals(expected[x].getReason(), actual.getReason());
+    }
   }
 
   @Test
@@ -593,6 +598,54 @@ public class PreDiffPlannerTest {
         plan.getNewFileUncompressionPlan().get(0));
     checkRecommendation(
         plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_LEVEL_6),
+            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9),
+            Recommendation.UNCOMPRESS_BOTH,
+            RecommendationReason.COMPRESSED_BYTES_CHANGED));
+  }
+
+  @Test
+  public void testGeneratePreDiffPlan_ClonedAndCompressionLevelChanged() throws IOException {
+    // Test the case where an entry exists in both old and new APK with identical uncompressed
+    // content but different compressed content ***AND*** additionally a new copy exists in the new
+    // archive, also with identical uncompressed content and different compressed content, i.e.:
+    //
+    // OLD APK:                                NEW APK:
+    // ------------------------------------    -----------------------------------------------
+    // foo.xml (compressed level 6)            foo.xml (compressed level 9, content unchanged)
+    //                                         bar.xml (copy of foo.xml, compressed level 1)
+    //
+    // This test ensures that in such cases the foo.xml from the old apk is only enqueued for
+    // uncompression ONE TIME.
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
+    byte[] newBytes =
+        UnitTestZipArchive.makeTestZip(
+            Arrays.asList(SHADOW_ENTRY_A_LEVEL_1, SHADOW_ENTRY_A_LEVEL_9));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    Assert.assertNotNull(plan);
+    // The plan should be to uncompress both entries so that a super-efficient delta can be done.
+    // Critically there should only be ONE command for the old file uncompression step!
+    Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithoutParams(oldFile, ENTRY_A_LEVEL_6),
+        plan.getOldFileUncompressionPlan().get(0));
+    Assert.assertEquals(2, plan.getNewFileUncompressionPlan().size());
+    Assert.assertEquals(
+        findRangeWithParams(newFile, SHADOW_ENTRY_A_LEVEL_1),
+        plan.getNewFileUncompressionPlan().get(0));
+    Assert.assertEquals(
+        findRangeWithParams(newFile, SHADOW_ENTRY_A_LEVEL_9),
+        plan.getNewFileUncompressionPlan().get(1));
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_LEVEL_6),
+            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_1),
+            Recommendation.UNCOMPRESS_BOTH,
+            RecommendationReason.COMPRESSED_BYTES_CHANGED),
         new QualifiedRecommendation(
             findEntry(oldFile, ENTRY_A_LEVEL_6),
             findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9),

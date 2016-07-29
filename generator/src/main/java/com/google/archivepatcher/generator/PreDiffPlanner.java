@@ -24,8 +24,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Plans archive transformations to be made prior to differencing.
@@ -86,8 +88,8 @@ class PreDiffPlanner {
    * @throws IOException if there are any problems reading the input files
    */
   PreDiffPlan generatePreDiffPlan() throws IOException {
-    List<TypedRange<Void>> oldFilePlan = new ArrayList<>();
-    List<TypedRange<JreDeflateParameters>> newFilePlan = new ArrayList<>();
+    Set<TypedRange<Void>> oldFilePlan = new HashSet<>();
+    Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
     List<QualifiedRecommendation> qualifiedRecommendations = new ArrayList<>();
 
     // This will be used to find files that have been renamed, but not modified. This is relatively
@@ -148,12 +150,14 @@ class PreDiffPlanner {
       }
     }
 
-    Collections.sort(oldFilePlan);
-    Collections.sort(newFilePlan);
+    List<TypedRange<Void>> oldFilePlanList = new ArrayList<>(oldFilePlan);
+    Collections.sort(oldFilePlanList);
+    List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
+    Collections.sort(newFilePlanList);
     return new PreDiffPlan(
         Collections.unmodifiableList(qualifiedRecommendations),
-        Collections.unmodifiableList(oldFilePlan),
-        Collections.unmodifiableList(newFilePlan));
+        Collections.unmodifiableList(oldFilePlanList),
+        Collections.unmodifiableList(newFilePlanList));
   }
 
   /**

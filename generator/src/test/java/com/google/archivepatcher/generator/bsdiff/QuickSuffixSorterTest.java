@@ -23,7 +23,7 @@ import org.junit.runners.JUnit4;
 import java.io.IOException;
 
 @RunWith(JUnit4.class)
-public class QuickSuffixSorterTest {
+public class QuickSuffixSorterTest extends SuffixSorterTestBase {
 
   private QuickSuffixSorter quickSuffixSorter;
 
@@ -31,6 +31,11 @@ public class QuickSuffixSorterTest {
   public void setup() {
     quickSuffixSorter =
         new QuickSuffixSorter(new RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory());
+  }
+
+  @Override
+  public SuffixSorter getSuffixSorter() {
+    return quickSuffixSorter;
   }
 
   @Test
@@ -131,49 +136,5 @@ public class QuickSuffixSorterTest {
     Assert.assertTrue(
         intArrayEqualsRandomAccessObject(
             BsDiffTestData.QUICK_SUFFIX_SORT_INIT_TEST_IA_CONTROL_2, inverseArray2RO));
-  }
-
-  @Test
-  public void quickSuffixSortLongDataTest() throws IOException {
-    RandomAccessObject groupArrayRO = quickSuffixSorter.suffixSort(BsDiffTestData.LONG_DATA_99_RO);
-
-    Assert.assertTrue(
-        intArrayEqualsRandomAccessObject(
-            BsDiffTestData.QUICK_SUFFIX_SORT_TEST_GA_CONTROL, groupArrayRO));
-  }
-
-  @Test
-  public void quickSuffixSortVeryLongDataTest() throws IOException {
-    RandomAccessObject groupArray2RO =
-        quickSuffixSorter.suffixSort(BsDiffTestData.LONGER_DATA_349_RO);
-
-    Assert.assertTrue(
-        intArrayEqualsRandomAccessObject(
-            BsDiffTestData.QUICK_SUFFIX_SORT_TEST_IA_CONTROL, groupArray2RO));
-  }
-
-  private RandomAccessObject intArrayToRandomAccessObject(final int[] array) throws IOException {
-    RandomAccessObject ret =
-        new RandomAccessObject.RandomAccessByteArrayObject(new byte[array.length * 4]);
-    ret.seekToIntAligned(0);
-
-    for (int element : array) {
-      ret.writeInt(element);
-    }
-
-    return ret;
-  }
-
-  private boolean intArrayEqualsRandomAccessObject(
-      int[] array, RandomAccessObject randomAccessObject) throws IOException {
-    randomAccessObject.seekToIntAligned(0);
-
-    for (int element : array) {
-      if (element != randomAccessObject.readInt()) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }
