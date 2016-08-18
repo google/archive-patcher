@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.explainer;
 
+import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -55,6 +57,12 @@ public class PatchExplanation {
   private final List<EntryExplanation> explainedAsUnchangedOrFree;
 
   /**
+   * All entries that could have been uncompressed for patching but have been prevented due to
+   * resource constraints by a {@link TotalRecompressionLimiter}.
+   */
+  private final List<EntryExplanation> explainedAsResourceConstrained;
+
+  /**
    * The sum total of the sizes of all the entries that are new in the patch stream.
    */
   private final long estimatedNewSize;
@@ -65,6 +73,13 @@ public class PatchExplanation {
   private final long estimatedChangedSize;
 
   /**
+   * The sum total of the sizes of all the entries that were changed but that have been prevented
+   * from being uncompressed during patch generation due to resource constraints by a {@link
+   * TotalRecompressionLimiter}.
+   */
+  private final long estimatedResourceConstrainedSize;
+
+  /**
    * Constructs a new aggregate explanation for the specified {@link EntryExplanation}s.
    * @param entryExplanations the explanations for all of the individual entries in the patch
    */
@@ -72,12 +87,18 @@ public class PatchExplanation {
     List<EntryExplanation> tempExplainedAsNew = new ArrayList<>();
     List<EntryExplanation> tempExplainedAsChanged = new ArrayList<>();
     List<EntryExplanation> tempExplainedAsUnchangedOrFree = new ArrayList<>();
+    List<EntryExplanation> tempExplainedAsResourceConstrained = new ArrayList<>();
     long tempEstimatedNewSize = 0;
     long tempEstimatedChangedSize = 0;
+    long tempEstimatedResourceConstrainedSize = 0;
     for (EntryExplanation explanation : entryExplanations) {
       if (explanation.isNew()) {
         tempEstimatedNewSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsNew.add(explanation);
+      } else if (explanation.getReasonIncludedIfNotNew()
+          == RecommendationReason.RESOURCE_CONSTRAINED) {
+        tempEstimatedResourceConstrainedSize += explanation.getCompressedSizeInPatch();
+        tempExplainedAsResourceConstrained.add(explanation);
       } else if (explanation.getCompressedSizeInPatch() > 0) {
         tempEstimatedChangedSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsChanged.add(explanation);
@@ -89,11 +110,15 @@ public class PatchExplanation {
     Collections.sort(tempExplainedAsNew, comparator);
     Collections.sort(tempExplainedAsChanged, comparator);
     Collections.sort(tempExplainedAsUnchangedOrFree, comparator);
+    Collections.sort(tempExplainedAsResourceConstrained, comparator);
     explainedAsNew = Collections.unmodifiableList(tempExplainedAsNew);
     explainedAsChanged = Collections.unmodifiableList(tempExplainedAsChanged);
     explainedAsUnchangedOrFree = Collections.unmodifiableList(tempExplainedAsUnchangedOrFree);
+    explainedAsResourceConstrained =
+        Collections.unmodifiableList(tempExplainedAsResourceConstrained);
     estimatedNewSize = tempEstimatedNewSize;
     estimatedChangedSize = tempEstimatedChangedSize;
+    estimatedResourceConstrainedSize = tempEstimatedResourceConstrainedSize;
   }
 
   /**
@@ -124,6 +149,17 @@ public class PatchExplanation {
   }
 
   /**
+   * Returns a read-only view of all entries that could have been uncompressed for patching but have
+   * been prevented due to resource constraints by a {@link TotalRecompressionLimiter}, sorted in
+   * ascending order lexicographically by path.
+   *
+   * @return as described
+   */
+  public List<EntryExplanation> getExplainedAsResourceConstrained() {
+    return explainedAsResourceConstrained;
+  }
+
+  /**
    * Returns the sum total of the sizes of all the entries that are new in the patch stream. As
    * noted in {@link EntryExplanation#getCompressedSizeInPatch()}, this is an
    * <strong>approximation</strong>.
@@ -141,6 +177,18 @@ public class PatchExplanation {
    */
   public long getEstimatedChangedSize() {
     return estimatedChangedSize;
+  }
+
+  /**
+   * Returns the sum total of the sizes of all entries that could have been uncompressed for
+   * patching but have been prevented due to resource constraints by a {@link
+   * TotalRecompressionLimiter}. As noted in {@link EntryExplanation#getCompressedSizeInPatch()},
+   * this is an <strong>approximation</strong>.
+   *
+   * @return as described
+   */
+  public long getEstimatedResourceConstrainedSize() {
+    return estimatedResourceConstrainedSize;
   }
 
   /**
@@ -175,11 +223,17 @@ public class PatchExplanation {
     buffer.append("{\n");
     buffer.append("  estimatedNewSize: ").append(getEstimatedNewSize()).append(",\n");
     buffer.append("  estimatedChangedSize: ").append(getEstimatedChangedSize()).append(",\n");
+    buffer
+        .append("  estimatedResourceConstrainedSize: ")
+        .append(getEstimatedResourceConstrainedSize())
+        .append(",\n");
     dumpJson(getExplainedAsNew(), "explainedAsNew", buffer, "  ");
     buffer.append(",\n");
     dumpJson(getExplainedAsChanged(), "explainedAsChanged", buffer, "  ");
     buffer.append(",\n");
     dumpJson(getExplainedAsUnchangedOrFree(), "explainedAsUnchangedOrFree", buffer, "  ");
+    buffer.append(",\n");
+    dumpJson(getExplainedAsResourceConstrained(), "explainedAsResourceConstrained", buffer, "  ");
     buffer.append("\n");
     buffer.append("}");
     writer.write(buffer.toString());

@@ -15,8 +15,6 @@
 package com.google.archivepatcher.generator.bsdiff;
 
 import java.io.IOException;
-import java.util.Deque;
-import java.util.LinkedList;
 
 /**
  * A Java implementation of the "bsdiff" algorithm based on the BSD-2 licensed source code available

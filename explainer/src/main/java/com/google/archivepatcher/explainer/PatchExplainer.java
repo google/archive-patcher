@@ -21,6 +21,7 @@ import com.google.archivepatcher.generator.MinimalZipEntry;
 import com.google.archivepatcher.generator.PreDiffExecutor;
 import com.google.archivepatcher.generator.PreDiffPlan;
 import com.google.archivepatcher.generator.QualifiedRecommendation;
+import com.google.archivepatcher.generator.RecommendationModifier;
 import com.google.archivepatcher.generator.RecommendationReason;
 import com.google.archivepatcher.generator.TempFileHolder;
 import com.google.archivepatcher.shared.Compressor;
@@ -28,7 +29,6 @@ import com.google.archivepatcher.shared.CountingOutputStream;
 import com.google.archivepatcher.shared.DeflateUncompressor;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.Uncompressor;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,9 +39,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Explains where the data in a patch would come from.
- */
+/** Explains where the data in a patch would come from. */
+// TODO: Add explicit logic for renames
 public class PatchExplainer {
   /**
    * A stream that discards everything written to it.
@@ -87,12 +86,17 @@ public class PatchExplainer {
 
   /**
    * Explains the patch that would be generated for the specified input files.
+   *
    * @param oldFile the old file
    * @param newFile the new file
+   * @param recommendationModifier optionally, a {@link RecommendationModifier} to use during patch
+   *     planning. If null, a normal patch is generated.
    * @return a list of the explanations for each entry that would be
    * @throws IOException
    */
-  public List<EntryExplanation> explainPatch(File oldFile, File newFile) throws IOException {
+  public List<EntryExplanation> explainPatch(
+      File oldFile, File newFile, RecommendationModifier recommendationModifier)
+      throws IOException {
     List<EntryExplanation> result = new ArrayList<>();
 
     // Isolate entries that are only found in the new archive.
@@ -113,7 +117,12 @@ public class PatchExplainer {
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
-    PreDiffPlan plan = PreDiffExecutor.generatePreDiffPlan(oldFile, newFile);
+    PreDiffExecutor executor =
+        new PreDiffExecutor.Builder()
+            .readingOriginalFiles(oldFile, newFile)
+            .withRecommendationModifier(recommendationModifier)
+            .build();
+    PreDiffPlan plan = executor.prepareForDiffing();
     try (TempFileHolder oldTemp = new TempFileHolder();
         TempFileHolder newTemp = new TempFileHolder();
         TempFileHolder deltaTemp = new TempFileHolder()) {
@@ -148,6 +157,12 @@ public class PatchExplainer {
         }
 
         // Everything past here is a resource that has changed in some way.
+        // NB: This magically takes care of RecommendationReason.RESOURCE_CONSTRAINED. The logic
+        // below will keep the RESOURCE_CONSTRAINED entries compressed, running the delta on their
+        // compressed contents, and the resulting explanation will preserve the RESOURCE_CONSTRAINED
+        // reason. This will correctly attribute the size of these blobs to the RESOURCE_CONSTRAINED
+        // category.
+
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
         long oldOffset = qualifiedRecommendation.getOldEntry().getFileOffsetOfCompressedData();
         long oldLength = qualifiedRecommendation.getOldEntry().getCompressedSize();

@@ -19,7 +19,6 @@ import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,25 +58,37 @@ class PreDiffPlanner {
   private final Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath;
 
   /**
+   * Optional {@link RecommendationModifier} that will be applied after the default recommendations
+   * have been made but before the {@link PreDiffPlan} is constructed.
+   */
+  private final RecommendationModifier recommendationModifier;
+
+  /**
    * Constructs a new planner that will work on the specified inputs
+   *
    * @param oldFile the old file, used to compare bytes between old and new entries as necessary
    * @param oldArchiveZipEntriesByPath the entries in the old archive, with paths as keys
    * @param newFile the new file, used to compare bytes between old and new entries as necessary
    * @param newArchiveZipEntriesByPath the entries in the new archive, with paths as keys
    * @param newArchiveJreDeflateParametersByPath the {@link JreDeflateParameters} for each entry in
-   * the new archive, with paths as keys
+   *     the new archive, with paths as keys
+   * @param recommendationModifier optionally, a {@link RecommendationModifier} to be applied after
+   *     the default recommendations have been made but before the {@link PreDiffPlan} is generated
+   *     in {@link #generatePreDiffPlan()}.
    */
   PreDiffPlanner(
       File oldFile,
       Map<ByteArrayHolder, MinimalZipEntry> oldArchiveZipEntriesByPath,
       File newFile,
       Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath,
-      Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath) {
+      Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath,
+      RecommendationModifier recommendationModifier) {
     this.oldFile = oldFile;
     this.oldArchiveZipEntriesByPath = oldArchiveZipEntriesByPath;
     this.newFile = newFile;
     this.newArchiveZipEntriesByPath = newArchiveZipEntriesByPath;
     this.newArchiveJreDeflateParametersByPath = newArchiveJreDeflateParametersByPath;
+    this.recommendationModifier = recommendationModifier;
   }
 
   /**
@@ -88,9 +99,53 @@ class PreDiffPlanner {
    * @throws IOException if there are any problems reading the input files
    */
   PreDiffPlan generatePreDiffPlan() throws IOException {
+    List<QualifiedRecommendation> recommendations = getDefaultRecommendations();
+    if (recommendationModifier != null) {
+      // Allow changing the recommendations base on arbitrary criteria.
+      recommendations = recommendationModifier.getModifiedRecommendations(recommendations);
+    }
+
+    // Process recommendations to extract ranges for decompression & recompression
     Set<TypedRange<Void>> oldFilePlan = new HashSet<>();
     Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
-    List<QualifiedRecommendation> qualifiedRecommendations = new ArrayList<>();
+    for (QualifiedRecommendation recommendation : recommendations) {
+      if (recommendation.getRecommendation().uncompressOldEntry) {
+        long offset = recommendation.getOldEntry().getFileOffsetOfCompressedData();
+        long length = recommendation.getOldEntry().getCompressedSize();
+        TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
+        oldFilePlan.add(range);
+      }
+      if (recommendation.getRecommendation().uncompressNewEntry) {
+        long offset = recommendation.getNewEntry().getFileOffsetOfCompressedData();
+        long length = recommendation.getNewEntry().getCompressedSize();
+        JreDeflateParameters newJreDeflateParameters =
+            newArchiveJreDeflateParametersByPath.get(
+                new ByteArrayHolder(recommendation.getNewEntry().getFileNameBytes()));
+        TypedRange<JreDeflateParameters> range =
+            new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
+        newFilePlan.add(range);
+      }
+    }
+
+    List<TypedRange<Void>> oldFilePlanList = new ArrayList<>(oldFilePlan);
+    Collections.sort(oldFilePlanList);
+    List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
+    Collections.sort(newFilePlanList);
+    return new PreDiffPlan(
+        Collections.unmodifiableList(recommendations),
+        Collections.unmodifiableList(oldFilePlanList),
+        Collections.unmodifiableList(newFilePlanList));
+  }
+
+  /**
+   * Analyzes the input files and returns the default recommendations for each entry in the new
+   * archive.
+   *
+   * @return the recommendations
+   * @throws IOException if anything goes wrong
+   */
+  private List<QualifiedRecommendation> getDefaultRecommendations() throws IOException {
+    List<QualifiedRecommendation> recommendations = new ArrayList<>();
 
     // This will be used to find files that have been renamed, but not modified. This is relatively
     // cheap to construct as it just requires indexing all entries by the uncompressed CRC32, and
@@ -121,43 +176,13 @@ class PreDiffPlanner {
       }
 
       // If the attempt to find a suitable diff base for the new entry has failed, oldZipEntry is
-      // null. Give up.
-      if (oldZipEntry == null) {
-        continue;
-      }
-
-      MinimalZipEntry newZipEntry = newEntry.getValue();
-
-      // Get a recommendation for the entry tuple and store it in the plan
-      QualifiedRecommendation recommendation = getRecommendation(oldZipEntry, newZipEntry);
-      qualifiedRecommendations.add(recommendation);
-
-      // Record recommendations for the old and new files.
-      if (recommendation.getRecommendation().uncompressOldEntry) {
-        long offset = oldZipEntry.getFileOffsetOfCompressedData();
-        long length = oldZipEntry.getCompressedSize();
-        TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
-        oldFilePlan.add(range);
-      }
-      if (recommendation.getRecommendation().uncompressNewEntry) {
-        long offset = newZipEntry.getFileOffsetOfCompressedData();
-        long length = newZipEntry.getCompressedSize();
-        JreDeflateParameters newJreDeflateParameters =
-            newArchiveJreDeflateParametersByPath.get(newEntryPath);
-        TypedRange<JreDeflateParameters> range =
-            new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
-        newFilePlan.add(range);
+      // null (nothing to do in that case). Otherwise, there is an old entry that is relevant, so
+      // get a recommendation for what to do.
+      if (oldZipEntry != null) {
+        recommendations.add(getRecommendation(oldZipEntry, newEntry.getValue()));
       }
     }
-
-    List<TypedRange<Void>> oldFilePlanList = new ArrayList<>(oldFilePlan);
-    Collections.sort(oldFilePlanList);
-    List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
-    Collections.sort(newFilePlanList);
-    return new PreDiffPlan(
-        Collections.unmodifiableList(qualifiedRecommendations),
-        Collections.unmodifiableList(oldFilePlanList),
-        Collections.unmodifiableList(newFilePlanList));
+    return recommendations;
   }
 
   /**

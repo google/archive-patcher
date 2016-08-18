@@ -17,9 +17,11 @@ package com.google.archivepatcher.tools;
 import com.google.archivepatcher.explainer.EntryExplanation;
 import com.google.archivepatcher.explainer.PatchExplainer;
 import com.google.archivepatcher.explainer.PatchExplanation;
+import com.google.archivepatcher.generator.RecommendationModifier;
+import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
 import com.google.archivepatcher.shared.DeflateCompressor;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -35,22 +37,31 @@ import java.util.List;
  */
 public class PatchExplainerTool extends AbstractTool {
 
-  /**
-   * Usage instructions for the command line.
-   */
+  /** Usage instructions for the command line. */
   private static final String USAGE =
       "java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool <options>\n"
           + "\nOptions:\n"
           + "  --old           the old file\n"
           + "  --new           the new file\n"
+          + "  --trl           optionally, the total bytes of recompression to allow (see below)\n"
           + "  --json          output JSON results instead of plain text\n"
+          + "\nTotal Recompression Limit (trl):\n"
+          + "  When generating a patch, a limit can be specified on the total number of bytes to\n"
+          + "  allow to be recompressed during the patch apply process. This can be for a variety\n"
+          + "  of reasons, with the most obvious being to limit the amount of effort that has to\n"
+          + "  be expended applying the patch on the target platform. To properly explain a\n"
+          + "  patch that had such a limitation, it is necessary to specify the same limitation\n"
+          + "  here.\n"
           + "\nExamples:\n"
           + "  To explain a patch from OLD to NEW, dumping plain human-readable text output:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool \\\n"
           + "      --old OLD --new NEW\n"
           + "  To explain a patch from OLD to NEW, dumping JSON-formatted output:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool \\\n"
-          + "      --old OLD --new NEW --json\n";
+          + "      --old OLD --new NEW --json\n"
+          + "  To explain a patch from OLD to NEW, limiting to 1,000,000 recompress bytes:\n"
+          + "    java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool \\\n"
+          + "      --old OLD --new NEW --trl 1000000\n";
 
   /**
    * Runs the tool. See usage instructions for more information.
@@ -74,6 +85,7 @@ public class PatchExplainerTool extends AbstractTool {
   public void run(String... args) throws IOException {
     String oldPath = null;
     String newPath = null;
+    Long totalRecompressionLimit = null;
     boolean outputJson = false;
     Iterator<String> argIterator = new LinkedList<String>(Arrays.asList(args)).iterator();
     while (argIterator.hasNext()) {
@@ -84,6 +96,11 @@ public class PatchExplainerTool extends AbstractTool {
         newPath = popOrDie(argIterator, "--new");
       } else if ("--json".equals(arg)) {
         outputJson = true;
+      } else if ("--trl".equals(arg)) {
+        totalRecompressionLimit = Long.parseLong(popOrDie(argIterator, "--trl"));
+        if (totalRecompressionLimit < 0) {
+          exitWithUsage("--trl cannot be negative: " + totalRecompressionLimit);
+        }
       } else {
         exitWithUsage("unknown argument: " + arg);
       }
@@ -98,8 +115,12 @@ public class PatchExplainerTool extends AbstractTool {
     compressor.setCompressionLevel(9);
     PatchExplainer explainer =
         new PatchExplainer(new DeflateCompressor(), new BsDiffDeltaGenerator());
+    RecommendationModifier recommendationModifier = null;
+    if (totalRecompressionLimit != null) {
+      recommendationModifier = new TotalRecompressionLimiter(totalRecompressionLimit);
+    }
     PatchExplanation patchExplanation =
-        new PatchExplanation(explainer.explainPatch(oldFile, newFile));
+        new PatchExplanation(explainer.explainPatch(oldFile, newFile, recommendationModifier));
     if (outputJson) {
       patchExplanation.writeJson(new PrintWriter(System.out));
     } else {
@@ -126,8 +147,16 @@ public class PatchExplainerTool extends AbstractTool {
             + " (estimated patch size "
             + format.format(patchExplanation.getEstimatedNewSize())
             + " bytes)");
+    System.out.println(
+        "Num files changed but forced to stay compressed by the total recompression limit: "
+            + patchExplanation.getExplainedAsResourceConstrained().size()
+            + " (estimated patch size "
+            + format.format(patchExplanation.getEstimatedResourceConstrainedSize())
+            + " bytes)");
     long estimatedTotalSize =
-        patchExplanation.getEstimatedChangedSize() + patchExplanation.getEstimatedNewSize();
+        patchExplanation.getEstimatedChangedSize()
+            + patchExplanation.getEstimatedNewSize()
+            + patchExplanation.getEstimatedResourceConstrainedSize();
     System.out.println(
         "Estimated total patch size: " + format.format(estimatedTotalSize) + " bytes");
   }
@@ -164,9 +193,15 @@ public class PatchExplainerTool extends AbstractTool {
           + " bytes";
     }
     if (explanation.getCompressedSizeInPatch() > 0) {
+      String metadata = "";
+      if (explanation.getReasonIncludedIfNotNew() == RecommendationReason.RESOURCE_CONSTRAINED) {
+        metadata = " (forced to stay compressed by total recompression limit)";
+      }
       return "Changed file '"
           + path
-          + "', approximate size of data in patch: "
+          + "'"
+          + metadata
+          + ", approximate size of data in patch: "
           + explanation.getCompressedSizeInPatch()
           + " bytes";
     } else {

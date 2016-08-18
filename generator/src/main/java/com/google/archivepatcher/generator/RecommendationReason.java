@@ -44,8 +44,14 @@ public enum RecommendationReason {
    */
   COMPRESSED_BYTES_CHANGED,
 
+  /** The compressed bytes in the old file are identical to the compressed bytes in the new file. */
+  COMPRESSED_BYTES_IDENTICAL,
+
   /**
-   * The compressed bytes in the old file are identical to the compressed bytes in the new file.
+   * A resource constraint prohibits touching the old entry, the new entry, or both. For example,
+   * there may be a limit on the total amount of temp space that will be available for applying a
+   * patch or a limit on the total amount of CPU time that can be expended on recompression when
+   * applying a patch, etc.
    */
-  COMPRESSED_BYTES_IDENTICAL;
+  RESOURCE_CONSTRAINED;
 }

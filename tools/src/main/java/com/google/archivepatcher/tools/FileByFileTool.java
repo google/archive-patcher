@@ -16,7 +16,8 @@ package com.google.archivepatcher.tools;
 
 import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
 import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
-
+import com.google.archivepatcher.generator.RecommendationModifier;
+import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -32,9 +33,7 @@ import java.util.LinkedList;
  */
 public class FileByFileTool extends AbstractTool {
 
-  /**
-   * Usage instructions for the command line.
-   */
+  /** Usage instructions for the command line. */
   private static final String USAGE =
       "java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool <options>\n"
           + "\nOptions:\n"
@@ -43,10 +42,21 @@ public class FileByFileTool extends AbstractTool {
           + "  --old           the old file\n"
           + "  --new           the new file\n"
           + "  --patch         the patch file\n"
+          + "  --trl           optionally, the total bytes of recompression to allow (see below)\n"
+          + "\nTotal Recompression Limit (trl):\n"
+          + "  When generating a patch, a limit can be specified on the total number of bytes to\n"
+          + "  allow to be recompressed during the patch apply process. This can be for a variety\n"
+          + "  of reasons, with the most obvious being to limit the amount of effort that has to\n"
+          + "  be expended applying the patch on the target platform. To properly explain a\n"
+          + "  patch that had such a limitation, it is necessary to specify the same limitation\n"
+          + "  here. This argument is illegal for --apply, since it only applies to --generate.\n"
           + "\nExamples:\n"
           + "  To generate a patch from OLD to NEW, saving the patch in PATCH:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool --generate \\\n"
           + "      --old OLD --new NEW --patch PATCH\n"
+          + "  To generate a patch from OLD to NEW, limiting to 1,000,000 recompress bytes:\n"
+          + "    java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool --generate \\\n"
+          + "      --old OLD --new NEW --trl 1000000 --patch PATCH\n"
           + "  To apply a patch PATCH to OLD, saving the result in NEW:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool --apply \\\n"
           + "      --old OLD --patch PATCH --new NEW";
@@ -84,6 +94,7 @@ public class FileByFileTool extends AbstractTool {
     String oldPath = null;
     String newPath = null;
     String patchPath = null;
+    Long totalRecompressionLimit = null;
     Mode mode = null;
     Iterator<String> argIterator = new LinkedList<String>(Arrays.asList(args)).iterator();
     while (argIterator.hasNext()) {
@@ -98,6 +109,11 @@ public class FileByFileTool extends AbstractTool {
         mode = Mode.GENERATE;
       } else if ("--apply".equals(arg)) {
         mode = Mode.APPLY;
+      } else if ("--trl".equals(arg)) {
+        totalRecompressionLimit = Long.parseLong(popOrDie(argIterator, "--trl"));
+        if (totalRecompressionLimit < 0) {
+          exitWithUsage("--trl cannot be negative: " + totalRecompressionLimit);
+        }
       } else {
         exitWithUsage("unknown argument: " + arg);
       }
@@ -105,10 +121,13 @@ public class FileByFileTool extends AbstractTool {
     if (oldPath == null || newPath == null || patchPath == null || mode == null) {
       exitWithUsage("missing required argument(s)");
     }
+    if (mode == Mode.APPLY && totalRecompressionLimit != null) {
+      exitWithUsage("--trl can only be used with --generate");
+    }
     File oldFile = getRequiredFileOrDie(oldPath, "old file");
     if (mode == Mode.GENERATE) {
       File newFile = getRequiredFileOrDie(newPath, "new file");
-      generatePatch(oldFile, newFile, new File(patchPath));
+      generatePatch(oldFile, newFile, new File(patchPath), totalRecompressionLimit);
     } else { // mode == Mode.APPLY
       File patchFile = getRequiredFileOrDie(patchPath, "patch file");
       applyPatch(oldFile, patchFile, new File(newPath));
@@ -117,13 +136,21 @@ public class FileByFileTool extends AbstractTool {
 
   /**
    * Generate a specified patch to transform the specified old file to the specified new file.
+   *
    * @param oldFile the old file (will be read)
    * @param newFile the new file (will be read)
    * @param patchFile the patch file (will be written)
+   * @param totalRecompressionLimit optional limit for total number of bytes of recompression to
+   *     allow in the resulting patch
    * @throws IOException if anything goes wrong
    */
-  public static void generatePatch(File oldFile, File newFile, File patchFile) throws IOException {
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
+  public static void generatePatch(
+      File oldFile, File newFile, File patchFile, Long totalRecompressionLimit) throws IOException {
+    RecommendationModifier recommendationModifier = null;
+    if (totalRecompressionLimit != null) {
+      recommendationModifier = new TotalRecompressionLimiter(totalRecompressionLimit);
+    }
+    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator(recommendationModifier);
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
       generator.generateDelta(oldFile, newFile, bufferedPatchOut);

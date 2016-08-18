@@ -18,14 +18,6 @@ import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
 import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,6 +26,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * High-level integration tests that fully exercise the code without any mocking or subclassing.
@@ -184,7 +182,7 @@ public class FileByFileV1IntegrationTest {
 
     // Generate the patch.
     ByteArrayOutputStream patchBuffer = new ByteArrayOutputStream();
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
+    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator(null);
     generator.generateDelta(oldFile, newFile, patchBuffer);
 
     // Apply the patch.

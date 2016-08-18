@@ -15,7 +15,6 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,6 +25,20 @@ import java.io.OutputStream;
  * Generates file-by-file patches.
  */
 public class FileByFileV1DeltaGenerator implements DeltaGenerator {
+
+  /** Optional modifier for planning and patch generation. */
+  private final RecommendationModifier recommendationModifier;
+
+  /**
+   * Constructs a new generator for File-by-File v1 patches, using the specified configuration.
+   *
+   * @param recommendationModifier optionally, a {@link RecommendationModifier} to use for modifying
+   *     the planning phase of patch generation. This can be used to, e.g., limit the total amount
+   *     of recompression that a patch applier needs to do.
+   */
+  public FileByFileV1DeltaGenerator(RecommendationModifier recommendationModifier) {
+    this.recommendationModifier = recommendationModifier;
+  }
 
   /**
    * Generate a V1 patch for the specified input files and write the patch to the specified
@@ -46,8 +59,13 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
         TempFileHolder deltaFile = new TempFileHolder();
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
-      PreDiffPlan preDiffPlan = PreDiffExecutor.prepareForDiffing(
-          oldFile, newFile, deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
+      PreDiffExecutor executor =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldFile, newFile)
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
+              .withRecommendationModifier(recommendationModifier)
+              .build();
+      PreDiffPlan preDiffPlan = executor.prepareForDiffing();
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);

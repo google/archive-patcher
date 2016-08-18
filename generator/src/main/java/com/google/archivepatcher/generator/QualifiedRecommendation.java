@@ -90,4 +90,50 @@ public class QualifiedRecommendation {
   public RecommendationReason getReason() {
     return reason;
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((newEntry == null) ? 0 : newEntry.hashCode());
+    result = prime * result + ((oldEntry == null) ? 0 : oldEntry.hashCode());
+    result = prime * result + ((reason == null) ? 0 : reason.hashCode());
+    result = prime * result + ((recommendation == null) ? 0 : recommendation.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    QualifiedRecommendation other = (QualifiedRecommendation) obj;
+    if (newEntry == null) {
+      if (other.newEntry != null) {
+        return false;
+      }
+    } else if (!newEntry.equals(other.newEntry)) {
+      return false;
+    }
+    if (oldEntry == null) {
+      if (other.oldEntry != null) {
+        return false;
+      }
+    } else if (!oldEntry.equals(other.oldEntry)) {
+      return false;
+    }
+    if (reason != other.reason) {
+      return false;
+    }
+    if (recommendation != other.recommendation) {
+      return false;
+    }
+    return true;
+  }
 }

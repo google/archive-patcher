@@ -19,17 +19,10 @@ import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.MinimalZipArchive;
 import com.google.archivepatcher.generator.MinimalZipEntry;
 import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -41,6 +34,12 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.List;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link PatchExplainer}.
@@ -164,7 +163,7 @@ public class PatchExplainerTest {
     save(bytes, oldFile);
     save(bytes, newFile);
     PatchExplainer explainer = new PatchExplainer(null, null);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
 
     EntryExplanation expected =
         new EntryExplanation(
@@ -179,7 +178,7 @@ public class PatchExplainerTest {
     save(oldBytes, oldFile);
     save(newBytes, newFile);
     PatchExplainer explainer = new PatchExplainer(null, null);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     // The compressed bytes changed, but the uncompressed bytes are the same. Thus the patch size
     // should be zero, because the entries are actually identical in the delta-friendly files.
     // Additionally no diffing or compression should be performed.
@@ -202,7 +201,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     // The compressed bytes changed, and so did the uncompressed bytes. The patch size should be
     // non-zero because the entries are not identical in the delta-friendly files.
     EntryExplanation expected =
@@ -215,13 +214,43 @@ public class PatchExplainerTest {
   }
 
   @Test
+  public void testExplainPatch_CompressedBytesChanged_UncompressedChanged_Limited()
+      throws IOException {
+    // Just like above, but this time with a TotalRecompressionLimit that changes the result.
+    TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(1); // 1 byte limit!
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A2_LEVEL_9));
+    save(oldBytes, oldFile);
+    save(newBytes, newFile);
+    // Note that we will expect a diff based on the COMPRESSED bytes, not the UNCOMPRESSED bytes,
+    // because the limiter will force uncompression to be suppressed.
+    FakeDeltaGenerator fakeDeltaGenerator =
+        new FakeDeltaGenerator(
+            ENTRY_A1_LEVEL_6.getCompressedBinaryContent(),
+            ENTRY_A2_LEVEL_9.getCompressedBinaryContent());
+    FakeCompressor fakeCompressor =
+        new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
+    PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, limiter);
+    // The uncompressed bytes are not the same. The patch plan will want to uncompress the entries,
+    // but the limiter will prevent it.
+    EntryExplanation expected =
+        new EntryExplanation(
+            path(ENTRY_A2_LEVEL_9),
+            false,
+            RecommendationReason.RESOURCE_CONSTRAINED,
+            FakeCompressor.OUTPUT.length());
+    checkExplanation(explanations, expected);
+  }
+
+  @Test
   public void testExplainPatch_BothEntriesUncompressed_BytesUnchanged() throws IOException {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     save(oldBytes, oldFile);
     save(newBytes, newFile);
     PatchExplainer explainer = new PatchExplainer(null, null);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     // The uncompressed bytes are the same. Thus the patch size should be zero, because the entries
     // are identical in the delta-friendly files. Additionally no diffing or compression should be
     // performed.
@@ -244,7 +273,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     // The uncompressed bytes are not the same. Thus the patch size should be non-zero.
     EntryExplanation expected =
         new EntryExplanation(
@@ -268,7 +297,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     EntryExplanation expected =
         new EntryExplanation(
             path(ENTRY_A1_STORED),
@@ -291,7 +320,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     EntryExplanation expected =
         new EntryExplanation(
             path(ENTRY_A1_LEVEL_6),
@@ -325,7 +354,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(FakeDeltaGenerator.OUTPUT.getBytes("US-ASCII"));
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     EntryExplanation expected =
         new EntryExplanation(
             path(ENTRY_A1_LEVEL_6),
@@ -344,7 +373,7 @@ public class PatchExplainerTest {
     FakeCompressor fakeCompressor =
         new FakeCompressor(ENTRY_B_LEVEL_6.getCompressedBinaryContent());
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, null);
-    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
+    List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile, null);
     EntryExplanation expected =
         new EntryExplanation(
             path(ENTRY_B_LEVEL_6),

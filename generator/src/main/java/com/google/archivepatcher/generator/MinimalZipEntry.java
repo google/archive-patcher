@@ -15,6 +15,7 @@
 package com.google.archivepatcher.generator;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 /**
  * A class that contains <em>just enough data</em> to generate a patch.
@@ -213,5 +214,60 @@ public class MinimalZipEntry {
     // have a compressed size equal to the uncompresesd size. Don't consider such things to be
     // compressed, even if they are "deflated".
     return getCompressedSize() != getUncompressedSize();
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + (int) (compressedSize ^ (compressedSize >>> 32));
+    result = prime * result + compressionMethod;
+    result = prime * result + (int) (crc32OfUncompressedData ^ (crc32OfUncompressedData >>> 32));
+    result = prime * result + Arrays.hashCode(fileNameBytes);
+    result =
+        prime * result + (int) (fileOffsetOfCompressedData ^ (fileOffsetOfCompressedData >>> 32));
+    result = prime * result + (int) (fileOffsetOfLocalEntry ^ (fileOffsetOfLocalEntry >>> 32));
+    result = prime * result + (generalPurposeFlagBit11 ? 1231 : 1237);
+    result = prime * result + (int) (uncompressedSize ^ (uncompressedSize >>> 32));
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    MinimalZipEntry other = (MinimalZipEntry) obj;
+    if (compressedSize != other.compressedSize) {
+      return false;
+    }
+    if (compressionMethod != other.compressionMethod) {
+      return false;
+    }
+    if (crc32OfUncompressedData != other.crc32OfUncompressedData) {
+      return false;
+    }
+    if (!Arrays.equals(fileNameBytes, other.fileNameBytes)) {
+      return false;
+    }
+    if (fileOffsetOfCompressedData != other.fileOffsetOfCompressedData) {
+      return false;
+    }
+    if (fileOffsetOfLocalEntry != other.fileOffsetOfLocalEntry) {
+      return false;
+    }
+    if (generalPurposeFlagBit11 != other.generalPurposeFlagBit11) {
+      return false;
+    }
+    if (uncompressedSize != other.uncompressedSize) {
+      return false;
+    }
+    return true;
   }
 }
