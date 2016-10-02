@@ -30,6 +30,15 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
   private final RecommendationModifier recommendationModifier;
 
   /**
+   * Constructs a new generator for File-by-File v1 patches, using the default configuration. This
+   * is equivalent to calling {@link #FileByFileV1DeltaGenerator(RecommendationModifier)} with a
+   * <code>null</code> {@link RecommendationModifier} argument.
+   */
+  public FileByFileV1DeltaGenerator() {
+    this(null);
+  }
+
+  /**
    * Constructs a new generator for File-by-File v1 patches, using the specified configuration.
    *
    * @param recommendationModifier optionally, a {@link RecommendationModifier} to use for modifying

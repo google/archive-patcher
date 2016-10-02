@@ -1,0 +1,22 @@
+// tools module
+
+apply plugin: 'java'
+
+def mainClassName = 'com.google.archivepatcher.tools.FileByFileTool'
+jar {
+    manifest {
+        attributes "Main-Class": mainClassName
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+dependencies {
+    compile project(':applier')
+    compile project(':explainer')
+    compile project(':generator')
+    compile project(':shared')
+}
+// EOF

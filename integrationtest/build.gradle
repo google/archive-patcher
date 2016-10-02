@@ -1,0 +1,12 @@
+// intergationtest module
+apply plugin: 'java'
+
+dependencies {
+    compile project(':shared')
+    compile project(':applier')
+    compile project(':generator')
+
+    testCompile 'junit:junit:4.12'
+    testCompile project(':sharedtest')
+}
+// EOF
