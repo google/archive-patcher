@@ -19,7 +19,6 @@ import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.MultiViewInputStreamFactory;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.RandomAccessFileInputStreamFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,16 +107,18 @@ public class DefaultDeflateCompressionDiviner {
     }
     return results;
   }
-  
+
   /**
    * Returns an unmodifiable map whose keys are deflate strategies and whose values are the levels
    * that make sense to try with the corresponding strategy, in the recommended testing order.
+   *
    * <ul>
-   *   <li>For strategy 0, levels 1 through 9 (inclusive) are included.</li>
+   *   <li>For strategy 0, levels 1 through 9 (inclusive) are included.
    *   <li>For strategy 1, levels 4 through 9 (inclusive) are included. Levels 1, 2 and 3 are
-   *       excluded because they behave the same under strategy 0.</li>
+   *       excluded because they behave the same under strategy 0.
    *   <li>For strategy 2, only level 1 is included because the level is ignored under strategy 2.
-   *   </li>
+   * </ul>
+   *
    * @return such a mapping
    */
   protected Map<Integer, List<Integer>> getLevelsByStrategy() {

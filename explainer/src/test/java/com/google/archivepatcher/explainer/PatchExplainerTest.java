@@ -158,7 +158,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_CompressedBytesIdentical() throws IOException {
+  public void testExplainPatch_CompressedBytesIdentical() throws Exception {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     save(bytes, oldFile);
     save(bytes, newFile);
@@ -172,7 +172,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_CompressedBytesChanged_UncompressedUnchanged() throws IOException {
+  public void testExplainPatch_CompressedBytesChanged_UncompressedUnchanged() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_9));
     save(oldBytes, oldFile);
@@ -189,7 +189,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_CompressedBytesChanged_UncompressedChanged() throws IOException {
+  public void testExplainPatch_CompressedBytesChanged_UncompressedChanged() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A2_LEVEL_9));
     save(oldBytes, oldFile);
@@ -215,7 +215,7 @@ public class PatchExplainerTest {
 
   @Test
   public void testExplainPatch_CompressedBytesChanged_UncompressedChanged_Limited()
-      throws IOException {
+      throws Exception {
     // Just like above, but this time with a TotalRecompressionLimit that changes the result.
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(1); // 1 byte limit!
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
@@ -244,7 +244,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_BothEntriesUncompressed_BytesUnchanged() throws IOException {
+  public void testExplainPatch_BothEntriesUncompressed_BytesUnchanged() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     save(oldBytes, oldFile);
@@ -261,7 +261,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_BothEntriesUncompressed_BytesChanged() throws IOException {
+  public void testExplainPatch_BothEntriesUncompressed_BytesChanged() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A2_STORED));
     save(oldBytes, oldFile);
@@ -285,7 +285,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_CompressedChangedToUncompressed() throws IOException {
+  public void testExplainPatch_CompressedChangedToUncompressed() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_9));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     save(oldBytes, oldFile);
@@ -308,7 +308,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_UncompressedChangedToCompressed() throws IOException {
+  public void testExplainPatch_UncompressedChangedToCompressed() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     save(oldBytes, oldFile);
@@ -331,7 +331,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_Unsuitable() throws IOException {
+  public void testExplainPatch_Unsuitable() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_STORED));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     save(oldBytes, oldFile);
@@ -365,7 +365,7 @@ public class PatchExplainerTest {
   }
 
   @Test
-  public void testExplainPatch_NewFile() throws IOException {
+  public void testExplainPatch_NewFile() throws Exception {
     byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A1_LEVEL_6));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_B_LEVEL_6));
     save(oldBytes, oldFile);

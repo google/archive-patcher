@@ -65,21 +65,30 @@ class BsUtil {
     }
 
   /**
-   * Provides functional equivalent to C/C++ memcmp. Warning: this calls
-   * {@link RandomAccessObject#seek(long)}, so the internal state of the data objects will be
-   * modified.
+   * Provides functional equivalent to C/C++ lexicographical_compare. Warning: this calls {@link
+   * RandomAccessObject#seek(long)}, so the internal state of the data objects will be modified.
+   *
    * @param data1 first byte array
    * @param start1 index in the first array at which to start comparing
+   * @param length1 length of first byte array
    * @param data2 second byte array
    * @param start2 index in the second array at which to start comparing
-   * @param length number of bytes to compare
-   * @return as memcmp would: zero if the range is equal, negative if the first difference has a
-   * lower value in the first array, greater if the first difference has a lower value in the second
-   * array
+   * @param length2 length of second byte array
+   * @return result of lexicographical compare: negative if the first difference has a lower value
+   *     in the first array, positive if the first difference has a lower value in the second array.
+   *     If both arrays compare equal until one of them ends, the shorter sequence is
+   *     lexicographically less than the longer one (i.e., it returns len(first array) -
+   *     len(second array)).
    */
-  static int memcmp(final RandomAccessObject data1, final int start1,
-      final RandomAccessObject data2, final int start2, final int length) throws IOException {
-    int bytesLeft = length;
+  static int lexicographicalCompare(
+      final RandomAccessObject data1,
+      final int start1,
+      final int length1,
+      final RandomAccessObject data2,
+      final int start2,
+      final int length2)
+      throws IOException {
+    int bytesLeft = Math.min(length1, length2);
 
     data1.seek(start1);
     data2.seek(start2);
@@ -92,6 +101,6 @@ class BsUtil {
       }
     }
 
-    return 0;
+    return length1 - length2;
   }
 }

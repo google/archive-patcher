@@ -85,9 +85,9 @@ public final class DivSuffixSorter implements SuffixSorter {
   }
 
   @Override
-  public RandomAccessObject suffixSort(RandomAccessObject input) throws IOException {
+  public RandomAccessObject suffixSort(RandomAccessObject input) throws IOException, InterruptedException {
     if (4 * (input.length() + 1) >= Integer.MAX_VALUE) {
-      throw new IllegalArgumentException("Input too large");
+      throw new IllegalArgumentException("Input too large (" + input.length() + " bytes)");
     }
     int length = (int) input.length();
 
@@ -95,6 +95,14 @@ public final class DivSuffixSorter implements SuffixSorter {
     suffixArray.seek(0);
     suffixArray.writeInt(length);
     this.suffixArray = suffixArray;
+
+    // Deal with small cases separately.
+    if (length == 0) {
+      return suffixArray;
+    } else if (length == 1) {
+      writeSuffixArray(0, 0);
+      return suffixArray;
+    }
 
     this.input = input;
     int[] bucketA = new int[BUCKET_A_SIZE];
@@ -166,7 +174,8 @@ public final class DivSuffixSorter implements SuffixSorter {
     }
   }
 
-  private final int sortTypeBstar(int[] bucketA, int[] bucketB, int n) throws IOException {
+  private final int sortTypeBstar(int[] bucketA, int[] bucketB, int n)
+      throws IOException, InterruptedException {
     int PAb, ISAb, buf;
 
     int i, j, k, t, m, bufsize;
@@ -232,6 +241,9 @@ public final class DivSuffixSorter implements SuffixSorter {
       bufsize = n - (2 * m);
 
       for (c0 = ALPHABET_SIZE - 2, j = m; 0 < j; --c0) {
+        if (Thread.interrupted()) {
+          throw new InterruptedException();
+        }
         for (c1 = ALPHABET_SIZE - 1; c0 < c1; j = i, --c1) {
           i = bucketB[(c0) * ALPHABET_SIZE + (c1)];
           if (1 < (j - i)) {
@@ -263,6 +275,9 @@ public final class DivSuffixSorter implements SuffixSorter {
       trSort(ISAb, m, 1);
       // Set the sorted order of type B* suffixes.
       for (i = n - 1, j = m, c0 = readInput(n - 1); 0 <= i; ) {
+        if (Thread.interrupted()) {
+          throw new InterruptedException();
+        }
         for (--i, c1 = c0; (0 <= i) && ((c0 = readInput(i)) >= c1); --i, c1 = c0) {}
         if (0 <= i) {
           t = i;
@@ -272,9 +287,11 @@ public final class DivSuffixSorter implements SuffixSorter {
       }
 
       // Calculate the index of 0/end point of each bucket.
-      bucketB[(ALPHABET_SIZE - 1) * ALPHABET_SIZE + (ALPHABET_SIZE - 1)] = n; // end
-      // point
+      bucketB[(ALPHABET_SIZE - 1) * ALPHABET_SIZE + (ALPHABET_SIZE - 1)] = n; // end point
       for (c0 = ALPHABET_SIZE - 2, k = m - 1; 0 <= c0; --c0) {
+        if (Thread.interrupted()) {
+          throw new InterruptedException();
+        }
         i = bucketA[c0 + 1] - 1;
         for (c1 = ALPHABET_SIZE - 1; c0 < c1; --c1) {
           t = i - bucketB[(c1) * ALPHABET_SIZE + (c0)];
@@ -1288,15 +1305,16 @@ public final class DivSuffixSorter implements SuffixSorter {
     writeSuffixArray(b, tmp);
   }
 
-  /**
-   * Tandem repeat sort
-   */
-  private final void trSort(int ISA, int n, int depth) throws IOException {
+  /** Tandem repeat sort */
+  private final void trSort(int ISA, int n, int depth) throws IOException, InterruptedException {
     TRBudget budget = new TRBudget(trIlg(n) * 2 / 3, n);
     int ISAd;
     int first, last; // SA pointers
     int t, skip, unsorted;
     for (ISAd = ISA + depth; -n < readSuffixArray(0); ISAd += ISAd - ISA) {
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
       first = 0;
       skip = 0;
       unsorted = 0;

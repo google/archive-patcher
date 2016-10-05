@@ -122,9 +122,14 @@ class BsDiff {
     final int pivot = oldDataRangeStartA + (rangeLength / 2);
     groupArray.seekToIntAligned(pivot);
     final int groupArrayPivot = groupArray.readInt();
-    final int compareLength =
-        Math.min((int) oldData.length() - groupArrayPivot, (int) newData.length() - newStart);
-    if (BsUtil.memcmp(oldData, groupArrayPivot, newData, newStart, compareLength) < 0) {
+    if (BsUtil.lexicographicalCompare(
+            oldData,
+            groupArrayPivot,
+            (int) oldData.length() - groupArrayPivot,
+            newData,
+            newStart,
+            (int) newData.length() - newStart)
+        < 0) {
       return searchForMatch(groupArray, oldData, newData, newStart, pivot, oldDataRangeStartB);
     }
     return searchForMatch(groupArray, oldData, newData, newStart, oldDataRangeStartA, pivot);

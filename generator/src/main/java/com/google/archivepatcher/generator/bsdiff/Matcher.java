@@ -25,7 +25,7 @@ interface Matcher {
    * Determine the range for the next match, and store it in member state.
    * @return a {@link NextMatch} describing the result
    */
-  NextMatch next() throws IOException;
+  NextMatch next() throws IOException, InterruptedException;
 
   /**
    * Contains a boolean which indicates whether a match was found, the old position (if a match was

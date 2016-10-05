@@ -92,11 +92,12 @@ public class PatchExplainer {
    * @param recommendationModifier optionally, a {@link RecommendationModifier} to use during patch
    *     planning. If null, a normal patch is generated.
    * @return a list of the explanations for each entry that would be
-   * @throws IOException
+   * @throws IOException if unable to read data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public List<EntryExplanation> explainPatch(
       File oldFile, File newFile, RecommendationModifier recommendationModifier)
-      throws IOException {
+      throws IOException, InterruptedException {
     List<EntryExplanation> result = new ArrayList<>();
 
     // Isolate entries that are only found in the new archive.

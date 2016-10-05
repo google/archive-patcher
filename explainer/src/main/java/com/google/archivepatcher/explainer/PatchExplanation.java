@@ -192,10 +192,9 @@ public class PatchExplanation {
   }
 
   /**
-   * Writes a JSON representation of the data to the specified {@link PrintWriter}.
-   * The data has the following form:
-   * <code>
-   * <br>&lbrace;
+   * Writes a JSON representation of the data to the specified {@link PrintWriter}. The data has the
+   * following form: <code>
+   * <br>{
    * <br>&nbsp;&nbsp;estimatedNewSize = &lt;number&gt;,
    * <br>&nbsp;&nbsp;estimatedChangedSize = &lt;number&gt;,
    * <br>&nbsp;&nbsp;explainedAsNew = [
@@ -207,15 +206,15 @@ public class PatchExplanation {
    * <br>&nbsp;&nbsp;explainedAsUnchangedOrFree = [
    * <br>&nbsp;&nbsp;&nbsp;&nbsp;&lt;entry_list&gt;
    * <br>&nbsp;&nbsp;]
-   * <br>&rbrace;
-   * </code>
-   * <br>Where <code>&lt;entry_list&gt;</code> is a list of zero or more entries of the following
-   * form:
+   * <br>}
+   * </code> <br>
+   * Where <code>&lt;entry_list&gt;</code> is a list of zero or more entries of the following form:
    * <code>
-   * <br>&lbrace; path: '&lt;path_string&gt;', isNew: &lt;true|false&gt;,
+   * <br>{ path: '&lt;path_string&gt;', isNew: &lt;true|false&gt;,
    * reasonIncluded: &lt;undefined|'&lt;reason_string'&gt;, compressedSizeInPatch: &lt;number&gt;
-   * &rbrace;
+   * }
    * </code>
+   *
    * @param writer the writer to write the JSON to
    */
   public void writeJson(PrintWriter writer) {

@@ -17,7 +17,6 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.TypedRange;
-
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -52,9 +51,15 @@ public class PatchWriter {
 
   /**
    * Creates a new patch writer.
-   * @param plan
-   * @param deltaFriendlyOldFileSize
-   * @param deltaFile
+   *
+   * @param plan the patch plan
+   * @param deltaFriendlyOldFileSize the expected size of the delta-friendly old file, provided as a
+   *     convenience for the patch <strong>applier</strong> to reserve space on the filesystem for
+   *     applying the patch
+   * @param deltaFriendlyNewFileSize the expected size of the delta-friendly new file, provided for
+   *     forward compatibility
+   * @param deltaFile the delta that transforms the old delta-friendly file into the new
+   *     delta-friendly file
    */
   public PatchWriter(
       PreDiffPlan plan,

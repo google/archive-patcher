@@ -65,10 +65,12 @@ public class PatchExplainerTool extends AbstractTool {
 
   /**
    * Runs the tool. See usage instructions for more information.
+   *
    * @param args command line arguments
    * @throws IOException if anything goes wrong
+   * @throws InterruptedException if the thread is interrupted
    */
-  public static void main(String... args) throws IOException {
+  public static void main(String... args) throws IOException, InterruptedException {
     new PatchExplainerTool().run(args);
   }
 
@@ -79,10 +81,12 @@ public class PatchExplainerTool extends AbstractTool {
 
   /**
    * Runs the tool. See usage instructions for more information.
+   *
    * @param args command line arguments
    * @throws IOException if anything goes wrong
+   * @throws InterruptedException if the thread is interrupted
    */
-  public void run(String... args) throws IOException {
+  public void run(String... args) throws IOException, InterruptedException {
     String oldPath = null;
     String newPath = null;
     Long totalRecompressionLimit = null;

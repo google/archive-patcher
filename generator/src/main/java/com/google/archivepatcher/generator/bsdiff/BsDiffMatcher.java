@@ -77,7 +77,7 @@ class BsDiffMatcher implements Matcher {
   }
 
   @Override
-  public Matcher.NextMatch next() throws IOException {
+  public Matcher.NextMatch next() throws IOException, InterruptedException {
     RandomAccessObject oldData = mOldData;
     RandomAccessObject newData = mNewData;
 
@@ -97,6 +97,9 @@ class BsDiffMatcher implements Matcher {
     int matchesCacheSize = 0;
 
     while (mNewPos < newData.length()) {
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
       BsDiff.Match match =
           BsDiff.searchForMatch(mGroupArray, oldData, newData, mNewPos, 0, (int) oldData.length());
       mOldPos = match.start;

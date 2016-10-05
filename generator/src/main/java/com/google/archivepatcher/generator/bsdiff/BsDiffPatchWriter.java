@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 
 // TODO(andrewhayden) clean up the various generatePatch(...) methods, there are too many.
 
@@ -31,19 +32,21 @@ public class BsDiffPatchWriter {
 
   /**
    * Write a patch entry.
+   *
    * @param newData
    * @param oldData
    * @param newPosition the first byte in |newData| to write either raw or as a diff against
-   * |oldData|.
+   *     |oldData|.
    * @param oldPosition the first byte in |oldData| to diff against |newData|. Ignored if
-   * |diffLength| is empty.
+   *     |diffLength| is empty.
    * @param diffLength the number of bytes to diff between |newData| and |oldData| starting at
-   * |newPosition| and |oldPosition| respectively.
-   * @param extraLength the number of bytes from |newData| to write starting at
-   * |newPosition + diffLength|.
+   *     |newPosition| and |oldPosition| respectively.
+   * @param extraLength the number of bytes from |newData| to write starting at |newPosition +
+   *     diffLength|.
    * @param oldPositionOffsetForNextEntry the offset between |oldPosition| for the next entry and
-   * |oldPosition| + |diffLength| for this entry.
+   *     |oldPosition| + |diffLength| for this entry.
    * @param outputStream the output stream to write the patch entry to.
+   * @throws IOException if unable to read or write data
    */
   private static void writeEntry(
       RandomAccessObject newData,
@@ -83,10 +86,13 @@ public class BsDiffPatchWriter {
 
   /**
    * Generate a BsDiff patch given a Matcher.
+   *
    * @param oldData the old blob
    * @param newData the new blob
    * @param matcher a Matcher to find binary matches between oldData and newData
    * @param outputStream the outputStream for the new generated patch
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   // Visible for testing only
   static void generatePatchWithMatcher(
@@ -94,7 +100,7 @@ public class BsDiffPatchWriter {
       RandomAccessObject newData,
       Matcher matcher,
       OutputStream outputStream)
-      throws IOException {
+      throws IOException, InterruptedException {
     // Compute the differences, writing ctrl as we go
     int lastNewPosition = 0;
     int lastOldPosition = 0;
@@ -102,6 +108,9 @@ public class BsDiffPatchWriter {
     int newPosition = 0;
     int oldPosition = 0;
     while (newPosition < newData.length()) {
+      if (Thread.interrupted()) {
+        throw new InterruptedException();
+      }
       Matcher.NextMatch nextMatch = matcher.next();
       if (nextMatch.didFindMatch) {
         newPosition = nextMatch.newPosition;
@@ -222,57 +231,62 @@ public class BsDiffPatchWriter {
   }
 
   /**
-   * Generate a diff between the old data and the new, writing to the specified stream. Uses
-   * {@link #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
+   * Generate a diff between the old data and the new, writing to the specified stream. Uses {@link
+   * #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
+   *
    * @param oldData the old data
    * @param newData the new data
    * @param outputStream where output should be written
    * @param randomAccessObjectFactory factory to create auxiliary storage during BsDiff
-   * @throws IOException
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
       final RandomAccessObject oldData,
       final RandomAccessObject newData,
       final OutputStream outputStream,
       final RandomAccessObjectFactory randomAccessObjectFactory)
-      throws IOException {
+      throws IOException, InterruptedException {
     generatePatch(
         oldData, newData, outputStream, randomAccessObjectFactory, DEFAULT_MINIMUM_MATCH_LENGTH);
   }
 
   /**
    * Generate a diff between the old data and the new, writing to the specified stream. Uses
-   * in-memory byte array storage for ancillary allocations and
-   * {@link #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
+   * in-memory byte array storage for ancillary allocations and {@link
+   * #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
    *
    * @param oldData the old data
    * @param newData the new data
    * @param outputStream where output should be written
-   * @throws IOException
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
       final byte[] oldData, final byte[] newData, final OutputStream outputStream)
-      throws IOException {
+      throws IOException, InterruptedException {
     generatePatch(oldData, newData, outputStream, DEFAULT_MINIMUM_MATCH_LENGTH);
   }
 
   /**
    * Generate a diff between the old data and the new, writing to the specified stream. Uses
    * in-memory byte array storage for ancillary allocations.
+   *
    * @param oldData the old data
    * @param newData the new data
    * @param outputStream where output should be written
    * @param minimumMatchLength the minimum "match" (in bytes) for BsDiff to consider between the
-   * oldData and newData. This can have a significant effect on both the generated patch size and
-   * the amount of time and memory required to apply the patch.
-   * @throws IOException
+   *     oldData and newData. This can have a significant effect on both the generated patch size
+   *     and the amount of time and memory required to apply the patch.
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
       final byte[] oldData,
       final byte[] newData,
       final OutputStream outputStream,
       final int minimumMatchLength)
-      throws IOException {
+      throws IOException, InterruptedException {
     try (RandomAccessObject oldDataRAO =
             new RandomAccessObject.RandomAccessByteArrayObject(oldData);
         RandomAccessObject newDataRAO =
@@ -290,33 +304,38 @@ public class BsDiffPatchWriter {
    * Generate a diff between the old data and the new, writing to the specified stream. Uses
    * file-based storage for ancillary operations and {@link #DEFAULT_MINIMUM_MATCH_LENGTH} as the
    * match length.
+   *
    * @param oldData a file containing the old data
    * @param newData a file containing the new data
    * @param outputStream where output should be written
-   * @throws IOException
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
-      final File oldData, final File newData, final OutputStream outputStream) throws IOException {
+      final File oldData, final File newData, final OutputStream outputStream)
+      throws IOException, InterruptedException {
     generatePatch(oldData, newData, outputStream, DEFAULT_MINIMUM_MATCH_LENGTH);
   }
 
   /**
    * Generate a diff between the old data and the new, writing to the specified stream. Uses
    * file-based storage for ancillary allocations.
+   *
    * @param oldData a file containing the old data
    * @param newData a file containing the new data
    * @param outputStream where output should be written
    * @param minimumMatchLength the minimum "match" (in bytes) for BsDiff to consider between the
-   * oldData and newData. This can have a significant effect on both the generated patch size and
-   * the amount of time and memory required to apply the patch.
-   * @throws IOException
+   *     oldData and newData. This can have a significant effect on both the generated patch size
+   *     and the amount of time and memory required to apply the patch.
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
       final File oldData,
       final File newData,
       final OutputStream outputStream,
       final int minimumMatchLength)
-      throws IOException {
+      throws IOException, InterruptedException {
     try (RandomAccessFile oldDataRAF = new RandomAccessFile(oldData, "r");
         RandomAccessFile newDataRAF = new RandomAccessFile(newData, "r");
         RandomAccessObject oldDataRAO =
@@ -340,14 +359,16 @@ public class BsDiffPatchWriter {
 
   /**
    * Generate a diff between the old data and the new, writing to the specified stream.
+   *
    * @param oldData the old data
    * @param newData the new data
    * @param outputStream where output should be written
    * @param randomAccessObjectFactory factory to create auxiliary storage during BsDiff
    * @param minimumMatchLength the minimum "match" (in bytes) for BsDiff to consider between the
-   * oldData and newData. This can have a significant effect on both the generated patch size and
-   * the amount of time and memory required to apply the patch.
-   * @throws IOException
+   *     oldData and newData. This can have a significant effect on both the generated patch size
+   *     and the amount of time and memory required to apply the patch.
+   * @throws IOException if unable to read or write data
+   * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
       final RandomAccessObject oldData,
@@ -355,9 +376,9 @@ public class BsDiffPatchWriter {
       final OutputStream outputStream,
       final RandomAccessObjectFactory randomAccessObjectFactory,
       final int minimumMatchLength)
-      throws IOException {
+      throws IOException, InterruptedException {
     // Write header (signature + new file length)
-    outputStream.write("ENDSLEY/BSDIFF43".getBytes());
+    outputStream.write("ENDSLEY/BSDIFF43".getBytes(StandardCharsets.US_ASCII));
     BsUtil.writeFormattedLong(newData.length(), outputStream);
 
     // Do the suffix search.

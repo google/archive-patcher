@@ -78,19 +78,23 @@ public class FileByFileTool extends AbstractTool {
 
   /**
    * Runs the tool. See usage instructions for more information.
+   *
    * @param args command line arguments
    * @throws IOException if anything goes wrong
+   * @throws InterruptedException if any thread has interrupted the current thread
    */
-  public static void main(String... args) throws IOException {
+  public static void main(String... args) throws IOException, InterruptedException {
     new FileByFileTool().run(args);
   }
 
   /**
    * Run the tool.
+   *
    * @param args command line arguments
    * @throws IOException if anything goes wrong
+   * @throws InterruptedException if any thread has interrupted the current thread
    */
-  public void run(String... args) throws IOException {
+  public void run(String... args) throws IOException, InterruptedException {
     String oldPath = null;
     String newPath = null;
     String patchPath = null;
@@ -143,9 +147,11 @@ public class FileByFileTool extends AbstractTool {
    * @param totalRecompressionLimit optional limit for total number of bytes of recompression to
    *     allow in the resulting patch
    * @throws IOException if anything goes wrong
+   * @throws InterruptedException if any thread has interrupted the current thread
    */
   public static void generatePatch(
-      File oldFile, File newFile, File patchFile, Long totalRecompressionLimit) throws IOException {
+      File oldFile, File newFile, File patchFile, Long totalRecompressionLimit)
+      throws IOException, InterruptedException {
     RecommendationModifier recommendationModifier = null;
     if (totalRecompressionLimit != null) {
       recommendationModifier = new TotalRecompressionLimiter(totalRecompressionLimit);

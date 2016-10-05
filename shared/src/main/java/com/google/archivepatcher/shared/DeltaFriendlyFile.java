@@ -31,15 +31,17 @@ public class DeltaFriendlyFile {
   public static final int DEFAULT_COPY_BUFFER_SIZE = 32768;
 
   /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, File, OutputStream, boolean, int)} with
-   * <code>generateInverse</code> set to <code>true</code> and a copy buffer size of
-   * {@link #DEFAULT_COPY_BUFFER_SIZE}.
+   * Invoke {@link #generateDeltaFriendlyFile(List, File, OutputStream, boolean, int)} with <code>
+   * generateInverse</code> set to <code>true</code> and a copy buffer size of {@link
+   * #DEFAULT_COPY_BUFFER_SIZE}.
+   *
+   * @param <T> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
-   * delta-friendly form
+   *     delta-friendly form
    * @param file the file to read from
    * @param deltaFriendlyOut a stream to write the delta-friendly file to
    * @return the ranges in the delta-friendly file that correspond to the ranges in the original
-   * file, with identical metadata and in the same order
+   *     file, with identical metadata and in the same order
    * @throws IOException if anything goes wrong
    */
   public static <T> List<TypedRange<T>> generateDeltaFriendlyFile(
@@ -51,21 +53,23 @@ public class DeltaFriendlyFile {
 
   /**
    * Generate one delta-friendly file and (optionally) return the ranges necessary to invert the
-   * transform, in file order. There is a 1:1 correspondence between the ranges in the input
-   * list and the returned list, but the offsets and lengths will be different (the input list
-   * represents compressed data, the output list represents uncompressed data). The ability to
-   * suppress generation of the inverse range and to specify the size of the copy buffer are
-   * provided for clients that desire a minimal memory footprint.
+   * transform, in file order. There is a 1:1 correspondence between the ranges in the input list
+   * and the returned list, but the offsets and lengths will be different (the input list represents
+   * compressed data, the output list represents uncompressed data). The ability to suppress
+   * generation of the inverse range and to specify the size of the copy buffer are provided for
+   * clients that desire a minimal memory footprint.
+   *
+   * @param <T> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
-   * delta-friendly form
+   *     delta-friendly form
    * @param file the file to read from
    * @param deltaFriendlyOut a stream to write the delta-friendly file to
    * @param generateInverse if <code>true</code>, generate and return a list of inverse ranges in
-   * file order; otherwise, do all the normal work but return null instead of the inverse ranges
+   *     file order; otherwise, do all the normal work but return null instead of the inverse ranges
    * @param copyBufferSize the size of the buffer to use for copying bytes between streams
    * @return if <code>generateInverse</code> was true, returns the ranges in the delta-friendly file
-   * that correspond to the ranges in the original file, with identical metadata and in the same
-   * order; otherwise, return null
+   *     that correspond to the ranges in the original file, with identical metadata and in the same
+   *     order; otherwise, return null
    * @throws IOException if anything goes wrong
    */
   public static <T> List<TypedRange<T>> generateDeltaFriendlyFile(

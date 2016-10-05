@@ -16,11 +16,10 @@ package com.google.archivepatcher.generator.bsdiff;
 
 import static org.junit.Assert.fail;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.util.Random;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Base class for suffix sorter tests with common tests for a suffix sorter algorithm.
@@ -30,7 +29,28 @@ public abstract class SuffixSorterTestBase {
   public abstract SuffixSorter getSuffixSorter();
 
   @Test
-  public void suffixSortLongDataTest() throws IOException {
+  public void suffixSortEmptyDataTest() throws Exception {
+    checkSuffixSort( new int[] {0}, new byte[] {});
+  }
+
+  @Test
+  public void suffixSortShortDataTest() throws Exception {
+    checkSuffixSort(new int[] {1, 0}, new byte[] {23});
+    checkSuffixSort(new int[] {2, 1, 0}, new byte[] {23, 20});
+    checkSuffixSort(new int[] {2, 0, 1}, new byte[] {0, 127});
+    checkSuffixSort(new int[] {2, 1, 0}, new byte[] {42, 42});
+  }
+
+  private void checkSuffixSort(int[] expectedSuffixArray, byte[] inputBytes) throws Exception {
+    RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(inputBytes);
+    RandomAccessObject groupArray = getSuffixSorter().suffixSort(input);
+
+    assertSorted(groupArray, input);
+    Assert.assertArrayEquals(expectedSuffixArray, randomAccessObjectToIntArray(groupArray));
+  }
+
+  @Test
+  public void suffixSortLongDataTest() throws Exception {
     RandomAccessObject groupArrayRO = getSuffixSorter().suffixSort(BsDiffTestData.LONG_DATA_99_RO);
 
     assertSorted(groupArrayRO, BsDiffTestData.LONG_DATA_99_RO);
@@ -41,7 +61,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   @Test
-  public void suffixSortVeryLongDataTest() throws IOException {
+  public void suffixSortVeryLongDataTest() throws Exception {
     RandomAccessObject groupArray2RO =
         getSuffixSorter().suffixSort(BsDiffTestData.LONGER_DATA_349_RO);
 
@@ -53,7 +73,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   @Test
-  public void testRandom() throws IOException {
+  public void testRandom() throws Exception {
     Random rand = new Random(1123458);
     for (int i = 1; i <= 10; i++) {
       RandomAccessObject input = generateRandom(rand, i * 10000);
@@ -70,7 +90,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   protected static RandomAccessObject intArrayToRandomAccessObject(final int[] array)
-      throws IOException {
+      throws Exception {
     RandomAccessObject ret =
         new RandomAccessObject.RandomAccessByteArrayObject(new byte[array.length * 4]);
     ret.seekToIntAligned(0);
@@ -83,7 +103,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   protected static boolean intArrayEqualsRandomAccessObject(
-      int[] array, RandomAccessObject randomAccessObject) throws IOException {
+      int[] array, RandomAccessObject randomAccessObject) throws Exception {
     randomAccessObject.seekToIntAligned(0);
 
     for (int element : array) {
@@ -96,7 +116,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   protected static int[] randomAccessObjectToIntArray(RandomAccessObject randomAccessObject)
-      throws IOException {
+      throws Exception {
     int[] ret = new int[(int) (randomAccessObject.length() / 4)];
     randomAccessObject.seekToIntAligned(0);
 
@@ -108,7 +128,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   private static boolean checkSuffixLessThanOrEqual(
-      RandomAccessObject input, int index1, int index2) throws IOException {
+      RandomAccessObject input, int index1, int index2) throws Exception {
     while (true) {
       if (index1 == input.length()) {
         return true;
@@ -129,7 +149,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   private static void assertSorted(RandomAccessObject suffixArray, RandomAccessObject input)
-      throws IOException {
+      throws Exception {
     for (int i = 0; i < input.length(); i++) {
       suffixArray.seekToIntAligned(i);
       int index1 = suffixArray.readInt();

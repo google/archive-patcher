@@ -143,6 +143,7 @@ public class PreDiffExecutor {
   /**
    * Prepare resources for diffing and returns the completed plan.
    *
+   * @return the plan
    * @throws IOException if unable to complete the operation due to an I/O error
    */
   public PreDiffPlan prepareForDiffing() throws IOException {

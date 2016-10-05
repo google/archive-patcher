@@ -23,11 +23,14 @@ import java.io.IOException;
 public interface SuffixSorter {
 
   /**
-   * Perform a "suffix sort". Note: the returned {@link RandomAccessObject} should be closed
-   * by the caller.
+   * Perform a "suffix sort". Note: the returned {@link RandomAccessObject} should be closed by the
+   * caller.
    *
    * @param data the data to sort
+   * @return the suffix array, as a {@link RandomAccessObject}
+   * @throws IOException if unable to read data
+   * @throws InterruptedException if any thread interrupts this thread
    */
-  RandomAccessObject suffixSort(RandomAccessObject data) throws IOException;
+  RandomAccessObject suffixSort(RandomAccessObject data) throws IOException, InterruptedException;
 }
 

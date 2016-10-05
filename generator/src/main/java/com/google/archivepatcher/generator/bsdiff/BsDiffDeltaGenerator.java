@@ -15,7 +15,6 @@
 package com.google.archivepatcher.generator.bsdiff;
 
 import com.google.archivepatcher.generator.DeltaGenerator;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -31,7 +30,8 @@ public class BsDiffDeltaGenerator implements DeltaGenerator {
   private static final int MATCH_LENGTH_BYTES = 16;
 
   @Override
-  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut) throws IOException {
+  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+      throws IOException, InterruptedException {
     BsDiffPatchWriter.generatePatch(oldBlob, newBlob, deltaOut, MATCH_LENGTH_BYTES);
   }
 }

@@ -61,8 +61,10 @@ public class UnitTestZipEntry {
 
   /**
    * Creates a new entry.
+   *
    * @param path the path under which the data is located in the archive
    * @param level the compression level of the entry
+   * @param nowrap the wrapping mode (false to wrap the entry like gzip, true otherwise)
    * @param content the binary content of the entry, as an ASCII string
    * @param comment optional comment, as an ASCII string
    */

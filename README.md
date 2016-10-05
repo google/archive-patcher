@@ -46,7 +46,7 @@ By design, **File-by-File patches are uncompressed**. This allows freedom in cho
 > *Note: Archive-patcher does not currently handle 'zip64' archives (archives supporting more than 65,535 files or containing files larger than 4GB in size).*
 
 # How It Works
-Archive-patcher **transforms** archives into a **delta-friendly space** to generate and apply a delta. This transformation involves uncompressing the compressed content the has changed, while leaving everything else alone. The patch applier then recompresses the content that has changed to create a perfect binary copy of the original input file. In v1, bsdiff is the delta algorithm used within the delta-friendly space. Much more information on this subject is available in the [Appendix](#appendix).
+Archive-patcher **transforms** archives into a **delta-friendly space** to generate and apply a delta. This transformation involves uncompressing the compressed content that has changed, while leaving everything else alone. The patch applier then recompresses the content that has changed to create a perfect binary copy of the original input file. In v1, bsdiff is the delta algorithm used within the delta-friendly space. Much more information on this subject is available in the [Appendix](#appendix).
 
 Diagrams and examples follow. In these examples we will use an old archive and a new archive, each containing 3 files: foo.txt, bar.xml, and baz.lib:
 
@@ -68,7 +68,7 @@ File-by-File v1: Patch Generation Overview
 
                       Delta-Friendly       Delta-Friendly
    Old Archive           Old Blob             New Blob            New Archive
- ----------------    ----------------     ----------------     ----------------
+ ----------------    ----------------     ----------------    ----------------
  |   foo.txt    |    |   foo.txt    |     |   foo.txt    |    |   foo.txt    |
  |   version 1  |    |   version 1  |     |   version 2  |    |   version 2  |
  | (compressed) |    |(uncompressed)|     |(uncompressed)|    | (compressed) |
@@ -263,7 +263,7 @@ The number of these entries is determined by the "Num new archive recompression 
 
 * Entries must be ordered in ascending order by offset. This allows the output from the delta apply process (which creates the delta-friendly new blob) to be piped to an intelligent partially-compressing stream that is seeded with the knowledge of which ranges to recompress and the settings to use for each. This avoids the need to write the delta-friendly new blob to persistent storage, an important optimization.
 * Entries must not overlap (for sanity)
-* Areas of the new archive that are not included in any recompression op will be copied through from the delta-friendly old blob without modification. These represent arbitrary data that should **not** be compressed, such as zip structural components or blocks of data that are stored without compression in the new archive.
+* Areas of the new archive that are not included in any recompression op will be copied through from the delta-friendly new blob without modification. These represent arbitrary data that should **not** be compressed, such as zip structural components or blocks of data that are stored without compression in the new archive.
 
 ```
 |------------------------------------------------------|

@@ -139,10 +139,9 @@ public class FileByFileV1IntegrationTest {
   /**
    * High-level integration test that covers the most common kinds of operations expected to be
    * found in the real world.
-   * @throws IOException
    */
   @Test
-  public void testPatchAndApply() throws IOException {
+  public void testPatchAndApply() throws Exception {
     // Write the old archive to disk.
     byte[] oldArchiveBytes = UnitTestZipArchive.makeTestZip(Arrays.asList(
         OLD_ENTRY1,

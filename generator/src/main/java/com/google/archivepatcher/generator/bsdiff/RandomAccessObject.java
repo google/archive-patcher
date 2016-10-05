@@ -34,11 +34,17 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
 
   /**
    * Returns the length of the file or byte array associated with the RandomAccessObject.
+   *
+   * @return the length of the file or byte array associated with the RandomAccessObject
+   * @throws IOException if unable to determine the length of the file, when backed by a file
    */
   public long length() throws IOException;
 
   /**
    * Seeks to a specified position, in bytes, into the file or byte array.
+   *
+   * @param pos the position to seek to
+   * @throws IOException if seeking fails
    */
   public void seek(long pos) throws IOException;
 
@@ -46,6 +52,9 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
    * Seek to a specified integer-aligned position in the associated file or byte array. For example,
    * seekToIntAligned(5) will seek to the beginning of the 5th integer, or in other words the 20th
    * byte. In general, seekToIntAligned(n) will seek to byte 4n.
+   *
+   * @param pos the position to seek to
+   * @throws IOException if seeking fails
    */
   public void seekToIntAligned(long pos) throws IOException;
 
@@ -62,6 +71,10 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
     /**
      * This constructor takes in a temporary file. This constructor does not take ownership of the
      * file, and the file will not be deleted on {@link #close()}.
+     *
+     * @param tempFile the file backing this object
+     * @param mode the mode to use, e.g. "r" or "w" for read or write
+     * @throws IOException if unable to open the file for the specified mode
      */
     public RandomAccessFileObject(final File tempFile, final String mode) throws IOException {
       this(tempFile, mode, false);
@@ -70,6 +83,13 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
     /**
      * This constructor takes in a temporary file. If deleteFileOnClose is true, the constructor
      * takes ownership of that file, and this file is deleted on close().
+     *
+     * @param tempFile the file backing this object
+     * @param mode the mode to use, e.g. "r" or "w" for read or write
+     * @param deleteFileOnClose if true the constructor takes ownership of that file, and this file
+     *     is deleted on close().
+     * @throws IOException if unable to open the file for the specified mode
+     * @throws IllegalArgumentException if the size of the file is too great
      */
     // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
@@ -111,6 +131,8 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
 
     /**
      * The passed-in byte array will be treated as big-endian when dealing with ints.
+     *
+     * @param byteArray the byte array to wrap
      */
     public RandomAccessByteArrayObject(final byte[] byteArray) {
       mByteBuffer = ByteBuffer.wrap(byteArray);
@@ -118,6 +140,8 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
 
     /**
      * Allocate a new ByteBuffer of given length. This will be treated as big-endian.
+     *
+     * @param length the length of the buffer to allocate
      */
     public RandomAccessByteArrayObject(final int length) {
       mByteBuffer = ByteBuffer.allocate(length);
@@ -346,12 +370,18 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
     }
 
     /**
-     * This constructor creates a temporary file. This file is deleted on close(), so
-     * be sure to call it when you're done, otherwise it'll leave stray files.
+     * This constructor creates a temporary file. This file is deleted on close(), so be sure to
+     * call it when you're done, otherwise it'll leave stray files.
+     *
+     * @param tempFileName the path to the file backing this object
+     * @param mode the mode to use, e.g. "r" or "w" for read or write
+     * @param length the size of the file to be read or written
+     * @throws IOException if unable to open the file for the specified mode
+     * @throws IllegalArgumentException if the size of the file is too great
      */
     // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
-    @SuppressWarnings("resource")  // RandomAccessFile deliberately left open
+    @SuppressWarnings("resource") // RandomAccessFile deliberately left open
     public RandomAccessMmapObject(final String tempFileName, final String mode, long length)
         throws IOException, IllegalArgumentException {
       if (length > Integer.MAX_VALUE) {
@@ -390,14 +420,20 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
     }
 
     /**
-     * This constructor takes in a temporary file, and takes ownership of that file.
-     * This file is deleted on close() OR IF THE CONSTRUCTOR FAILS. The main
-     * purpose of this constructor is to test close() on the passed-in file.
+     * This constructor takes in a temporary file, and takes ownership of that file. This file is
+     * deleted on close() OR IF THE CONSTRUCTOR FAILS. The main purpose of this constructor is to
+     * test close() on the passed-in file.
+     *
+     * @param tempFile the the file backing this object
+     * @param mode the mode to use, e.g. "r" or "w" for read or write
+     * @throws IOException if unable to open the file for the specified mode
+     * @throws IllegalArgumentException if the size of the file is too great
      */
     // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
-    @SuppressWarnings("resource")  // RandomAccessFile deliberately left open
-    public RandomAccessMmapObject(final File tempFile, final String mode) throws IOException {
+    @SuppressWarnings("resource") // RandomAccessFile deliberately left open
+    public RandomAccessMmapObject(final File tempFile, final String mode)
+        throws IOException, IllegalArgumentException {
       if (tempFile.length() > Integer.MAX_VALUE) {
         throw new IllegalArgumentException("Only files up to 2GiB in size are supported.");
       }

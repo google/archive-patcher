@@ -98,7 +98,7 @@ public class BsUtilTest {
   }
 
   @Test
-  public void memcmpTest() throws IOException {
+  public void lexicographicalCompareTest() throws IOException {
     String s1 = "this is a string";
     String s2 = "that was a string";
     byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
@@ -106,16 +106,25 @@ public class BsUtilTest {
     RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
     RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
 
-    int r = BsUtil.memcmp(s1ro, 0, s2ro, 0, s2b.length);
+    int r = BsUtil.lexicographicalCompare(s1ro, 0, s1b.length, s2ro, 0, s2b.length);
     Assert.assertTrue(r > 0);
 
-    r = BsUtil.memcmp(s1ro, 5, s2ro, 5, s1b.length - 5);
+    r = BsUtil.lexicographicalCompare(s1ro, 5, s1b.length - 5, s2ro, 5, s2b.length - 5);
     Assert.assertTrue(r < 0);
 
-    r = BsUtil.memcmp(s1ro, 7, s2ro, 8, s1b.length - 7);
+    r = BsUtil.lexicographicalCompare(s1ro, 7, s1b.length - 7, s2ro, 8, s2b.length - 7);
+    Assert.assertTrue(r < 0);
+
+    r = BsUtil.lexicographicalCompare(s1ro, 7, s1b.length - 8, s2ro, 8, s2b.length - 8);
+    Assert.assertTrue(r < 0);
+
+    r = BsUtil.lexicographicalCompare(s1ro, 0, 2, s2ro, 0, 2);
     Assert.assertEquals(0, r);
 
-    r = BsUtil.memcmp(s1ro, 7, s2ro, 8, s2b.length - 8);
-    Assert.assertEquals(0, r);
+    r = BsUtil.lexicographicalCompare(s1ro, 0, 1, s2ro, 0, 2);
+    Assert.assertTrue(r < 0);
+
+    r = BsUtil.lexicographicalCompare(s1ro, 0, 2, s2ro, 0, 1);
+    Assert.assertTrue(r > 0);
   }
 }

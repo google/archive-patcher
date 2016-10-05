@@ -14,16 +14,22 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.bsdiff.Matcher.NextMatch;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class BsDiffTest {
@@ -192,7 +198,50 @@ public class BsDiffTest {
   }
 
   @Test
-  public void generatePatchTest() throws IOException {
+  public void searchForMatch() throws Exception {
+    String[] testCases = {
+      "a",
+      "aa",
+      "az",
+      "za",
+      "aaaaa",
+      "CACAO",
+      "banana",
+      "tobeornottobe",
+      "the quick brown fox jumps over the lazy dog.",
+      "elephantelephantelephantelephantelephant",
+      "011010011001011010010110011010010",
+    };
+    for (String testCase : testCases) {
+      int size = testCase.length();
+      byte[] bytes = testCase.getBytes(StandardCharsets.US_ASCII);
+      RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(bytes);
+      RandomAccessObject suffixArray =
+          new DivSuffixSorter(new RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory())
+              .suffixSort(input);
+
+      // Test exact matches for every non-empty substring.
+      for (int lo = 0; lo < size; ++lo) {
+        for (int hi = lo + 1; hi <= size; ++hi) {
+          byte[] query = Arrays.copyOfRange(bytes, lo, hi);
+          int querySize = query.length;
+          Assert.assertEquals(querySize, hi - lo);
+          RandomAccessObject queryBuf = new RandomAccessObject.RandomAccessByteArrayObject(query);
+
+          BsDiff.Match match = BsDiff.searchForMatch(suffixArray, input, queryBuf, 0, 0, size);
+
+          Assert.assertEquals(querySize, match.length);
+          Assert.assertTrue(match.start >= 0);
+          Assert.assertTrue(match.start <= size - match.length);
+          byte[] suffix = Arrays.copyOfRange(bytes, match.start, match.start + match.length);
+          Assert.assertArrayEquals(query, suffix);
+        }
+      }
+    }
+  }
+
+  @Test
+  public void generatePatchTest() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] oldData = readTestData("BsDiffInternalTestOld.txt");
     byte[] newData = readTestData("BsDiffInternalTestNew.txt");
@@ -205,7 +254,7 @@ public class BsDiffTest {
     Assert.assertArrayEquals(actualPatch, expectedPatch);
   }
 
-  public void generatePatchOnRealCompiledBinaryTest() throws IOException {
+  public void generatePatchOnRealCompiledBinaryTest() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] oldData = readTestData("minimalBlobA.bin");
     byte[] newData = readTestData("minimalBlobB.bin");
@@ -219,11 +268,11 @@ public class BsDiffTest {
   }
 
   /**
-   * Naive implementation of BsDiff.Matcher. Exact matches between newData[a ... a + len - 1]
-   * and oldData[b ... b + len - 1] are valid if |len| >= 3.
+   * Naive implementation of BsDiff.Matcher. Exact matches between newData[a ... a + len - 1] and
+   * oldData[b ... b + len - 1] are valid if |len| >= 3.
    */
   @Test
-  public void generatePatchWithMatcherTest() throws IOException {
+  public void generatePatchWithMatcherTest() throws Exception {
     {
       // Test that all of the characters are diffed if two strings are identical even if there
       // is no "valid match" because the strings are too short.
@@ -421,7 +470,7 @@ public class BsDiffTest {
     }
   }
 
-  private class CtrlEntry {
+  private static class CtrlEntry {
     public int diffLength;
     public int extraLength;
     public int oldOffset;
@@ -437,14 +486,15 @@ public class BsDiffTest {
    * Generates a patch from the differences between |oldData| and |newData| and checks that the
    * patch's control data matches |expected|. For the sake of simplicity, assumes that chars are
    * always 1 byte.
+   *
    * @param oldData
    * @param newData
    * @param expected The expected control entries in the generated patch
    * @return returns whether the actual control entries in the generated patch match the expected
-   * ones
+   *     ones
    */
   private boolean generatePatchAndCheckCtrlEntries(
-      String oldData, String newData, CtrlEntry[] expected) throws IOException {
+      String oldData, String newData, CtrlEntry[] expected) throws Exception {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     byte[] oldBytes = oldData.getBytes(Charset.forName("US-ASCII"));
     byte[] newBytes = newData.getBytes(Charset.forName("US-ASCII"));
