@@ -89,14 +89,14 @@ public class PatchExplainer {
    *
    * @param oldFile the old file
    * @param newFile the new file
-   * @param recommendationModifier optionally, a {@link RecommendationModifier} to use during patch
+   * @param recommendationModifiers optionally, {@link RecommendationModifier}s to use during patch
    *     planning. If null, a normal patch is generated.
    * @return a list of the explanations for each entry that would be
    * @throws IOException if unable to read data
    * @throws InterruptedException if any thread interrupts this thread
    */
   public List<EntryExplanation> explainPatch(
-      File oldFile, File newFile, RecommendationModifier recommendationModifier)
+      File oldFile, File newFile, RecommendationModifier... recommendationModifiers)
       throws IOException, InterruptedException {
     List<EntryExplanation> result = new ArrayList<>();
 
@@ -118,11 +118,12 @@ public class PatchExplainer {
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
-    PreDiffExecutor executor =
-        new PreDiffExecutor.Builder()
-            .readingOriginalFiles(oldFile, newFile)
-            .withRecommendationModifier(recommendationModifier)
-            .build();
+    PreDiffExecutor.Builder builder =
+        new PreDiffExecutor.Builder().readingOriginalFiles(oldFile, newFile);
+    for (RecommendationModifier modifier : recommendationModifiers) {
+      builder.withRecommendationModifier(modifier);
+    }
+    PreDiffExecutor executor = builder.build();
     PreDiffPlan plan = executor.prepareForDiffing();
     try (TempFileHolder oldTemp = new TempFileHolder();
         TempFileHolder newTemp = new TempFileHolder();

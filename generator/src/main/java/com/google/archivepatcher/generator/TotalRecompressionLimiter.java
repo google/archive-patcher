@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,25 +36,26 @@ import java.util.List;
  * <p>This class implements the following algorithm:
  *
  * <ol>
- * <li>Identify all of the {@link QualifiedRecommendation}s that have {@link
- *     Recommendation#uncompressNewEntry} set to <code>true</code>. These identify all the entries
- *     that have changed and that require recompression.
- * <li>Sort those {@link QualifiedRecommendation}s in order of decreasing uncompressed size.
- * <li>Iterate over the list in order. For each entry, if the uncompressed size is less than the
- *     number of uncompressed bytes remaining before hitting the cap, retain it; else, discard it.
- * <li>Return the resulting list of the retained entries. Note that the order of this list may not
- *     be the same as the input order (i.e., it has been sorted in order of decreasing compressed
- *     size).
+ *   <li>Identify all of the {@link QualifiedRecommendation}s that have {@link
+ *       Recommendation#uncompressNewEntry} set to <code>true</code>. These identify all the entries
+ *       that have changed and that require recompression.
+ *   <li>Sort those {@link QualifiedRecommendation}s in order of decreasing uncompressed size.
+ *   <li>Iterate over the list in order. For each entry, if the uncompressed size is less than the
+ *       number of uncompressed bytes remaining before hitting the cap, retain it; else, discard it.
+ *   <li>Return the resulting list of the retained entries. Note that the order of this list may not
+ *       be the same as the input order (i.e., it has been sorted in order of decreasing compressed
+ *       size).
  * </ol>
  *
  * This algorithm attempts to preserve the largest changed resources needing recompression, assuming
- * that these are the most likely to be delta-friendly and are therefore represent the best patch
- * size savings. This may not be true in <em>all cases</em> but is likely in practice.
+ * that these are the most likely to be delta-friendly and therefore represent the best patch size
+ * savings. This may not be true in <em>all cases</em> but is likely in practice.
  *
  * <p>Please note that this algorithm does <em>not</em> limit the size of the temporary files needed
  * to apply a patch. In particular it does <em>not</em> limit the size of the "delta-friendly old
  * blob" that is generated during the patch-apply step, since that blob may contain an arbitrary
- * amount of compressed resources that are not considered here.
+ * amount of compressed resources that are not considered here. To limit the size of the
+ * delta-friendly old blob, use a {@link DeltaFriendlyOldBlobSizeLimiter}.
  */
 public class TotalRecompressionLimiter implements RecommendationModifier {
 
@@ -80,7 +82,7 @@ public class TotalRecompressionLimiter implements RecommendationModifier {
 
   @Override
   public List<QualifiedRecommendation> getModifiedRecommendations(
-      List<QualifiedRecommendation> originalRecommendations) {
+      File oldFile, File newFile, List<QualifiedRecommendation> originalRecommendations) {
 
     List<QualifiedRecommendation> sorted =
         new ArrayList<QualifiedRecommendation>(originalRecommendations);

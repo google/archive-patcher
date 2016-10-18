@@ -181,7 +181,7 @@ public class FileByFileV1IntegrationTest {
 
     // Generate the patch.
     ByteArrayOutputStream patchBuffer = new ByteArrayOutputStream();
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator(null);
+    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
     generator.generateDelta(oldFile, newFile, patchBuffer);
 
     // Apply the patch.
