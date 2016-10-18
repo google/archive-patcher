@@ -136,4 +136,18 @@ public class QualifiedRecommendation {
     }
     return true;
   }
+
+  @Override
+  public String toString() {
+    return "QualifiedRecommendation [oldEntry="
+        + oldEntry.getFileName()
+        + ", newEntry="
+        + newEntry.getFileName()
+        + ", recommendation="
+        + recommendation
+        + ", reason="
+        + reason
+        + "]";
+  }
+
 }

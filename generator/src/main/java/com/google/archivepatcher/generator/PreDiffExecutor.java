@@ -22,6 +22,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +39,8 @@ public class PreDiffExecutor {
     private File originalNewFile;
     private File deltaFriendlyOldFile;
     private File deltaFriendlyNewFile;
-    private RecommendationModifier recommendationModifier;
+    private List<RecommendationModifier> recommendationModifiers =
+        new ArrayList<RecommendationModifier>();
 
     /**
      * Sets the original, read-only input files to the patch generation process. This has to be
@@ -75,14 +77,17 @@ public class PreDiffExecutor {
     }
 
     /**
-     * Sets an optional {@link RecommendationModifier} to be used during the generation of the
+     * Appends an optional {@link RecommendationModifier} to be used during the generation of the
      * {@link PreDiffPlan} and/or delta-friendly blobs.
      *
      * @param recommendationModifier the modifier to set
      * @return this builder
      */
     public Builder withRecommendationModifier(RecommendationModifier recommendationModifier) {
-      this.recommendationModifier = recommendationModifier;
+      if (recommendationModifier == null) {
+        throw new IllegalArgumentException("recommendationModifier cannot be null");
+      }
+      this.recommendationModifiers.add(recommendationModifier);
       return this;
     }
 
@@ -101,7 +106,7 @@ public class PreDiffExecutor {
           originalNewFile,
           deltaFriendlyOldFile,
           deltaFriendlyNewFile,
-          recommendationModifier);
+          recommendationModifiers);
     }
   }
 
@@ -123,8 +128,10 @@ public class PreDiffExecutor {
    */
   private final File deltaFriendlyNewFile;
 
-  /** Optional {@link RecommendationModifier} to be used for modifying the patch to be generated. */
-  private final RecommendationModifier recommendationModifier;
+  /**
+   * Optional {@link RecommendationModifier}s to be used for modifying the patch to be generated.
+   */
+  private final List<RecommendationModifier> recommendationModifiers;
 
   /** Constructs a new PreDiffExecutor to work with the specified configuration. */
   private PreDiffExecutor(
@@ -132,12 +139,12 @@ public class PreDiffExecutor {
       File originalNewFile,
       File deltaFriendlyOldFile,
       File deltaFriendlyNewFile,
-      RecommendationModifier recommendationModifier) {
+      List<RecommendationModifier> recommendationModifiers) {
     this.originalOldFile = originalOldFile;
     this.originalNewFile = originalNewFile;
     this.deltaFriendlyOldFile = deltaFriendlyOldFile;
     this.deltaFriendlyNewFile = deltaFriendlyNewFile;
-    this.recommendationModifier = recommendationModifier;
+    this.recommendationModifiers = recommendationModifiers;
   }
 
   /**
@@ -220,7 +227,7 @@ public class PreDiffExecutor {
             originalNewFile,
             originalNewArchiveZipEntriesByPath,
             originalNewArchiveJreDeflateParametersByPath,
-            recommendationModifier);
+            recommendationModifiers.toArray(new RecommendationModifier[] {}));
     return preDiffPlanner.generatePreDiffPlan();
   }
 }

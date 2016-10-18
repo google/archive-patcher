@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -28,9 +29,11 @@ public interface RecommendationModifier {
    * the results of {@link QualifiedRecommendation#getRecommendation()} and {@link
    * QualifiedRecommendation#getReason()} to any sane values.
    *
+   * @param oldFile the old file that is being diffed
+   * @param newFile the new file that is being diffed
    * @param originalRecommendations the original recommendations
    * @return the updated list of recommendations
    */
   public List<QualifiedRecommendation> getModifiedRecommendations(
-      List<QualifiedRecommendation> originalRecommendations);
+      File oldFile, File newFile, List<QualifiedRecommendation> originalRecommendations);
 }

@@ -15,6 +15,7 @@
 package com.google.archivepatcher.tools;
 
 import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
+import com.google.archivepatcher.generator.DeltaFriendlyOldBlobSizeLimiter;
 import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
 import com.google.archivepatcher.generator.RecommendationModifier;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
@@ -24,9 +25,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Simple command-line tool for generating and applying patches.
@@ -43,6 +46,7 @@ public class FileByFileTool extends AbstractTool {
           + "  --new           the new file\n"
           + "  --patch         the patch file\n"
           + "  --trl           optionally, the total bytes of recompression to allow (see below)\n"
+          + "  --dfobsl        optionally, a limit on the total size of the delta-friendly old blob (see below)\n"
           + "\nTotal Recompression Limit (trl):\n"
           + "  When generating a patch, a limit can be specified on the total number of bytes to\n"
           + "  allow to be recompressed during the patch apply process. This can be for a variety\n"
@@ -50,6 +54,15 @@ public class FileByFileTool extends AbstractTool {
           + "  be expended applying the patch on the target platform. To properly explain a\n"
           + "  patch that had such a limitation, it is necessary to specify the same limitation\n"
           + "  here. This argument is illegal for --apply, since it only applies to --generate.\n"
+          + "\nDelta Friendly Old Blob Size Limit (dfobsl):\n"
+          + "  When generating a patch, a limit can be specified on the total size of the delta-\n"
+          + "  friendly old blob. This implicitly limits the size of the temporary file that\n"
+          + "  needs to be created when applying the patch. The size limit is \"soft\" in that \n"
+          + "  the delta-friendly old blob needs to at least contain the original data that was\n"
+          + "  within it; but the limit specified here will constrain any attempt to uncompress\n"
+          + "  the content. If the limit is less than or equal to the size of the old file, no\n"
+          + "  uncompression will be performed at all. Otherwise, the old file can expand into\n"
+          + "  delta-friendly old blob until the size reaches this limit.\n"
           + "\nExamples:\n"
           + "  To generate a patch from OLD to NEW, saving the patch in PATCH:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool --generate \\\n"
@@ -99,6 +112,7 @@ public class FileByFileTool extends AbstractTool {
     String newPath = null;
     String patchPath = null;
     Long totalRecompressionLimit = null;
+    Long deltaFriendlyOldBlobSizeLimit = null;
     Mode mode = null;
     Iterator<String> argIterator = new LinkedList<String>(Arrays.asList(args)).iterator();
     while (argIterator.hasNext()) {
@@ -118,6 +132,11 @@ public class FileByFileTool extends AbstractTool {
         if (totalRecompressionLimit < 0) {
           exitWithUsage("--trl cannot be negative: " + totalRecompressionLimit);
         }
+      } else if ("--dfobsl".equals(arg)) {
+        deltaFriendlyOldBlobSizeLimit = Long.parseLong(popOrDie(argIterator, "--dfobsl"));
+        if (deltaFriendlyOldBlobSizeLimit < 0) {
+          exitWithUsage("--dfobsl cannot be negative: " + deltaFriendlyOldBlobSizeLimit);
+        }
       } else {
         exitWithUsage("unknown argument: " + arg);
       }
@@ -128,10 +147,18 @@ public class FileByFileTool extends AbstractTool {
     if (mode == Mode.APPLY && totalRecompressionLimit != null) {
       exitWithUsage("--trl can only be used with --generate");
     }
+    if (mode == Mode.APPLY && deltaFriendlyOldBlobSizeLimit != null) {
+      exitWithUsage("--dfobsl can only be used with --generate");
+    }
     File oldFile = getRequiredFileOrDie(oldPath, "old file");
     if (mode == Mode.GENERATE) {
       File newFile = getRequiredFileOrDie(newPath, "new file");
-      generatePatch(oldFile, newFile, new File(patchPath), totalRecompressionLimit);
+      generatePatch(
+          oldFile,
+          newFile,
+          new File(patchPath),
+          totalRecompressionLimit,
+          deltaFriendlyOldBlobSizeLimit);
     } else { // mode == Mode.APPLY
       File patchFile = getRequiredFileOrDie(patchPath, "patch file");
       applyPatch(oldFile, patchFile, new File(newPath));
@@ -146,17 +173,29 @@ public class FileByFileTool extends AbstractTool {
    * @param patchFile the patch file (will be written)
    * @param totalRecompressionLimit optional limit for total number of bytes of recompression to
    *     allow in the resulting patch
+   * @param deltaFriendlyOldBlobSizeLimit optional limit for the size of the delta-friendly old
+   *     blob, which implies a limit on the temporary space needed to apply the generated patch
    * @throws IOException if anything goes wrong
    * @throws InterruptedException if any thread has interrupted the current thread
    */
   public static void generatePatch(
-      File oldFile, File newFile, File patchFile, Long totalRecompressionLimit)
+      File oldFile,
+      File newFile,
+      File patchFile,
+      Long totalRecompressionLimit,
+      Long deltaFriendlyOldBlobSizeLimit)
       throws IOException, InterruptedException {
-    RecommendationModifier recommendationModifier = null;
+    List<RecommendationModifier> recommendationModifiers = new ArrayList<RecommendationModifier>();
     if (totalRecompressionLimit != null) {
-      recommendationModifier = new TotalRecompressionLimiter(totalRecompressionLimit);
+      recommendationModifiers.add(new TotalRecompressionLimiter(totalRecompressionLimit));
     }
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator(recommendationModifier);
+    if (deltaFriendlyOldBlobSizeLimit != null) {
+      recommendationModifiers.add(
+          new DeltaFriendlyOldBlobSizeLimiter(deltaFriendlyOldBlobSizeLimit));
+    }
+    FileByFileV1DeltaGenerator generator =
+        new FileByFileV1DeltaGenerator(
+            recommendationModifiers.toArray(new RecommendationModifier[] {}));
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
       generator.generateDelta(oldFile, newFile, bufferedPatchOut);

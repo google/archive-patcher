@@ -20,33 +20,33 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Generates file-by-file patches.
  */
 public class FileByFileV1DeltaGenerator implements DeltaGenerator {
 
-  /** Optional modifier for planning and patch generation. */
-  private final RecommendationModifier recommendationModifier;
-
-  /**
-   * Constructs a new generator for File-by-File v1 patches, using the default configuration. This
-   * is equivalent to calling {@link #FileByFileV1DeltaGenerator(RecommendationModifier)} with a
-   * <code>null</code> {@link RecommendationModifier} argument.
-   */
-  public FileByFileV1DeltaGenerator() {
-    this(null);
-  }
+  /** Optional modifiers for planning and patch generation. */
+  private final List<RecommendationModifier> recommendationModifiers;
 
   /**
    * Constructs a new generator for File-by-File v1 patches, using the specified configuration.
    *
-   * @param recommendationModifier optionally, a {@link RecommendationModifier} to use for modifying
-   *     the planning phase of patch generation. This can be used to, e.g., limit the total amount
-   *     of recompression that a patch applier needs to do.
+   * @param recommendationModifiers optionally, {@link RecommendationModifier}s to use for modifying
+   *     the planning phase of patch generation. These can be used to, e.g., limit the total amount
+   *     of recompression that a patch applier needs to do. Modifiers are applied in the order they
+   *     are specified.
    */
-  public FileByFileV1DeltaGenerator(RecommendationModifier recommendationModifier) {
-    this.recommendationModifier = recommendationModifier;
+  public FileByFileV1DeltaGenerator(RecommendationModifier... recommendationModifiers) {
+    if (recommendationModifiers != null) {
+      this.recommendationModifiers =
+          Collections.unmodifiableList(Arrays.asList(recommendationModifiers));
+    } else {
+      this.recommendationModifiers = Collections.emptyList();
+    }
   }
 
   /**
@@ -70,12 +70,14 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
         TempFileHolder deltaFile = new TempFileHolder();
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
-      PreDiffExecutor executor =
+      PreDiffExecutor.Builder builder =
           new PreDiffExecutor.Builder()
               .readingOriginalFiles(oldFile, newFile)
-              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
-              .withRecommendationModifier(recommendationModifier)
-              .build();
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
+      for (RecommendationModifier modifier : recommendationModifiers) {
+        builder.withRecommendationModifier(modifier);
+      }
+      PreDiffExecutor executor = builder.build();
       PreDiffPlan preDiffPlan = executor.prepareForDiffing();
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(

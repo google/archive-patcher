@@ -37,7 +37,7 @@ public class FileByFileV1DeltaGeneratorTest {
   @Test
   public void testGenerateDelta_BaseCase() throws Exception {
     // Simple test of generating a patch with no changes.
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator(null);
+    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempFileHolder oldArchive = new TempFileHolder();
         TempFileHolder newArchive = new TempFileHolder()) {

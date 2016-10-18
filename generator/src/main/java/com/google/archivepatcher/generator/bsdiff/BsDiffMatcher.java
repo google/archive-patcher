@@ -53,6 +53,12 @@ class BsDiffMatcher implements Matcher {
   private final int mMinimumMatchLength;
 
   /**
+   * A limit on how many total match lengths encountered, to exit the match extension loop in next()
+   * and prevent O(n^2) behavior.
+   */
+  private final long mTotalMatchLenBudget = 1L << 26;  // ~64 million.
+
+  /**
    * The number of bytes, |n|, which match between newData[mNewPos ... mNewPos + n] and
    * oldData[mOldPos ... mOldPos + n].
    */
@@ -96,6 +102,9 @@ class BsDiffMatcher implements Matcher {
     // The size of the range for which |numMatches| has been computed.
     int matchesCacheSize = 0;
 
+    // Sum over all match lengths encountered, to exit loop if we take too long to compute.
+    long totalMatchLen = 0;
+
     while (mNewPos < newData.length()) {
       if (Thread.interrupted()) {
         throw new InterruptedException();
@@ -104,6 +113,7 @@ class BsDiffMatcher implements Matcher {
           BsDiff.searchForMatch(mGroupArray, oldData, newData, mNewPos, 0, (int) oldData.length());
       mOldPos = match.start;
       mMatchLen = match.length;
+      totalMatchLen += mMatchLen;
 
       // Update |numMatches| for the new value of |matchLen|.
       for (; matchesCacheSize < mMatchLen; ++matchesCacheSize) {
@@ -119,7 +129,8 @@ class BsDiffMatcher implements Matcher {
         }
       }
 
-      if (mMatchLen > numMatches + mMinimumMatchLength) {
+      // Also return if we've been trying to extend a large match for a long time.
+      if (mMatchLen > numMatches + mMinimumMatchLength || totalMatchLen >= mTotalMatchLenBudget) {
         return Matcher.NextMatch.of(true, mOldPos, mNewPos);
       }
 

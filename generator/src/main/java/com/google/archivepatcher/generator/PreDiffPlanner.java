@@ -22,6 +22,7 @@ import com.google.archivepatcher.shared.TypedRange;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -58,10 +59,10 @@ class PreDiffPlanner {
   private final Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath;
 
   /**
-   * Optional {@link RecommendationModifier} that will be applied after the default recommendations
+   * Optional {@link RecommendationModifier}s that will be applied after the default recommendations
    * have been made but before the {@link PreDiffPlan} is constructed.
    */
-  private final RecommendationModifier recommendationModifier;
+  private final List<RecommendationModifier> recommendationModifiers;
 
   /**
    * Constructs a new planner that will work on the specified inputs
@@ -72,7 +73,7 @@ class PreDiffPlanner {
    * @param newArchiveZipEntriesByPath the entries in the new archive, with paths as keys
    * @param newArchiveJreDeflateParametersByPath the {@link JreDeflateParameters} for each entry in
    *     the new archive, with paths as keys
-   * @param recommendationModifier optionally, a {@link RecommendationModifier} to be applied after
+   * @param recommendationModifiers optionally, {@link RecommendationModifier}s to be applied after
    *     the default recommendations have been made but before the {@link PreDiffPlan} is generated
    *     in {@link #generatePreDiffPlan()}.
    */
@@ -82,13 +83,14 @@ class PreDiffPlanner {
       File newFile,
       Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath,
       Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath,
-      RecommendationModifier recommendationModifier) {
+      RecommendationModifier... recommendationModifiers) {
     this.oldFile = oldFile;
     this.oldArchiveZipEntriesByPath = oldArchiveZipEntriesByPath;
     this.newFile = newFile;
     this.newArchiveZipEntriesByPath = newArchiveZipEntriesByPath;
     this.newArchiveJreDeflateParametersByPath = newArchiveJreDeflateParametersByPath;
-    this.recommendationModifier = recommendationModifier;
+    this.recommendationModifiers =
+          Collections.unmodifiableList(Arrays.asList(recommendationModifiers));
   }
 
   /**
@@ -100,9 +102,9 @@ class PreDiffPlanner {
    */
   PreDiffPlan generatePreDiffPlan() throws IOException {
     List<QualifiedRecommendation> recommendations = getDefaultRecommendations();
-    if (recommendationModifier != null) {
+    for (RecommendationModifier modifier : recommendationModifiers) {
       // Allow changing the recommendations base on arbitrary criteria.
-      recommendations = recommendationModifier.getModifiedRecommendations(recommendations);
+      recommendations = modifier.getModifiedRecommendations(oldFile, newFile, recommendations);
     }
 
     // Process recommendations to extract ranges for decompression & recompression
