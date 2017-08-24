@@ -1,3 +1,4 @@
+
 buildscript {
     repositories {
         jcenter()
@@ -7,8 +8,61 @@ buildscript {
     }
 }
 
+plugins {
+    id "com.jfrog.bintray" version "1.7.3"
+}
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+version = 1.0
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Archive Patcher',
+            'Implementation-Version': version
+    }
+    baseName = project.name
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+dependencies {
+    compile project(':tools')
+}
+
 allprojects {
     repositories {
         jcenter()
+    }
+}
+
+publishing {
+    publications {
+        MyPublication(MavenPublication) {
+            from components.java
+            groupId 'com.google'
+            artifactId 'archivepatcher'
+            version '1.0'
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    publications = ['MyPublication']
+    filesSpec {
+        from 'build/libs'
+        into '/'
+    }
+    pkg {
+        repo = 'Maven'
+        name = 'archive-patcher'
+        desc = 'Archive Patcher'
+        licenses = ['Apache-2.0']
+        websiteUrl = 'https://github.com/andrewhayden/archive-patcher'
+        issueTrackerUrl = 'https://github.com/andrewhayden/archive-patcher/issues'
+        vcsUrl = 'https://github.com/andrewhayden/archive-patcher.git'
     }
 }
