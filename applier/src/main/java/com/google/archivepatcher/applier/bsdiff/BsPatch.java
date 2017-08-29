@@ -15,13 +15,14 @@
 package com.google.archivepatcher.applier.bsdiff;
 
 import com.google.archivepatcher.applier.PatchFormatException;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A Java implementation of the "bspatch" algorithm based on the BSD-2 licensed source code
@@ -29,9 +30,10 @@ import java.io.RandomAccessFile;
  * size of 2GB for all binaries involved (old, new and patch binaries).
  */
 public class BsPatch {
-  /**
-   * Standard header found at the start of every patch.
-   */
+  /** If true, output verbose debugging information. */
+  private static final boolean VERBOSE = false;
+  
+  /** Standard header found at the start of every patch. */
   private static final String SIGNATURE = "ENDSLEY/BSDIFF43";
 
   /**
@@ -56,6 +58,9 @@ public class BsPatch {
    */
   private static final int OUTPUT_STREAM_BUFFER_SIZE = 16 * 1024;
 
+  /** An instance of Java logger for use with the {@code VERBOSE} mode. */
+  private static final Logger logger = Logger.getLogger(BsPatch.class.getName());
+
   /**
    * Applies a patch from |patchData| to the data in |oldData|, writing the result to |newData|.
    *
@@ -68,22 +73,39 @@ public class BsPatch {
   public static void applyPatch(
       RandomAccessFile oldData, OutputStream newData, InputStream patchData)
       throws PatchFormatException, IOException {
+    applyPatch(oldData, newData, patchData, null);
+  }
+
+  /**
+   * Applies a patch from |patchData| to the data in |oldData|, writing the result to |newData|
+   * while verifying that the expectedSize is obtained.
+   *
+   * @param oldData data to which the patch should be applied
+   * @param newData stream to write the new artifact to
+   * @param patchData stream to read patch instructions from
+   * @param expectedNewSize the expected number of bytes in |newData| when patching completes. Can
+   *     be null in which case no expectedNewSize checks will be performed.
+   * @throws PatchFormatException if the patch stream is invalid
+   * @throws IOException if unable to read or write any of the data
+   */
+  public static void applyPatch(
+      RandomAccessFile oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
+      throws PatchFormatException, IOException {
     patchData = new BufferedInputStream(patchData, PATCH_STREAM_BUFFER_SIZE);
     newData = new BufferedOutputStream(newData, OUTPUT_STREAM_BUFFER_SIZE);
     try {
-      applyPatchInternal(oldData, newData, patchData);
+      applyPatchInternal(oldData, newData, patchData, expectedNewSize);
     } finally {
       newData.flush();
     }
   }
 
-  /**
-   * Does the work of the public applyPatch method.
-   */
+  /** Does the work of the public applyPatch method. */
   private static void applyPatchInternal(
       final RandomAccessFile oldData,
       final OutputStream newData,
-      final InputStream patchData)
+      final InputStream patchData,
+      final Long expectedNewSize)
       throws PatchFormatException, IOException {
     final byte[] signatureBuffer = new byte[SIGNATURE.length()];
     try {
@@ -106,6 +128,9 @@ public class BsPatch {
     if (newSize < 0 || newSize > Integer.MAX_VALUE) {
       throw new PatchFormatException("bad newSize");
     }
+    if (expectedNewSize != null && expectedNewSize != newSize) {
+      throw new PatchFormatException("expectedNewSize != newSize");
+    }
 
     // These buffers are used for performing transformations and copies. They are not stateful.
     final byte[] buffer1 = new byte[PATCH_BUFFER_SIZE];
@@ -114,6 +139,7 @@ public class BsPatch {
     // Offsets into |oldData| and |newData|.
     long oldDataOffset = 0; // strobes |oldData| in order specified by the patch file
     long newDataBytesWritten = 0; // monotonically increases from 0 .. |expectedNewSize|
+    int numDirectives = 0; // only used for debugging output
 
     while (newDataBytesWritten < newSize) {
       // Read "control data" for the operation. There are three values here:
@@ -132,6 +158,24 @@ public class BsPatch {
       //    |diffSegmentLength| but not for |copySegmentLength|, so |diffSegmentLength| must
       //    be accumulated into |oldDataOffset| while |copySegmentLength| must NOT be.
       final long offsetToNextInput = readBsdiffLong(patchData);
+
+      if (VERBOSE) {
+        numDirectives++;
+        logger.log(
+            Level.FINE,
+            "Patch directive "
+                + numDirectives
+                + ": oldDataOffset="
+                + oldDataOffset
+                + ", newDataBytesWritten="
+                + newDataBytesWritten
+                + ", diffSegmentLength="
+                + diffSegmentLength
+                + ", copySegmentLength="
+                + copySegmentLength
+                + ", offsetToNextInput="
+                + offsetToNextInput);
+      }
 
       // Sanity-checks
       if (diffSegmentLength < 0 || diffSegmentLength > Integer.MAX_VALUE) {

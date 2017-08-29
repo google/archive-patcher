@@ -93,6 +93,33 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
     }
   }
 
+  /**
+   * Generate a V1 patch pre diffing plan.
+   *
+   * @param oldFile the original old file to read (will not be modified)
+   * @param newFile the original new file to read (will not be modified)
+   * @return the plan
+   * @throws IOException if unable to complete the operation due to an I/O error
+   * @throws InterruptedException if any thread has interrupted the current thread
+   */
+  public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile)
+      throws IOException, InterruptedException {
+    try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
+        TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
+      PreDiffExecutor.Builder builder =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldFile, newFile)
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
+      for (RecommendationModifier modifier : recommendationModifiers) {
+        builder.withRecommendationModifier(modifier);
+      }
+
+      PreDiffExecutor executor = builder.build();
+
+      return executor.prepareForDiffing();
+    }
+  }
+
   // Visible for testing only
   protected DeltaGenerator getDeltaGenerator() {
     return new BsDiffDeltaGenerator();

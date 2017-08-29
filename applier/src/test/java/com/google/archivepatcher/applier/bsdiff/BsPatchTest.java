@@ -15,14 +15,6 @@
 package com.google.archivepatcher.applier.bsdiff;
 
 import com.google.archivepatcher.applier.PatchFormatException;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -31,6 +23,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link BsPatch}.
@@ -176,6 +174,29 @@ public class BsPatchTest {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
       Assert.assertEquals("bad signature", actual);
+    }
+  }
+  
+  @Test
+  public void testApplyPatch_NewLengthMismatch() throws Exception {
+    createEmptyOldFile(10);
+    InputStream patchIn =
+        makePatch(
+            SIGNATURE,
+            10, // newLength (illegal)
+            10, // diffSegmentLength
+            0, // copySegmentLength
+            0, // offsetToNextInput
+            new byte[10] // addends
+            );
+    ByteArrayOutputStream newData = new ByteArrayOutputStream();
+    try {
+      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn, (long) 10 + 1);
+      Assert.fail("Read patch with mismatched newLength");
+    } catch (PatchFormatException expected) {
+      // No way to mock the internal logic, so resort to testing exception string for coverage
+      String actual = expected.getMessage();
+      Assert.assertEquals("expectedNewSize != newSize", actual);
     }
   }
 
@@ -410,22 +431,8 @@ public class BsPatchTest {
   @Test
   public void testReadBsdiffLong() throws Exception {
     byte[] data = {
-      (byte) 0x78,
-      (byte) 0x56,
-      (byte) 0x34,
-      (byte) 0x12,
-      (byte) 0,
-      (byte) 0,
-      (byte) 0,
-      (byte) 0,
-      (byte) 0xef,
-      (byte) 0xbe,
-      (byte) 0xad,
-      (byte) 0x0e,
-      (byte) 0,
-      (byte) 0,
-      (byte) 0,
-      (byte) 0
+      (byte) 0x78, (byte) 0x56, (byte) 0x34, (byte) 0x12, (byte) 0, (byte) 0, (byte) 0, (byte) 0,
+      (byte) 0xef, (byte) 0xbe, (byte) 0xad, (byte) 0x0e, (byte) 0, (byte) 0, (byte) 0, (byte) 0
     };
     ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
     long actual = BsPatch.readBsdiffLong(inputStream);
@@ -441,14 +448,8 @@ public class BsPatchTest {
         BsPatch.readBsdiffLong(
             new ByteArrayInputStream(
                 new byte[] {
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00
+                  (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                  (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
                 }));
     Assert.assertEquals(expected, actual);
   }
@@ -460,14 +461,8 @@ public class BsPatchTest {
         BsPatch.readBsdiffLong(
             new ByteArrayInputStream(
                 new byte[] {
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0x7f,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00
+                  (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x7f,
+                  (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
                 }));
     Assert.assertEquals(expected, actual);
   }
@@ -479,14 +474,8 @@ public class BsPatchTest {
         BsPatch.readBsdiffLong(
             new ByteArrayInputStream(
                 new byte[] {
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x80,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x00,
-                  (byte) 0x80
+                  (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80,
+                  (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80
                 }));
     Assert.assertEquals(expected, actual);
   }
@@ -498,14 +487,8 @@ public class BsPatchTest {
         BsPatch.readBsdiffLong(
             new ByteArrayInputStream(
                 new byte[] {
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0x7f
+                  (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                  (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x7f
                 }));
     Assert.assertEquals(expected, actual);
   }
@@ -519,14 +502,8 @@ public class BsPatchTest {
         BsPatch.readBsdiffLong(
             new ByteArrayInputStream(
                 new byte[] {
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff,
-                  (byte) 0xff
+                  (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                  (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff
                 }));
     Assert.assertEquals(expected, actual);
   }
@@ -538,14 +515,8 @@ public class BsPatchTest {
       BsPatch.readBsdiffLong(
           new ByteArrayInputStream(
               new byte[] {
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x00,
-                (byte) 0x80
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80
               }));
       Assert.fail("Tolerated negative zero");
     } catch (PatchFormatException expected) {
@@ -555,7 +526,7 @@ public class BsPatchTest {
 
   @Test
   public void testReadFully() throws IOException {
-    final byte[] input = "this is a sample string to read".getBytes();
+    final byte[] input = "this is a sample string to read".getBytes("UTF-8");
     final ByteArrayInputStream inputStream = new ByteArrayInputStream(input);
     final byte[] dst = new byte[50];
 

@@ -199,6 +199,16 @@ class PreDiffPlanner {
       throws IOException {
 
     // Reject anything that is unsuitable for uncompressed diffing.
+    // Reason singled out in order to monitor unsupported versions of zlib.
+    if (unsuitableDeflate(newEntry)) {
+      return new QualifiedRecommendation(
+          oldEntry,
+          newEntry,
+          Recommendation.UNCOMPRESS_NEITHER,
+          RecommendationReason.DEFLATE_UNSUITABLE);
+    }
+
+    // Reject anything that is unsuitable for uncompressed diffing.
     if (unsuitable(oldEntry, newEntry)) {
       return new QualifiedRecommendation(
           oldEntry,
@@ -257,7 +267,8 @@ class PreDiffPlanner {
   /**
    * Returns true if the entries are unsuitable for doing an uncompressed diff. This method returns
    * true if either of the entries is compressed in an unsupported way (a non-deflate compression
-   * algorithm) or if the new entry is compressed in a supported but unreproducible way.
+   * algorithm).
+   *
    * @param oldEntry the entry in the old archive
    * @param newEntry the entry in the new archive
    * @return true if unsuitable
@@ -272,6 +283,18 @@ class PreDiffPlanner {
       // The new entry is compressed in a way that is not supported. Same result as above.
       return true;
     }
+    return false;
+  }
+
+  /**
+   * Returns true if the entries are unsuitable for doing an uncompressed diff as a result of the
+   * new entry being compressed via deflate, with undivinable parameters. This could be the result
+   * of an unsupported version of zlib being used.
+   *
+   * @param newEntry the entry in the new archive
+   * @return true if unsuitable
+   */
+  private boolean unsuitableDeflate(MinimalZipEntry newEntry) {
     JreDeflateParameters newJreDeflateParameters =
         newArchiveJreDeflateParametersByPath.get(new ByteArrayHolder(newEntry.getFileNameBytes()));
     if (newEntry.isDeflateCompressed() && newJreDeflateParameters == null) {
@@ -279,6 +302,7 @@ class PreDiffPlanner {
       // new entry cannot be recompressed, so leave both old and new alone.
       return true;
     }
+
     return false;
   }
 
@@ -339,13 +363,16 @@ class PreDiffPlanner {
     }
     byte[] buffer = new byte[4096];
     int numRead = 0;
-    try (RandomAccessFileInputStream oldRafis =
-            new RandomAccessFileInputStream(
-                oldFile, oldEntry.getFileOffsetOfCompressedData(), oldEntry.getCompressedSize());
-        RandomAccessFileInputStream newRafis =
+    try (RandomAccessFileInputStream newRafis =
             new RandomAccessFileInputStream(
                 newFile, newEntry.getFileOffsetOfCompressedData(), newEntry.getCompressedSize());
-        MatchingOutputStream matcher = new MatchingOutputStream(oldRafis, 4096)) {
+        MatchingOutputStream matcher =
+            new MatchingOutputStream(
+                new RandomAccessFileInputStream(
+                    oldFile,
+                    oldEntry.getFileOffsetOfCompressedData(),
+                    oldEntry.getCompressedSize()),
+                4096)) {
       while ((numRead = newRafis.read(buffer)) >= 0) {
         try {
           matcher.write(buffer, 0, numRead);

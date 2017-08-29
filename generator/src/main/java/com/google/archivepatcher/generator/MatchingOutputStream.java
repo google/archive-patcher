@@ -86,6 +86,11 @@ public class MatchingOutputStream extends OutputStream {
     }
   }
 
+  @Override
+  public void close() throws IOException {
+    expectedBytesStream.close();
+  }
+
   /**
    * Expects the end-of-file to be reached in the associated {@link InputStream}.
    * @throws IOException if the end-of-file has not yet been reached in the associated

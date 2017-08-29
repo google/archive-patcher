@@ -15,25 +15,22 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
+import com.google.archivepatcher.shared.ByteArrayInputStreamFactory;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.DeflateCompressor;
 import com.google.archivepatcher.shared.JreDeflateParameters;
-import com.google.archivepatcher.shared.MultiViewInputStreamFactory;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 
 /**
  * Tests for {@link DefaultDeflateCompressionDiviner}.
@@ -47,7 +44,7 @@ public class DefaultDeflateCompressionDivinerTest {
   private DefaultDeflateCompressionDiviner diviner = null;
 
   /**
-   * Test data written to the file.
+   * Test delivery written to the file.
    */
   private byte[] testData = null;
 
@@ -58,10 +55,10 @@ public class DefaultDeflateCompressionDivinerTest {
   }
 
   /**
-   * Deflates the test data using the specified parameters, storing them in a temp file and
+   * Deflates the test delivery using the specified parameters, storing them in a temp file and
    * returns the temp file created.
    * @param parameters the parameters to use for deflating
-   * @return the temp file with the data
+   * @return the temp file with the delivery
    */
   private byte[] deflate(JreDeflateParameters parameters) throws IOException {
     DeflateCompressor compressor = new DeflateCompressor();
@@ -73,74 +70,10 @@ public class DefaultDeflateCompressionDivinerTest {
     return buffer.toByteArray();
   }
 
-  private static class ByteArrayInputStreamFactory
-      implements MultiViewInputStreamFactory<ByteArrayInputStream> {
-    private final byte[] data;
-    private final boolean supportMark;
-    private final boolean dieOnClose;
-
-    /**
-     * Create a factory the returns streams on the specified data buffer, optionally supporting
-     * {@link InputStream#mark(int)}.
-     * @param data the data buffer to return streams for
-     * @param supportMark whether or not to support marking
-     * @param dieOnClose whether or not to throw nasty exceptions on close()
-     */
-    public ByteArrayInputStreamFactory(byte[] data, boolean supportMark, boolean dieOnClose) {
-      this.data = data;
-      this.supportMark = supportMark;
-      this.dieOnClose = dieOnClose;
-    }
-
-    @Override
-    public ByteArrayInputStream newStream() throws IOException {
-      return new ByteArrayInputStream(data) {
-        @Override
-        public boolean markSupported() {
-          return supportMark;
-        }
-
-        @Override
-        public void close() throws IOException {
-          if (dieOnClose) {
-            throw new IOException("brainnnnnnnnnnssssss!");
-          }
-          super.close();
-        }
-      };
-    }
-  }
-
-  @Test
-  public void testDivineDeflateParameters_NoMarkInputStreamFactory() throws IOException {
-    final JreDeflateParameters parameters = JreDeflateParameters.of(1, 0, true);
-    final byte[] buffer = deflate(parameters);
-    try {
-      // The factory here will NOT support mark(int), which should cause failure. Also, throw
-      // exceptions on close() to be extra rude.
-      diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(buffer, false, true));
-      Assert.fail("operating without a markable stream");
-    } catch (IllegalArgumentException expected) {
-      // Correct!
-    }
-  }
-
-  @Test
-  public void testDivineDeflateParameters_BadCloseInputStreamFactory() throws IOException {
-    final JreDeflateParameters parameters = JreDeflateParameters.of(1, 0, true);
-    final byte[] buffer = deflate(parameters);
-    // The factory here will produce streams that throw exceptions when close() is called.
-    // These exceptions should be ignored.
-    JreDeflateParameters result =
-        diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(buffer, true, true));
-    Assert.assertEquals(result, parameters);
-  }
-
   @Test
   public void testDivineDeflateParameters_JunkData() throws IOException {
     final byte[] junk = new byte[] {0, 1, 2, 3, 4};
-    Assert.assertNull(
-        diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(junk, true, false)));
+    Assert.assertNull(diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(junk)));
   }
 
   @Test
@@ -150,14 +83,15 @@ public class DefaultDeflateCompressionDivinerTest {
         for (int level : new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9}) {
           JreDeflateParameters trueParameters = JreDeflateParameters.of(level, strategy, nowrap);
           final byte[] buffer = deflate(trueParameters);
-          ByteArrayInputStreamFactory factory =
-              new ByteArrayInputStreamFactory(buffer, true, false);
-          JreDeflateParameters divinedParameters = diviner.divineDeflateParameters(factory);
+          JreDeflateParameters divinedParameters =
+              diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(buffer));
           Assert.assertNotNull(divinedParameters);
           // TODO(andrewhayden) make *CERTAIN 100%( that strategy doesn't matter for level < 4.
           if (strategy == 1 && level <= 3) {
             // Strategy 1 produces identical output at levels 1, 2 and 3.
-            Assert.assertEquals(JreDeflateParameters.of(level, 0, nowrap), divinedParameters);
+            Assert.assertEquals(
+                /*expected=*/ JreDeflateParameters.of(level, 0, nowrap),
+                /*actual=*/ divinedParameters);
           } else if (strategy == 2) {
             // All levels are the same with strategy 2.
             // TODO: Assert only one test gets done for this, should be the first level always.

@@ -16,7 +16,6 @@ package com.google.archivepatcher.shared;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,7 +84,7 @@ public class DefaultDeflateCompatibilityWindowTest {
     // Manually scan for presence of the strategy-2 values, only set for compression level 1....
     Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, true)));
     Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, false)));
-    Assert.assertEquals(mappings.size(), 38);
+    Assert.assertEquals(38, mappings.size());
   }
 
   @Test

@@ -19,6 +19,11 @@ package com.google.archivepatcher.generator;
  */
 public enum RecommendationReason {
   /**
+   * The entry in the new file is compressed using deflate in a way that cannot be reliably
+   * reproduced. This could be caused by using an unsupported version of zlib.
+   */
+  DEFLATE_UNSUITABLE,
+  /**
    * The entry in the new file is compressed in a way that cannot be reliably reproduced (or one of
    * the entries is compressed using something other than deflate, but this is very uncommon).
    */

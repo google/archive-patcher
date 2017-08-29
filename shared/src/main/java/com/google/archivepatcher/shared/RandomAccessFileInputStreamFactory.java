@@ -18,11 +18,10 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * An implementation of {@link MultiViewInputStreamFactory} that produces instances of
- * {@link RandomAccessFileInputStream}.
+ * An implementation of {@link MultiViewInputStreamFactory} that produces instances of {@link
+ * RandomAccessFileInputStream}.
  */
-public class RandomAccessFileInputStreamFactory
-    implements MultiViewInputStreamFactory<RandomAccessFileInputStream> {
+public class RandomAccessFileInputStreamFactory implements MultiViewInputStreamFactory {
 
   /**
    * Argument for {@link RandomAccessFileInputStream#RandomAccessFileInputStream(File, long, long)}.

@@ -359,7 +359,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A1_LEVEL_6),
             false,
-            RecommendationReason.UNSUITABLE,
+            RecommendationReason.DEFLATE_UNSUITABLE,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }

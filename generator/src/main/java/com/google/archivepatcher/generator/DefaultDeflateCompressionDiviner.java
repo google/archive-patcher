@@ -14,10 +14,10 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.ByteArrayInputStreamFactory;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.MultiViewInputStreamFactory;
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.RandomAccessFileInputStreamFactory;
 import java.io.File;
 import java.io.IOException;
@@ -41,15 +41,13 @@ import java.util.zip.ZipException;
  */
 public class DefaultDeflateCompressionDiviner {
 
-  /**
-   * The levels to try for each strategy, in the order to attempt them.
-   */
-  private final Map<Integer, List<Integer>> levelsByStrategy = getLevelsByStrategy();
+  /** The levels to try for each strategy, in the order to attempt them. */
+  private static final Map<Integer, List<Integer>> LEVELS_BY_STRATEGY = getLevelsByStrategy();
 
   /**
    * A simple struct that contains a {@link MinimalZipEntry} describing a specific entry from a zip
    * archive along with an optional accompanying {@link JreDeflateParameters} describing the
-   * original compression settings that were used to generate the compressed data in that entry.
+   * original compression settings that were used to generate the compressed delivery in that entry.
    */
   public static class DivinationResult {
     /**
@@ -91,17 +89,30 @@ public class DefaultDeflateCompressionDiviner {
    * @see DivinationResult 
    */
   public List<DivinationResult> divineDeflateParameters(File archiveFile) throws IOException {
-    List<DivinationResult> results = new ArrayList<DivinationResult>();
+    List<DivinationResult> results = new ArrayList<>();
     for (MinimalZipEntry minimalZipEntry : MinimalZipArchive.listEntries(archiveFile)) {
       JreDeflateParameters divinedParameters = null;
       if (minimalZipEntry.isDeflateCompressed()) {
-        // TODO(andrewhayden): Reuse streams to avoid churning file descriptors
-        RandomAccessFileInputStreamFactory rafisFactory =
+        // TODO(pasc): Reuse streams to avoid churning file descriptors
+        MultiViewInputStreamFactory isFactory =
             new RandomAccessFileInputStreamFactory(
                 archiveFile,
                 minimalZipEntry.getFileOffsetOfCompressedData(),
                 minimalZipEntry.getCompressedSize());
-        divinedParameters = divineDeflateParameters(rafisFactory);
+
+        // Keep small entries in memory to avoid unnecessary file I/O.
+        if (minimalZipEntry.getCompressedSize() < (100 * 1024)) {
+          try (InputStream is = isFactory.newStream()) {
+            byte[] compressedBytes = new byte[(int) minimalZipEntry.getCompressedSize()];
+            is.read(compressedBytes);
+            divinedParameters =
+                divineDeflateParameters(new ByteArrayInputStreamFactory(compressedBytes));
+          } catch (Exception ignore) {
+            divinedParameters = null;
+          }
+        } else {
+          divinedParameters = divineDeflateParameters(isFactory);
+        }
       }
       results.add(new DivinationResult(minimalZipEntry, divinedParameters));
     }
@@ -121,124 +132,103 @@ public class DefaultDeflateCompressionDiviner {
    *
    * @return such a mapping
    */
-  protected Map<Integer, List<Integer>> getLevelsByStrategy() {
-    final Map<Integer, List<Integer>> levelsByStrategy = new HashMap<Integer, List<Integer>>();
+  private static Map<Integer, List<Integer>> getLevelsByStrategy() {
+    final Map<Integer, List<Integer>> levelsByStrategy = new HashMap<>();
     // The best order for the levels is simply the order of popularity in the world, which is
     // expected to be default (6), maximum compression (9), and fastest (1).
     // The rest of the levels are rarely encountered and their order is mostly irrelevant.
     levelsByStrategy.put(0, Collections.unmodifiableList(Arrays.asList(6, 9, 1, 4, 2, 3, 5, 7, 8)));
     levelsByStrategy.put(1, Collections.unmodifiableList(Arrays.asList(6, 9, 4, 5, 7, 8)));
+    // Strategy 2 does not have the concept of levels, so vacuously call it 1.
     levelsByStrategy.put(2, Collections.singletonList(1));
     return Collections.unmodifiableMap(levelsByStrategy);
   }
 
   /**
    * Determines the original {@link JreDeflateParameters} that were used to compress a given piece
-   * of deflated data.
+   * of deflated delivery.
+   *
    * @param compressedDataInputStreamFactory a {@link MultiViewInputStreamFactory} that can provide
-   * multiple independent {@link InputStream} instances for the compressed data; the streams
-   * produced must support {@link InputStream#mark(int)} and it is recommended that
-   * {@link RandomAccessFileInputStream} instances be provided for efficiency if a backing file is
-   * available. The stream will be reset for each recompression attempt that is required.
-   * @return the parameters that can be used to replicate the compressed data in the
-   * {@link DefaultDeflateCompatibilityWindow}, if any; otherwise <code>null</code>. Note that
-   * <code>null</code> is also returned in the case of <em>corrupt</em> zip data since, by
-   * definition, it cannot be replicated via any combination of normal deflate parameters.
-   * @throws IOException if there is a problem reading the data, i.e. if the file contents are
-   * changed while reading
+   *     multiple independent {@link InputStream} instances for the compressed delivery.
+   * @return the parameters that can be used to replicate the compressed delivery in the {@link
+   *     DefaultDeflateCompatibilityWindow}, if any; otherwise <code>null</code>. Note that <code>
+   *     null</code> is also returned in the case of <em>corrupt</em> zip delivery since, by definition,
+   *     it cannot be replicated via any combination of normal deflate parameters.
+   * @throws IOException if there is a problem reading the delivery, i.e. if the file contents are
+   *     changed while reading
    */
   public JreDeflateParameters divineDeflateParameters(
-      MultiViewInputStreamFactory<?> compressedDataInputStreamFactory) throws IOException {
-    InputStream compressedDataIn = compressedDataInputStreamFactory.newStream();
-    if (!compressedDataIn.markSupported()) {
-      try {
-        compressedDataIn.close();
-      } catch (Exception ignored) {
-        // Nothing to do.
-      }
-      throw new IllegalArgumentException("input stream must support mark(int)");
-    }
+      MultiViewInputStreamFactory compressedDataInputStreamFactory) throws IOException {
+    byte[] copyBuffer = new byte[32 * 1024];
+    // Iterate over all relevant combinations of nowrap, strategy and level.
+    for (boolean nowrap : new boolean[] {true, false}) {
+      Inflater inflater = new Inflater(nowrap);
+      Deflater deflater = new Deflater(0, nowrap);
 
-    // Record the input stream position to return to it each time a prediction is needed.
-    compressedDataIn.mark(0); // The argument to mark is ignored and irrelevant
-
-    // Make a copy of the stream for matching bytes of compressed input
-    InputStream matchingCompressedDataIn = compressedDataInputStreamFactory.newStream();
-    matchingCompressedDataIn.mark(0); // The argument to mark is ignored and irrelevant
-
-    byte[] copyBuffer = new byte[32768];
-    try {
-      // Iterate over all relevant combinations of nowrap, strategy and level.
-      for (boolean nowrap : new boolean[] {true, false}) {
-        Inflater inflater = new Inflater(nowrap);
-        Deflater deflater = new Deflater(0, nowrap);
-        for (int strategy : new int[] {0, 1, 2}) {
-          deflater.setStrategy(strategy);
-          // Strategy 2 does not have the concept of levels, so vacuously call it 1.
-          List<Integer> levelsToSearch = levelsByStrategy.get(strategy);
-          for (int levelIndex = 0; levelIndex < levelsToSearch.size(); levelIndex++) {
-            int level = levelsToSearch.get(levelIndex);
-            deflater.setLevel(level);
-            inflater.reset();
-            deflater.reset();
-            compressedDataIn.reset();
-            matchingCompressedDataIn.reset();
-            try {
-              if (matches(
-                  compressedDataIn, inflater, deflater, matchingCompressedDataIn, copyBuffer)) {
-                return JreDeflateParameters.of(level, strategy, nowrap);
-              }
-            } catch (ZipException e) {
-              // Parse error in input. The only possibilities are corruption or the wrong nowrap.
-              // Skip all remaining levels and strategies.
-              levelIndex = levelsToSearch.size();
-              strategy = 2;
+      strategy_loop:
+      for (int strategy : new int[] {0, 1, 2}) {
+        deflater.setStrategy(strategy);
+        for (int level : LEVELS_BY_STRATEGY.get(strategy)) {
+          deflater.setLevel(level);
+          inflater.reset();
+          deflater.reset();
+          try {
+            if (matches(inflater, deflater, compressedDataInputStreamFactory, copyBuffer)) {
+              end(inflater, deflater);
+              return JreDeflateParameters.of(level, strategy, nowrap);
             }
-          } // end of iteration on level
-        } // end of iteration on strategy
-      } // end of iteration on nowrap
-    } finally {
-      try {
-        compressedDataIn.close();
-      } catch (Exception ignored) {
-        // Don't care.
+          } catch (ZipException e) {
+            // Parse error in input. The only possibilities are corruption or the wrong nowrap.
+            // Skip all remaining levels and strategies.
+            break strategy_loop;
+          }
+        }
       }
-      try {
-        matchingCompressedDataIn.close();
-      } catch (Exception ignored) {
-        // Don't care.
-      }
+      end(inflater, deflater);
     }
     return null;
   }
 
   /**
-   * Check if the specified deflater will produce the same compressed data as the byte stream in
-   * compressedDataIn and returns true if so.
-   * @param compressedDataIn the stream of compressed data to read and reproduce
+   * Closes the (de)compressor and discards any unprocessed input. This method should be called when
+   * the (de)compressor is no longer being used. Once this method is called, the behavior
+   * De/Inflater is undefined.
+   *
+   * @see Inflater#end
+   * @see Deflater#end
+   */
+  private static void end(Inflater inflater, Deflater deflater) {
+    inflater.end();
+    deflater.end();
+  }
+
+  /**
+   * Checks whether the specified deflater will produce the same compressed delivery as the byte
+   * stream.
+   *
    * @param inflater the inflater for uncompressing the stream
    * @param deflater the deflater for recompressing the output of the inflater
-   * @param matchingStreamInput an independent but identical view of the bytes in compressedDataIn
    * @param copyBuffer buffer to use for copying bytes between the inflater and the deflater
    * @return true if the specified deflater reproduces the bytes in compressedDataIn, otherwise
-   * false
+   *     false
    * @throws IOException if anything goes wrong; in particular, {@link ZipException} is thrown if
-   * there is a problem parsing compressedDataIn
+   *     there is a problem parsing compressedDataIn
    */
   private boolean matches(
-      InputStream compressedDataIn,
       Inflater inflater,
       Deflater deflater,
-      InputStream matchingStreamInput,
+      MultiViewInputStreamFactory compressedDataInputStreamFactory,
       byte[] copyBuffer)
       throws IOException {
-    MatchingOutputStream matcher = new MatchingOutputStream(matchingStreamInput, 32768);
-    // This stream will deliberately be left open because closing it would close the
-    // underlying compressedDataIn stream, which is not desired.
-    InflaterInputStream inflaterIn = new InflaterInputStream(compressedDataIn, inflater, 32768);
-    DeflaterOutputStream out = new DeflaterOutputStream(matcher, deflater, 32768);
-    int numRead = 0;
-    try {
+
+    try (MatchingOutputStream matcher =
+            new MatchingOutputStream(
+                compressedDataInputStreamFactory.newStream(), copyBuffer.length);
+        InflaterInputStream inflaterIn =
+            new InflaterInputStream(
+                compressedDataInputStreamFactory.newStream(), inflater, copyBuffer.length);
+        DeflaterOutputStream out = new DeflaterOutputStream(matcher, deflater, copyBuffer.length)) {
+      int numRead;
       while ((numRead = inflaterIn.read(copyBuffer)) >= 0) {
         out.write(copyBuffer, 0, numRead);
       }
@@ -247,19 +237,13 @@ public class DefaultDeflateCompressionDiviner {
       out.finish();
       out.flush();
       matcher.expectEof();
-      // At this point the data in the compressed output stream was a perfect match for the
-      // data in the compressed input stream; the answer has been found.
+      // At this point the delivery in the compressed output stream was a perfect match for the
+      // delivery in the compressed input stream; the answer has been found.
       return true;
     } catch (MismatchException e) {
       // Fast-fail case when the compressed output stream doesn't match the compressed input
       // stream. These are not the parameters you're looking for!
-    } finally {
-      try {
-        out.close();
-      } catch (Exception ignored) {
-        // Don't care.
-      }
+      return false;
     }
-    return false;
   }
 }

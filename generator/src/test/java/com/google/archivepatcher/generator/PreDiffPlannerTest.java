@@ -435,11 +435,13 @@ public class PreDiffPlannerTest {
     // the plan for the new archive should be empty as well.
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
-    checkRecommendation(plan, new QualifiedRecommendation(
-        findEntry(oldFile, ENTRY_A_STORED),
-        findEntry(newFile, ENTRY_A_LEVEL_6),
-        Recommendation.UNCOMPRESS_NEITHER,
-        RecommendationReason.UNSUITABLE));
+    checkRecommendation(
+        plan,
+        new QualifiedRecommendation(
+            findEntry(oldFile, ENTRY_A_STORED),
+            findEntry(newFile, ENTRY_A_LEVEL_6),
+            Recommendation.UNCOMPRESS_NEITHER,
+            RecommendationReason.DEFLATE_UNSUITABLE));
   }
 
   @Test

@@ -15,17 +15,13 @@
 package com.google.archivepatcher.generator.bsdiff;
 
 import com.google.archivepatcher.generator.bsdiff.Matcher.NextMatch;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -254,6 +250,7 @@ public class BsDiffTest {
     Assert.assertArrayEquals(actualPatch, expectedPatch);
   }
 
+  @Test
   public void generatePatchOnRealCompiledBinaryTest() throws Exception {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     byte[] oldData = readTestData("minimalBlobA.bin");
