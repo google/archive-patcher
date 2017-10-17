@@ -16,15 +16,31 @@ apply plugin: 'java'
 apply plugin: 'maven-publish'
 
 version = 1.0
+
+subprojects.each { subproject -> evaluationDependsOn( subproject.path ) }
+jar.dependsOn subprojects.tasks['classes']
 jar {
     manifest {
         attributes 'Implementation-Title': 'Archive Patcher',
-            'Implementation-Version': version
+        	'Implementation-Version': version
     }
     baseName = project.name
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    subprojects.each { subproject ->
+        from subproject.sourceSets.main.output
     }
+    from "LICENSE"
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    manifest {
+        attributes 'Implementation-Title': 'Archive Patcher',
+        	'Implementation-Version': version
+    }
+    classifier = 'sources'
+    subprojects.each { subproject ->
+        from subproject.sourceSets.main.allSource
+    }
+    from "LICENSE"
 }
 
 dependencies {
@@ -37,6 +53,11 @@ allprojects {
     }
 }
 
+artifacts {
+    archives jar
+    archives sourcesJar
+}
+
 publishing {
     publications {
         MyPublication(MavenPublication) {
@@ -44,6 +65,8 @@ publishing {
             groupId 'com.google'
             artifactId 'archivepatcher'
             version '1.0'
+            artifact jar
+            artifact sourcesJar
         }
     }
 }
