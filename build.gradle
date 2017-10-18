@@ -22,7 +22,8 @@ jar.dependsOn subprojects.tasks['classes']
 jar {
     manifest {
         attributes 'Implementation-Title': 'Archive Patcher',
-        	'Implementation-Version': version
+        	'Implementation-Version': version,
+            'Implementation-Vendor': 'https://github.com/andrewhayden/archive-patcher'
     }
     baseName = project.name
     subprojects.each { subproject ->
@@ -34,13 +35,26 @@ jar {
 task sourcesJar(type: Jar, dependsOn: classes) {
     manifest {
         attributes 'Implementation-Title': 'Archive Patcher',
-        	'Implementation-Version': version
+        	'Implementation-Version': version,
+            'Implementation-Vendor': 'https://github.com/andrewhayden/archive-patcher'
     }
     classifier = 'sources'
     subprojects.each { subproject ->
         from subproject.sourceSets.main.allSource
     }
     from "LICENSE"
+}
+
+task javadocJar (type: Jar, dependsOn: javadoc) {
+    manifest {
+        attributes 'Implementation-Title': 'Archive Patcher',
+        	'Implementation-Version': version,
+            'Implementation-Vendor': 'https://github.com/andrewhayden/archive-patcher'
+    }
+    classifier = 'javadoc'
+    subprojects.each { subproject ->
+        from subproject.javadoc.destinationDir
+    }
 }
 
 dependencies {
@@ -56,6 +70,7 @@ allprojects {
 artifacts {
     archives jar
     archives sourcesJar
+    archives javadocJar
 }
 
 publishing {
@@ -64,9 +79,10 @@ publishing {
             from components.java
             groupId 'com.google'
             artifactId 'archivepatcher'
-            version '1.0'
+            version version
             artifact jar
             artifact sourcesJar
+            artifact javadocJar
         }
     }
 }
