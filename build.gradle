@@ -38,6 +38,7 @@ task sourcesJar(type: Jar, dependsOn: classes) {
         	'Implementation-Version': version,
             'Implementation-Vendor': 'https://github.com/andrewhayden/archive-patcher'
     }
+    baseName = project.name
     classifier = 'sources'
     subprojects.each { subproject ->
         from subproject.sourceSets.main.allSource
@@ -51,10 +52,12 @@ task javadocJar (type: Jar, dependsOn: javadoc) {
         	'Implementation-Version': version,
             'Implementation-Vendor': 'https://github.com/andrewhayden/archive-patcher'
     }
+    baseName = project.name
     classifier = 'javadoc'
     subprojects.each { subproject ->
         from subproject.javadoc.destinationDir
     }
+    from "LICENSE"
 }
 
 dependencies {
@@ -80,9 +83,6 @@ publishing {
             groupId 'com.google'
             artifactId 'archivepatcher'
             version version
-            artifact jar
-            artifact sourcesJar
-            artifact javadocJar
         }
     }
 }
