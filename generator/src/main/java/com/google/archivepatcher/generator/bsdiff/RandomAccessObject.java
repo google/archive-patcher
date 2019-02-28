@@ -23,7 +23,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
-// TODO(andrewhayden): clean up the implementations, we only really need two and they can be in
+// TODO: clean up the implementations, we only really need two and they can be in
 // separate files.
 
 /**
@@ -91,7 +91,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
      * @throws IOException if unable to open the file for the specified mode
      * @throws IllegalArgumentException if the size of the file is too great
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     public RandomAccessFileObject(final File tempFile, final String mode, boolean deleteFileOnClose)
         throws IOException {
@@ -112,7 +112,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
      * Close the associated file. Also delete the associated temp file if specified in the
      * constructor. This should be called on every RandomAccessObject when it is no longer needed.
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @Override
     public void close() throws IOException {
@@ -379,7 +379,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
      * @throws IOException if unable to open the file for the specified mode
      * @throws IllegalArgumentException if the size of the file is too great
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @SuppressWarnings("resource") // RandomAccessFile deliberately left open
     public RandomAccessMmapObject(final String tempFileName, final String mode, long length)
@@ -429,7 +429,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
      * @throws IOException if unable to open the file for the specified mode
      * @throws IllegalArgumentException if the size of the file is too great
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @SuppressWarnings("resource") // RandomAccessFile deliberately left open
     public RandomAccessMmapObject(final File tempFile, final String mode)

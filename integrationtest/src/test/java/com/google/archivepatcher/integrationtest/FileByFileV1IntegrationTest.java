@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
@@ -31,14 +32,20 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
-/**
- * High-level integration tests that fully exercise the code without any mocking or subclassing.
- */
-@RunWith(JUnit4.class)
+/** High-level integration tests that fully exercise the code without any mocking or subclassing. */
+@RunWith(Parameterized.class)
 @SuppressWarnings("javadoc")
 public class FileByFileV1IntegrationTest {
+  @Parameters
+  public static Collection<Object[]> data() {
+    return Arrays.asList(new Object[][] {{true}, {false}});
+  }
+
+  // Indicates whether native BsDiff should be used
+  private boolean useNativeBsDiff;
 
   // Inputs to the patching system
   private File tempDir = null;
@@ -114,6 +121,10 @@ public class FileByFileV1IntegrationTest {
   private static final UnitTestZipEntry NEW_ENTRY13 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry13B", 0, "entry 13B", null);
 
+  FileByFileV1IntegrationTest(boolean useNativeBsDiff) {
+    this.useNativeBsDiff = useNativeBsDiff;
+  }
+
   @Before
   public void setUp() throws IOException {
     oldFile = File.createTempFile("fbf_test", "old");
@@ -182,7 +193,7 @@ public class FileByFileV1IntegrationTest {
     // Generate the patch.
     ByteArrayOutputStream patchBuffer = new ByteArrayOutputStream();
     FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
-    generator.generateDelta(oldFile, newFile, patchBuffer);
+    generator.generateDelta(oldFile, newFile, patchBuffer, useNativeBsDiff);
 
     // Apply the patch.
     FileByFileV1DeltaApplier applier = new FileByFileV1DeltaApplier(tempDir);

@@ -45,10 +45,7 @@ public class ByteArrayHolder {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + Arrays.hashCode(data);
-    return result;
+    return Arrays.hashCode(data);
   }
 
   @Override
@@ -57,7 +54,6 @@ public class ByteArrayHolder {
     if (obj == null) return false;
     if (getClass() != obj.getClass()) return false;
     ByteArrayHolder other = (ByteArrayHolder) obj;
-    if (!Arrays.equals(data, other.data)) return false;
-    return true;
+    return Arrays.equals(data, other.data);
   }
 }

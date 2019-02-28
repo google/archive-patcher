@@ -38,7 +38,7 @@ public class BsDiffDeltaApplier implements DeltaApplier {
       try {
         oldBlobRaf.close();
       } catch (Exception ignored) {
-        // Nothing
+        // Close read-only file quietly.
       }
     }
   }

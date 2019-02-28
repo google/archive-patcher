@@ -220,4 +220,14 @@ public class RandomAccessFileInputStream extends InputStream {
   public long length() {
     return fileLength;
   }
+
+  /**
+   * Ensures that {@link #close()} is called when there are no more references to this stream.
+   *
+   * @see #close()
+   */
+  @Override
+  protected void finalize() throws IOException {
+    close();
+  }
 }

@@ -34,4 +34,19 @@ public interface DeltaGenerator {
    */
   public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
       throws IOException, InterruptedException;
+
+  /**
+   * Generates a delta in deltaOut that can be applied to oldBlob to produce newBlob.
+   *
+   * @param oldBlob the old blob
+   * @param newBlob the new blob
+   * @param deltaOut the stream to write the delta to
+   * @param generateDeltaNatively indicates whether to use the native implementation of BsDiff
+   * @throws IOException in the event of an I/O error reading the input files or writing to the
+   *     delta output stream
+   * @throws InterruptedException if any thread has interrupted the current thread
+   */
+  public void generateDelta(
+      File oldBlob, File newBlob, OutputStream deltaOut, boolean generateDeltaNatively)
+      throws IOException, InterruptedException;
 }

@@ -85,9 +85,8 @@ public class DeltaFriendlyFile {
     }
     long lastReadOffset = 0;
     RandomAccessFileInputStream oldFileRafis = null;
-    PartiallyUncompressingPipe filteredOut =
-        new PartiallyUncompressingPipe(deltaFriendlyOut, copyBufferSize);
-    try {
+    try (PartiallyUncompressingPipe filteredOut =
+        new PartiallyUncompressingPipe(deltaFriendlyOut, copyBufferSize)) {
       oldFileRafis = new RandomAccessFileInputStream(file);
       for (TypedRange<T> rangeToUncompress : rangesToUncompress) {
         long gap = rangeToUncompress.getOffset() - lastReadOffset;
@@ -100,7 +99,7 @@ public class DeltaFriendlyFile {
         // Now uncompress the range.
         oldFileRafis.setRange(rangeToUncompress.getOffset(), rangeToUncompress.getLength());
         long inverseRangeStart = filteredOut.getNumBytesWritten();
-        // TODO(andrewhayden): Support nowrap=false here? Never encountered in practice.
+        // TODO: Support nowrap=false here? Never encountered in practice.
         // This would involve catching the ZipException, checking if numBytesWritten is still zero,
         // resetting the stream and trying again.
         filteredOut.pipe(oldFileRafis, PartiallyUncompressingPipe.Mode.UNCOMPRESS_NOWRAP);
@@ -122,16 +121,7 @@ public class DeltaFriendlyFile {
         filteredOut.pipe(oldFileRafis, PartiallyUncompressingPipe.Mode.COPY);
       }
     } finally {
-      try {
-        oldFileRafis.close();
-      } catch (Exception ignored) {
-        // Nothing
-      }
-      try {
-        filteredOut.close();
-      } catch (Exception ignored) {
-        // Nothing
-      }
+      Closeables.closeQuitely(oldFileRafis);
     }
     return inverseRanges;
   }

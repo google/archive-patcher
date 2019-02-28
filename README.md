@@ -392,6 +392,3 @@ Additionally, we wish to acknowledge the following, also in alphabetical order:
 * N. Jesper Larsson and Kunihiko Sadakane - for their paper "[Faster Suffix Sorting](http://www.larsson.dogma.net/ssrev-tr.pdf)", basis of the quick suffix sort algorithm
 * PKWARE, Inc. - creators and stewards of the [zip specification](https://support.pkware.com/display/PKZIP/APPNOTE)
 * Yuta Mori - for the C implementation of the "div suffix sort" ([libdivsufsort](http://code.google.com/p/libdivsufsort/))
-
-# Contact
-archive-patcher-contacts@google.com

@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -114,7 +113,7 @@ public class FileByFileTool extends AbstractTool {
     Long totalRecompressionLimit = null;
     Long deltaFriendlyOldBlobSizeLimit = null;
     Mode mode = null;
-    Iterator<String> argIterator = new LinkedList<String>(Arrays.asList(args)).iterator();
+    Iterator<String> argIterator = new ArrayList<String>(Arrays.asList(args)).iterator();
     while (argIterator.hasNext()) {
       String arg = argIterator.next();
       if ("--old".equals(arg)) {
@@ -198,7 +197,8 @@ public class FileByFileTool extends AbstractTool {
             recommendationModifiers.toArray(new RecommendationModifier[] {}));
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
-      generator.generateDelta(oldFile, newFile, bufferedPatchOut);
+      generator.generateDelta(
+          oldFile, newFile, bufferedPatchOut, /* generateDeltaNatively= */ false);
       bufferedPatchOut.flush();
     }
   }

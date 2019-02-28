@@ -34,7 +34,7 @@ public interface RandomAccessObjectFactory {
   /**
    * A factory that produces {@link RandomAccessFileObject} instances backed by temp files.
    */
-  // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+  // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
   public static final class RandomAccessFileObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
@@ -55,7 +55,7 @@ public interface RandomAccessObjectFactory {
      * explicitly be managed (deleted) by the caller, as long as the caller ensures
      * {@link RandomAccessObject#close()} is called when the object is no longer needed.
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @Override
     public RandomAccessObject create(int size) throws IOException {
@@ -78,7 +78,7 @@ public interface RandomAccessObjectFactory {
   /**
    * A factory that produces {@link RandomAccessMmapObject} instances backed by temp files..
    */
-  // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+  // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
   public static final class RandomAccessMmapObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
@@ -99,7 +99,7 @@ public interface RandomAccessObjectFactory {
      * explicitly be managed (deleted) by the caller, as long as the caller ensures
      * {@link RandomAccessObject#close()} is called when the object is no longer needed.
      */
-    // TODO(hartmanng): rethink the handling of these temp files. It's confusing and shouldn't
+    // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @Override
     public RandomAccessObject create(int size) throws IOException {

@@ -187,7 +187,8 @@ public class PatchExplainer {
         // Generate and compress a delta.
         try (FileOutputStream deltaOut = new FileOutputStream(deltaTemp.file);
             BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaOut)) {
-          deltaGenerator.generateDelta(oldTemp.file, newTemp.file, bufferedDeltaOut);
+          deltaGenerator.generateDelta(
+              oldTemp.file, newTemp.file, bufferedDeltaOut, /* generateDeltaNatively= */ false);
           bufferedDeltaOut.flush();
           long compressedDeltaSize =
               getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);

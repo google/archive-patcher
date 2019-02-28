@@ -20,7 +20,7 @@ import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 
-// TODO(andrewhayden) clean up the various generatePatch(...) methods, there are too many.
+// TODO clean up the various generatePatch(...) methods, there are too many.
 
 /**
  * A helper class that handles the main BsDiff I/O and patch generation, by calling into the main
@@ -67,7 +67,7 @@ public class BsDiffPatchWriter {
     oldData.seek(oldPosition);
     // Write diff data
     for (int i = 0; i < diffLength; ++i) {
-      // TODO(hartmanng): test using a small buffer to insulate read() calls (and write() for that
+      // TODO: test using a small buffer to insulate read() calls (and write() for that
       // matter).
       outputStream.write(newData.readUnsignedByte() - oldData.readUnsignedByte());
     }
@@ -78,7 +78,7 @@ public class BsDiffPatchWriter {
       newData.seek(newPosition + diffLength);
       // Write extra data
       for (int i = 0; i < extraLength; ++i) {
-        // TODO(hartmanng): same as above - test buffering readByte().
+        // TODO: same as above - test buffering readByte().
         outputStream.write(newData.readByte());
       }
     }

@@ -161,7 +161,7 @@ public class MinimalZipEntry {
    * character encoding, but this tool doesn't support it as the use is not standardized.
    * @return as described
    */
-  // TODO(andrewhayden): Support EFS
+  // TODO: Support EFS
   public String getFileName() {
     String charsetName = generalPurposeFlagBit11 ? "UTF8" : "Cp437";
     try {

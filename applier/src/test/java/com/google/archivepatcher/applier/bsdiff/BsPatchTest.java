@@ -173,7 +173,8 @@ public class BsPatchTest {
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad signature", actual);
+      Assert.assertEquals(
+          "bad signature: found WOOOOOO/BSDIFF43 should've been ENDSLEY/BSDIFF43", actual);
     }
   }
   

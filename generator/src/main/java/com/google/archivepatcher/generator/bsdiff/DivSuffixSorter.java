@@ -34,7 +34,7 @@ import java.io.IOException;
  */
 public final class DivSuffixSorter implements SuffixSorter {
 
-  // TODO(admo): Clean up the code, variable names and documentation of this class
+  // TODO: Clean up the code, variable names and documentation of this class
 
   private static final int ALPHABET_SIZE = 256;
   private static final int BUCKET_A_SIZE = ALPHABET_SIZE;

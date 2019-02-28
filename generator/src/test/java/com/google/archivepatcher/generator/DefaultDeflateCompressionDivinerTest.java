@@ -38,10 +38,6 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class DefaultDeflateCompressionDivinerTest {
-  /**
-   * The object under test.
-   */
-  private DefaultDeflateCompressionDiviner diviner = null;
 
   /**
    * Test delivery written to the file.
@@ -51,7 +47,6 @@ public class DefaultDeflateCompressionDivinerTest {
   @Before
   public void setup() {
     testData = new DefaultDeflateCompatibilityWindow().getCorpus();
-    diviner = new DefaultDeflateCompressionDiviner();
   }
 
   /**
@@ -73,7 +68,9 @@ public class DefaultDeflateCompressionDivinerTest {
   @Test
   public void testDivineDeflateParameters_JunkData() throws IOException {
     final byte[] junk = new byte[] {0, 1, 2, 3, 4};
-    Assert.assertNull(diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(junk)));
+    Assert.assertNull(
+        DefaultDeflateCompressionDiviner.divineDeflateParameters(
+            new ByteArrayInputStreamFactory(junk)));
   }
 
   @Test
@@ -84,9 +81,10 @@ public class DefaultDeflateCompressionDivinerTest {
           JreDeflateParameters trueParameters = JreDeflateParameters.of(level, strategy, nowrap);
           final byte[] buffer = deflate(trueParameters);
           JreDeflateParameters divinedParameters =
-              diviner.divineDeflateParameters(new ByteArrayInputStreamFactory(buffer));
+              DefaultDeflateCompressionDiviner.divineDeflateParameters(
+                  new ByteArrayInputStreamFactory(buffer));
           Assert.assertNotNull(divinedParameters);
-          // TODO(andrewhayden) make *CERTAIN 100%( that strategy doesn't matter for level < 4.
+          // TODO make *CERTAIN 100%( that strategy doesn't matter for level < 4.
           if (strategy == 1 && level <= 3) {
             // Strategy 1 produces identical output at levels 1, 2 and 3.
             Assert.assertEquals(
@@ -111,7 +109,8 @@ public class DefaultDeflateCompressionDivinerTest {
     tempFile.deleteOnExit();
     try {
       UnitTestZipArchive.saveTestZip(tempFile);
-      List<DivinationResult> results = diviner.divineDeflateParameters(tempFile);
+      List<DivinationResult> results =
+          DefaultDeflateCompressionDiviner.divineDeflateParameters(tempFile);
       Assert.assertEquals(UnitTestZipArchive.allEntriesInFileOrder.size(), results.size());
       for (int x = 0; x < results.size(); x++) {
         UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);

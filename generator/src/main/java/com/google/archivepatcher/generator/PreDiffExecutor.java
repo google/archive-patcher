@@ -179,13 +179,13 @@ public class PreDiffExecutor {
    */
   private List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(PreDiffPlan preDiffPlan)
       throws IOException {
-    try (FileOutputStream out = new FileOutputStream(deltaFriendlyOldFile);
-        BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
+    try (BufferedOutputStream bufferedOut =
+        new BufferedOutputStream(new FileOutputStream(deltaFriendlyOldFile))) {
       DeltaFriendlyFile.generateDeltaFriendlyFile(
           preDiffPlan.getOldFileUncompressionPlan(), originalOldFile, bufferedOut);
     }
-    try (FileOutputStream out = new FileOutputStream(deltaFriendlyNewFile);
-        BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
+    try (BufferedOutputStream bufferedOut =
+        new BufferedOutputStream(new FileOutputStream(deltaFriendlyNewFile))) {
       return DeltaFriendlyFile.generateDeltaFriendlyFile(
           preDiffPlan.getNewFileUncompressionPlan(), originalNewFile, bufferedOut);
     }
@@ -200,20 +200,22 @@ public class PreDiffExecutor {
    * @throws IOException if anything goes wrong
    */
   private PreDiffPlan generatePreDiffPlan() throws IOException {
+    List<MinimalZipEntry> originalOldArchiveZipEntries =
+        MinimalZipArchive.listEntries(originalOldFile);
     Map<ByteArrayHolder, MinimalZipEntry> originalOldArchiveZipEntriesByPath =
-        new HashMap<ByteArrayHolder, MinimalZipEntry>();
-    Map<ByteArrayHolder, MinimalZipEntry> originalNewArchiveZipEntriesByPath =
-        new HashMap<ByteArrayHolder, MinimalZipEntry>();
-    Map<ByteArrayHolder, JreDeflateParameters> originalNewArchiveJreDeflateParametersByPath =
-        new HashMap<ByteArrayHolder, JreDeflateParameters>();
-
-    for (MinimalZipEntry zipEntry : MinimalZipArchive.listEntries(originalOldFile)) {
+        new HashMap<ByteArrayHolder, MinimalZipEntry>(originalOldArchiveZipEntries.size());
+    for (MinimalZipEntry zipEntry : originalOldArchiveZipEntries) {
       ByteArrayHolder key = new ByteArrayHolder(zipEntry.getFileNameBytes());
       originalOldArchiveZipEntriesByPath.put(key, zipEntry);
     }
 
-    DefaultDeflateCompressionDiviner diviner = new DefaultDeflateCompressionDiviner();
-    for (DivinationResult divinationResult : diviner.divineDeflateParameters(originalNewFile)) {
+    List<DivinationResult> divinationResults =
+        DefaultDeflateCompressionDiviner.divineDeflateParameters(originalNewFile);
+    Map<ByteArrayHolder, MinimalZipEntry> originalNewArchiveZipEntriesByPath =
+        new HashMap<ByteArrayHolder, MinimalZipEntry>(divinationResults.size());
+    Map<ByteArrayHolder, JreDeflateParameters> originalNewArchiveJreDeflateParametersByPath =
+        new HashMap<ByteArrayHolder, JreDeflateParameters>(divinationResults.size());
+    for (DivinationResult divinationResult : divinationResults) {
       ByteArrayHolder key =
           new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
       originalNewArchiveZipEntriesByPath.put(key, divinationResult.minimalZipEntry);

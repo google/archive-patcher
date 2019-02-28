@@ -112,6 +112,7 @@ public class FileByFileV1DeltaApplier implements DeltaApplier {
 
   /**
    * Writes the delta-friendly old blob to temporary storage.
+   *
    * @param plan the plan to use for uncompressing
    * @param oldBlob the blob to turn into a delta-friendly blob
    * @param deltaFriendlyOldBlob where to write the blob
@@ -119,23 +120,15 @@ public class FileByFileV1DeltaApplier implements DeltaApplier {
    */
   private void writeDeltaFriendlyOldBlob(
       PatchApplyPlan plan, File oldBlob, File deltaFriendlyOldBlob) throws IOException {
-    RandomAccessFileOutputStream deltaFriendlyOldFileOut = null;
-    try {
-      deltaFriendlyOldFileOut =
-          new RandomAccessFileOutputStream(
-              deltaFriendlyOldBlob, plan.getDeltaFriendlyOldFileSize());
+    try (RandomAccessFileOutputStream deltaFriendlyOldFileOut =
+        new RandomAccessFileOutputStream(
+            deltaFriendlyOldBlob, plan.getDeltaFriendlyOldFileSize())) {
       DeltaFriendlyFile.generateDeltaFriendlyFile(
           plan.getOldFileUncompressionPlan(),
           oldBlob,
           deltaFriendlyOldFileOut,
           false,
           DEFAULT_COPY_BUFFER_SIZE);
-    } finally {
-      try {
-        deltaFriendlyOldFileOut.close();
-      } catch (Exception ignored) {
-        // Nothing
-      }
     }
   }
 

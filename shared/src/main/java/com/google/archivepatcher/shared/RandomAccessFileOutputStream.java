@@ -30,6 +30,8 @@ public class RandomAccessFileOutputStream extends OutputStream {
    */
   private final RandomAccessFile raf;
 
+  private volatile boolean closed = false;
+
   /**
    * Constructs a new instance that will immediately open the specified file for writing and set
    * the length to the specified value.
@@ -79,8 +81,22 @@ public class RandomAccessFileOutputStream extends OutputStream {
   }
 
   @Override
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
+    if (closed) {
+      return;
+    }
+    closed = true;
     flush();
     raf.close();
+  }
+
+  /**
+   * Ensures that {@link #close()} is called when there are no more references to this stream.
+   *
+   * @see #close()
+   */
+  @Override
+  protected void finalize() throws IOException {
+    close();
   }
 }

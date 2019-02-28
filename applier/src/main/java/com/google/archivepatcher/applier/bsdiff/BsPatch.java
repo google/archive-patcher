@@ -111,12 +111,13 @@ public class BsPatch {
     try {
       readFully(patchData, signatureBuffer, 0, signatureBuffer.length);
     } catch (IOException e) {
-      throw new PatchFormatException("truncated signature");
+      throw new PatchFormatException("truncated signature", e);
     }
 
     String signature = new String(signatureBuffer, 0, signatureBuffer.length, "US-ASCII");
     if (!SIGNATURE.equals(signature)) {
-      throw new PatchFormatException("bad signature");
+      throw new PatchFormatException(
+          String.format("bad signature: found %s should've been %s", signature, SIGNATURE));
     }
 
     // Sanity-check: ensure a-priori knowledge matches patch expectations
@@ -150,7 +151,7 @@ public class BsPatch {
       final long diffSegmentLength = readBsdiffLong(patchData);
 
       // 2. |copySegmentLength| defines a number of identical bytes that can be copied from
-      //    |oldData| to |newData|. If zero, no identical bytes are copied in this operation.
+      //    |patchData| to |newData|. If zero, no identical bytes are copied in this operation.
       final long copySegmentLength = readBsdiffLong(patchData);
 
       // 3. |offsetToNextInput| defines a relative offset to the next position in |oldData| to

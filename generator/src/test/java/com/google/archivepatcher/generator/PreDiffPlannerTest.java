@@ -251,8 +251,8 @@ public class PreDiffPlannerTest {
       originalOldArchiveZipEntriesByPath.put(key, zipEntry);
     }
 
-    DefaultDeflateCompressionDiviner diviner = new DefaultDeflateCompressionDiviner();
-    for (DivinationResult divinationResult : diviner.divineDeflateParameters(newFile)) {
+    for (DivinationResult divinationResult :
+        DefaultDeflateCompressionDiviner.divineDeflateParameters(newFile)) {
       ByteArrayHolder key = new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
       originalNewArchiveZipEntriesByPath.put(key, divinationResult.minimalZipEntry);
       originalNewArchiveJreDeflateParametersByPath.put(key, divinationResult.divinedParameters);
