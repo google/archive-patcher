@@ -30,10 +30,10 @@ public class SamplePatchApplier {
       System.exit(-1);
     }
     File oldFile = new File(args[0]); // must be a zip archive
-    Inflater uncompressor = new Inflater(true);
+    Inflater uncompressor = new Inflater(/* nowrap= */ true);
     try (FileInputStream compressedPatchIn = new FileInputStream(args[1]);
         InflaterInputStream patchIn =
-            new InflaterInputStream(compressedPatchIn, uncompressor, 32768);
+            new InflaterInputStream(compressedPatchIn, uncompressor, /* size= */ 32768);
         FileOutputStream newFileOut = new FileOutputStream(args[2])) {
       new FileByFileV1DeltaApplier().applyDelta(oldFile, patchIn, newFileOut);
     } finally {

@@ -30,10 +30,10 @@ public class SamplePatchGenerator {
     }
     File oldFile = new File(args[0]); // must be a zip archive
     File newFile = new File(args[1]); // must be a zip archive
-    Deflater compressor = new Deflater(9, true); // to compress the patch
+    Deflater compressor = new Deflater(/* level= */ 9, /* nowrap= */ true); // to compress the patch
     try (FileOutputStream patchOut = new FileOutputStream(args[2]);
         DeflaterOutputStream compressedPatchOut =
-            new DeflaterOutputStream(patchOut, compressor, 32768)) {
+            new DeflaterOutputStream(patchOut, compressor, /* size= */ 32768)) {
       new FileByFileV1DeltaGenerator()
           .generateDelta(oldFile, newFile, compressedPatchOut, /* generateDeltaNatively= */ false);
       compressedPatchOut.finish();
