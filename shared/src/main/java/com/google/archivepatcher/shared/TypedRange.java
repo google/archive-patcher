@@ -102,11 +102,6 @@ public class TypedRange<T> implements Comparable<TypedRange<T>> {
 
   @Override
   public int compareTo(TypedRange<T> other) {
-    if (getOffset() < other.getOffset()) {
-      return -1;
-    } else if (getOffset() > other.getOffset()) {
-      return 1;
-    }
-    return 0;
+    return Long.compare(getOffset(), other.getOffset());
   }
 }

@@ -15,7 +15,6 @@
 package com.google.archivepatcher.generator.similarity;
 
 import com.google.archivepatcher.generator.MinimalZipEntry;
-
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
@@ -45,11 +44,8 @@ public class Crc32SimilarityFinder extends SimilarityFinder {
     super(baseArchive, baseEntries);
     for (MinimalZipEntry oldEntry : baseEntries) {
       long crc32 = oldEntry.getCrc32OfUncompressedData();
-      List<MinimalZipEntry> entriesForCrc32 = baseEntriesByCrc32.get(crc32);
-      if (entriesForCrc32 == null) {
-        entriesForCrc32 = new LinkedList<>();
-        baseEntriesByCrc32.put(crc32, entriesForCrc32);
-      }
+      List<MinimalZipEntry> entriesForCrc32 =
+          baseEntriesByCrc32.computeIfAbsent(crc32, k -> new LinkedList<>());
       entriesForCrc32.add(oldEntry);
     }
   }
