@@ -84,18 +84,13 @@ public class TotalRecompressionLimiter implements RecommendationModifier {
   public List<QualifiedRecommendation> getModifiedRecommendations(
       File oldFile, File newFile, List<QualifiedRecommendation> originalRecommendations) {
 
-    List<QualifiedRecommendation> sorted =
-        new ArrayList<QualifiedRecommendation>(originalRecommendations);
-    Collections.sort(sorted, COMPARATOR);
-    Collections.reverse(sorted);
+    List<QualifiedRecommendation> sorted = new ArrayList<>(originalRecommendations);
+    Collections.sort(sorted, Collections.reverseOrder(COMPARATOR));
 
     List<QualifiedRecommendation> result = new ArrayList<>(sorted.size());
     long recompressibleBytesRemaining = maxBytesToRecompress;
     for (QualifiedRecommendation originalRecommendation : sorted) {
-      if (!originalRecommendation.getRecommendation().uncompressNewEntry) {
-        // Keep the original recommendation, no need to track size since it won't be uncompressed.
-        result.add(originalRecommendation);
-      } else {
+      if (originalRecommendation.getRecommendation().uncompressNewEntry) {
         long bytesToRecompress = originalRecommendation.getNewEntry().getUncompressedSize();
         if (recompressibleBytesRemaining - bytesToRecompress >= 0) {
           // Keep the original recommendation, but also subtract from the remaining space.
@@ -110,6 +105,9 @@ public class TotalRecompressionLimiter implements RecommendationModifier {
                   Recommendation.UNCOMPRESS_NEITHER,
                   RecommendationReason.RESOURCE_CONSTRAINED));
         }
+      } else {
+        // Keep the original recommendation, no need to track size since it won't be uncompressed.
+        result.add(originalRecommendation);
       }
     }
     return result;
