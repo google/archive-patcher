@@ -52,7 +52,6 @@ public class QualifiedRecommendation {
       MinimalZipEntry newEntry,
       Recommendation recommendation,
       RecommendationReason reason) {
-    super();
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
     this.recommendation = recommendation;
