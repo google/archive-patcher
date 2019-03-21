@@ -97,12 +97,14 @@ public class DeltaFriendlyOldBlobSizeLimiter implements RecommendationModifier {
     return result;
   }
 
+  /**
+   * Returns a copy of the given {@code originalRecommendations} ordered descending by the
+   * uncompressed size of the old entry.
+   */
   private static List<QualifiedRecommendation> sortRecommendations(
       List<QualifiedRecommendation> originalRecommendations) {
-    List<QualifiedRecommendation> sorted =
-        new ArrayList<QualifiedRecommendation>(originalRecommendations);
-    Collections.sort(sorted, COMPARATOR);
-    Collections.reverse(sorted);
+    List<QualifiedRecommendation> sorted = new ArrayList<>(originalRecommendations);
+    Collections.sort(sorted, Collections.reverseOrder(COMPARATOR));
     return sorted;
   }
 
