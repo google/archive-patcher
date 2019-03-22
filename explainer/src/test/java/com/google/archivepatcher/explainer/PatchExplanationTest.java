@@ -15,13 +15,7 @@
 package com.google.archivepatcher.explainer;
 
 import com.google.archivepatcher.generator.ByteArrayHolder;
-import com.google.archivepatcher.generator.RecommendationReason;
-
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -30,6 +24,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link PatchExplanation}.
@@ -49,13 +47,16 @@ public final class PatchExplanationTest {
   private static final EntryExplanation EXPLANATION_2_NEW =
       makeExplanation("/path2", true, null, 2000);
   private static final EntryExplanation EXPLANATION_3_CHANGED_NOT_FREE =
-      makeExplanation("/path3", false, RecommendationReason.COMPRESSED_BYTES_CHANGED, 3000);
+      makeExplanation(
+          "/path3", false, UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED, 3000);
   private static final EntryExplanation EXPLANATION_4_CHANGED_NOT_FREE =
-      makeExplanation("/path4", false, RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED, 4000);
+      makeExplanation(
+          "/path4", false, UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED, 4000);
   private static final EntryExplanation EXPLANATION_5_CHANGED_BUT_FREE =
-      makeExplanation("/path5", false, RecommendationReason.COMPRESSED_BYTES_CHANGED, 0);
+      makeExplanation("/path5", false, UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED, 0);
   private static final EntryExplanation EXPLANATION_6_UNCHANGED =
-      makeExplanation("/path6", false, RecommendationReason.COMPRESSED_BYTES_IDENTICAL, 0);
+      makeExplanation(
+          "/path6", false, UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL, 0);
 
   private static final List<EntryExplanation> ALL_EXPLANATIONS =
       Collections.unmodifiableList(
@@ -86,11 +87,12 @@ public final class PatchExplanationTest {
   private static EntryExplanation makeExplanation(
       String path,
       boolean isNew,
-      RecommendationReason reasonIncludedIfNotNew,
+      UncompressionOptionExplanation explanationIncludedIfNotNew,
       long compressedSizeInPatch) {
     try {
       ByteArrayHolder pathHolder = new ByteArrayHolder(path.getBytes("UTF-8"));
-      return new EntryExplanation(pathHolder, isNew, reasonIncludedIfNotNew, compressedSizeInPatch);
+      return new EntryExplanation(
+          pathHolder, isNew, explanationIncludedIfNotNew, compressedSizeInPatch);
     } catch (UnsupportedEncodingException e) {
       throw new RuntimeException("System doesn't support UTF-8", e);
     }

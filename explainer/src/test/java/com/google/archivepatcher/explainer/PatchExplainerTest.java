@@ -18,8 +18,8 @@ import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.MinimalZipArchive;
 import com.google.archivepatcher.generator.MinimalZipEntry;
-import com.google.archivepatcher.generator.RecommendationReason;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
@@ -174,7 +174,10 @@ public class PatchExplainerTest {
 
     EntryExplanation expected =
         new EntryExplanation(
-            path(ENTRY_A1_LEVEL_6), false, RecommendationReason.COMPRESSED_BYTES_IDENTICAL, 0);
+            path(ENTRY_A1_LEVEL_6),
+            false,
+            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL,
+            0);
     checkExplanation(explanations, expected);
   }
 
@@ -191,7 +194,10 @@ public class PatchExplainerTest {
     // Additionally no diffing or compression should be performed.
     EntryExplanation expected =
         new EntryExplanation(
-            path(ENTRY_A1_LEVEL_9), false, RecommendationReason.COMPRESSED_BYTES_CHANGED, 0L);
+            path(ENTRY_A1_LEVEL_9),
+            false,
+            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
+            0L);
     checkExplanation(explanations, expected);
   }
 
@@ -215,7 +221,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A2_LEVEL_9),
             false,
-            RecommendationReason.COMPRESSED_BYTES_CHANGED,
+            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -245,7 +251,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A2_LEVEL_9),
             false,
-            RecommendationReason.RESOURCE_CONSTRAINED,
+            UncompressionOptionExplanation.RESOURCE_CONSTRAINED,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -263,7 +269,10 @@ public class PatchExplainerTest {
     // performed.
     EntryExplanation expected =
         new EntryExplanation(
-            path(ENTRY_A1_STORED), false, RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED, 0L);
+            path(ENTRY_A1_STORED),
+            false,
+            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED,
+            0L);
     checkExplanation(explanations, expected);
   }
 
@@ -286,7 +295,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A2_STORED),
             false,
-            RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED,
+            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -309,7 +318,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A1_STORED),
             false,
-            RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED,
+            UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -332,7 +341,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A1_LEVEL_6),
             false,
-            RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED,
+            UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -366,7 +375,7 @@ public class PatchExplainerTest {
         new EntryExplanation(
             path(ENTRY_A1_LEVEL_6),
             false,
-            RecommendationReason.DEFLATE_UNSUITABLE,
+            UncompressionOptionExplanation.DEFLATE_UNSUITABLE,
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -384,8 +393,8 @@ public class PatchExplainerTest {
     EntryExplanation expected =
         new EntryExplanation(
             path(ENTRY_B_LEVEL_6),
-            true, // isNew
-            null, // recommendation reason (null because the file is new)
+            /* isNew= */ true, // isNew
+            /* explanationIncludedIfNotNew= */ null, // null because the file is new
             FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
@@ -401,7 +410,8 @@ public class PatchExplainerTest {
     EntryExplanation actual = explanations.get(0);
     Assert.assertEquals(expected.getPath(), actual.getPath());
     Assert.assertEquals(expected.isNew(), actual.isNew());
-    Assert.assertEquals(expected.getReasonIncludedIfNotNew(), actual.getReasonIncludedIfNotNew());
+    Assert.assertEquals(
+        expected.getExplanationIncludedIfNotNew(), actual.getExplanationIncludedIfNotNew());
     Assert.assertEquals(expected.getCompressedSizeInPatch(), actual.getCompressedSizeInPatch());
   }
 

@@ -48,64 +48,64 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   private static final MinimalZipEntry IGNORED_B = makeFakeEntry("/ignored/b", 5678, 9101112);
   private static final MinimalZipEntry IGNORED_C = makeFakeEntry("/ignored/c", 9101112, 13141516);
 
-  // First four recommendations are all ones where uncompression of the old resource is required.
+  // First four entries are all ones where uncompression of the old resource is required.
   // Note that there is a mix of UNCOMPRESS_OLD and UNCOMPRESS_BOTH, both of which will have the
   // "old" entry flagged for uncompression (i.e., should be relevant to the filtering logic).
-  private static final QualifiedRecommendation REC_A_100K =
-      new QualifiedRecommendation(
+  private static final PreDiffPlanEntry REC_A_100K =
+      new PreDiffPlanEntry(
           ENTRY_A_100K,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_BYTES_CHANGED);
-  private static final QualifiedRecommendation REC_B_200K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+  private static final PreDiffPlanEntry REC_B_200K =
+      new PreDiffPlanEntry(
           ENTRY_B_200K,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_OLD,
-          RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
-  private static final QualifiedRecommendation REC_C_300K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_OLD,
+          UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+  private static final PreDiffPlanEntry REC_C_300K =
+      new PreDiffPlanEntry(
           ENTRY_C_300K,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_BYTES_CHANGED);
-  private static final QualifiedRecommendation REC_D_400K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+  private static final PreDiffPlanEntry REC_D_400K =
+      new PreDiffPlanEntry(
           ENTRY_D_400K,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
 
-  // Remaining recommendations are all ones where recompression is NOT required. Note the mixture of
+  // Remaining entries are all ones where recompression is NOT required. Note the mixture of
   // UNCOMPRESS_NEITHER and UNCOMPRESS_OLD, neither of which will have the "new" entry flagged for
   // recompression (ie., must be ignored by the filtering logic).
-  private static final QualifiedRecommendation REC_IGNORED_A_UNCHANGED =
-      new QualifiedRecommendation(
+  private static final PreDiffPlanEntry REC_IGNORED_A_UNCHANGED =
+      new PreDiffPlanEntry(
           IGNORED_A,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.COMPRESSED_BYTES_IDENTICAL);
-  private static final QualifiedRecommendation REC_IGNORED_B_BOTH_UNCOMPRESSED =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+  private static final PreDiffPlanEntry REC_IGNORED_B_BOTH_UNCOMPRESSED =
+      new PreDiffPlanEntry(
           IGNORED_B,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED);
-  private static final QualifiedRecommendation REC_IGNORED_C_UNSUITABLE =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
+  private static final PreDiffPlanEntry REC_IGNORED_C_UNSUITABLE =
+      new PreDiffPlanEntry(
           IGNORED_C,
           UNIMPORTANT,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.UNSUITABLE);
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.UNSUITABLE);
 
-  /** Convenience reference to all the recommendations that should be ignored by filtering. */
-  private static final List<QualifiedRecommendation> ALL_IGNORED_RECS =
+  /** Convenience reference to all the entries that should be ignored by filtering. */
+  private static final List<PreDiffPlanEntry> ALL_IGNORED_RECS =
       Collections.unmodifiableList(
           Arrays.asList(
               REC_IGNORED_A_UNCHANGED, REC_IGNORED_B_BOTH_UNCOMPRESSED, REC_IGNORED_C_UNSUITABLE));
 
-  /** Convenience reference to all the recommendations that are subject to filtering. */
-  private static final List<QualifiedRecommendation> ALL_RECS =
+  /** Convenience reference to all the entries that are subject to filtering. */
+  private static final List<PreDiffPlanEntry> ALL_RECS =
       Collections.unmodifiableList(
           Arrays.asList(
               REC_IGNORED_A_UNCHANGED,
@@ -118,7 +118,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
 
   /**
    * Make a structurally valid but totally bogus {@link MinimalZipEntry} for the purpose of testing
-   * the {@link RecommendationModifier}.
+   * the {@link PreDiffPlanEntryModifier}.
    *
    * @param path the path to set on the entry, to help with debugging
    * @param compressedSize the compressed size of the entry, in bytes
@@ -164,22 +164,21 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   }
 
   /**
-   * Given {@link QualifiedRecommendation}s, manufacture equivalents altered in the way that the
-   * {@link DeltaFriendlyOldBlobSizeLimiter} would.
+   * Given {@link PreDiffPlanEntry}s, manufacture equivalents altered in the way that the {@link
+   * DeltaFriendlyOldBlobSizeLimiter} would.
    *
-   * @param originals the original recommendations
-   * @return the altered recommendations
+   * @param originals the original entries
+   * @return the altered entries
    */
-  private static final List<QualifiedRecommendation> suppressed(
-      QualifiedRecommendation... originals) {
-    List<QualifiedRecommendation> result = new ArrayList<>(originals.length);
-    for (QualifiedRecommendation original : originals) {
+  private static final List<PreDiffPlanEntry> suppressed(PreDiffPlanEntry... originals) {
+    List<PreDiffPlanEntry> result = new ArrayList<>(originals.length);
+    for (PreDiffPlanEntry original : originals) {
       result.add(
-          new QualifiedRecommendation(
+          new PreDiffPlanEntry(
               original.getOldEntry(),
               original.getNewEntry(),
-              Recommendation.UNCOMPRESS_NEITHER,
-              RecommendationReason.RESOURCE_CONSTRAINED));
+              ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+              UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
     }
     return result;
   }
@@ -201,16 +200,16 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   @Test
   public void testZeroLimit() {
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(0);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
   public void testMaxLimit() {
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(Long.MAX_VALUE);
-    assertEquivalence(ALL_RECS, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(ALL_RECS, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -219,11 +218,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         REC_A_100K.getOldEntry().getUncompressedSize()
             - REC_A_100K.getOldEntry().getCompressedSize(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_A_100K);
     expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -233,10 +232,10 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - REC_A_100K.getOldEntry().getCompressedSize()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -246,11 +245,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - REC_A_100K.getOldEntry().getCompressedSize()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_A_100K);
     expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -259,11 +258,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         REC_D_400K.getOldEntry().getUncompressedSize()
             - REC_D_400K.getOldEntry().getCompressedSize(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -273,11 +272,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - REC_D_400K.getOldEntry().getCompressedSize()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_C_300K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -287,11 +286,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - REC_D_400K.getOldEntry().getCompressedSize()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 
   @Test
@@ -306,11 +305,11 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             + (REC_B_200K.getOldEntry().getUncompressedSize()
                 - REC_B_200K.getOldEntry().getCompressedSize());
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_B_200K);
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
   }
 }

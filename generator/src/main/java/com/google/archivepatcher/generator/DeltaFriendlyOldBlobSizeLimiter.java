@@ -29,10 +29,10 @@ import java.util.List;
  * <ol>
  *   <li>Check the size of the old archive and subtract it from the maximum size, this is the number
  *       of bytes that can be used to uncompress entries in the delta-friendly old file.
- *   <li>Identify all of the {@link QualifiedRecommendation}s that have {@link
- *       Recommendation#uncompressOldEntry} set to <code>true</code>. These identify all the entries
- *       that would be uncompressed in the delta-friendly old file.
- *   <li>Sort those {@link QualifiedRecommendation}s in order of decreasing uncompressed size.
+ *   <li>Identify all of the {@link PreDiffPlanEntry}s that have {@link
+ *       ZipEntryUncompressionOption#uncompressOldEntry} set to <code>true</code>. These identify
+ *       all the entries that would be uncompressed in the delta-friendly old file.
+ *   <li>Sort those {@link PreDiffPlanEntry}s in order of decreasing uncompressed size.
  *   <li>Iterate over the list in order. For each entry, calculate the difference between the
  *       uncompressed size and the compressed size; this is the number of bytes that would be
  *       consumed to transform the data from compressed to uncompressed in the delta-friendly old
@@ -43,12 +43,12 @@ import java.util.List;
  *       size).
  * </ol>
  */
-public class DeltaFriendlyOldBlobSizeLimiter implements RecommendationModifier {
+public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier {
 
   /** The maximum size of the delta-friendly old blob. */
   private final long maxSizeBytes;
 
-  private static final Comparator<QualifiedRecommendation> COMPARATOR =
+  private static final Comparator<PreDiffPlanEntry> COMPARATOR =
       new UncompressedOldEntrySizeComparator();
 
   /**
@@ -64,57 +64,55 @@ public class DeltaFriendlyOldBlobSizeLimiter implements RecommendationModifier {
   }
 
   @Override
-  public List<QualifiedRecommendation> getModifiedRecommendations(
-      File oldFile, File newFile, List<QualifiedRecommendation> originalRecommendations) {
+  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+      File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
 
-    List<QualifiedRecommendation> sorted = sortRecommendations(originalRecommendations);
+    List<PreDiffPlanEntry> sorted = sortPreDiffPlanEntries(originalEntries);
 
-    List<QualifiedRecommendation> result = new ArrayList<>(sorted.size());
+    List<PreDiffPlanEntry> result = new ArrayList<>(sorted.size());
     long bytesRemaining = maxSizeBytes - oldFile.length();
-    for (QualifiedRecommendation originalRecommendation : sorted) {
-      if (!originalRecommendation.getRecommendation().uncompressOldEntry) {
-        // Keep the original recommendation, no need to track size since it won't be uncompressed.
-        result.add(originalRecommendation);
+    for (PreDiffPlanEntry originalEntry : sorted) {
+      if (!originalEntry.getZipEntryUncompressionOption().uncompressOldEntry) {
+        // Keep the original entry, no need to track size since it won't be uncompressed.
+        result.add(originalEntry);
       } else {
         long extraBytesConsumed =
-            originalRecommendation.getOldEntry().getUncompressedSize()
-                - originalRecommendation.getOldEntry().getCompressedSize();
+            originalEntry.getOldEntry().getUncompressedSize()
+                - originalEntry.getOldEntry().getCompressedSize();
         if (bytesRemaining - extraBytesConsumed >= 0) {
-          // Keep the original recommendation, but also subtract from the remaining space.
-          result.add(originalRecommendation);
+          // Keep the original entry, but also subtract from the remaining space.
+          result.add(originalEntry);
           bytesRemaining -= extraBytesConsumed;
         } else {
-          // Update the recommendation to prevent uncompressing this tuple.
+          // Update the entry to prevent uncompressing this tuple.
           result.add(
-              new QualifiedRecommendation(
-                  originalRecommendation.getOldEntry(),
-                  originalRecommendation.getNewEntry(),
-                  Recommendation.UNCOMPRESS_NEITHER,
-                  RecommendationReason.RESOURCE_CONSTRAINED));
+              new PreDiffPlanEntry(
+                  originalEntry.getOldEntry(),
+                  originalEntry.getNewEntry(),
+                  ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                  UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
         }
       }
     }
     return result;
   }
-
   /**
-   * Returns a copy of the given {@code originalRecommendations} ordered descending by the
-   * uncompressed size of the old entry.
+   * Returns a copy of the given {@code PreDiffPlanEntry} ordered descending by the uncompressed
+   * size of the old entry.
    */
-  private static List<QualifiedRecommendation> sortRecommendations(
-      List<QualifiedRecommendation> originalRecommendations) {
-    List<QualifiedRecommendation> sorted = new ArrayList<>(originalRecommendations);
+  private static List<PreDiffPlanEntry> sortPreDiffPlanEntries(
+      List<PreDiffPlanEntry> originalEntries) {
+    List<PreDiffPlanEntry> sorted = new ArrayList<PreDiffPlanEntry>(originalEntries);
     Collections.sort(sorted, Collections.reverseOrder(COMPARATOR));
     return sorted;
   }
 
   /** Helper class implementing the sort order described in the class documentation. */
-  private static class UncompressedOldEntrySizeComparator
-      implements Comparator<QualifiedRecommendation> {
+  private static class UncompressedOldEntrySizeComparator implements Comparator<PreDiffPlanEntry> {
     @Override
-    public int compare(QualifiedRecommendation qr1, QualifiedRecommendation qr2) {
+    public int compare(PreDiffPlanEntry e1, PreDiffPlanEntry e2) {
       return Long.compare(
-          qr1.getOldEntry().getUncompressedSize(), qr2.getOldEntry().getUncompressedSize());
+          e1.getOldEntry().getUncompressedSize(), e2.getOldEntry().getUncompressedSize());
     }
   }
 }

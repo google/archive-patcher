@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Limits the total amount of recompression to be performed as part of a patch via the {@link
- * RecommendationModifier} interface.
+ * PreDiffPlanEntryModifier} interface.
  *
  * <p>This class is useful for helping to establish an upper bound on the amount of work that needs
  * to be done to apply a patch. For example, if the patch is to be applied on a device that can
@@ -36,10 +36,10 @@ import java.util.List;
  * <p>This class implements the following algorithm:
  *
  * <ol>
- *   <li>Identify all of the {@link QualifiedRecommendation}s that have {@link
- *       Recommendation#uncompressNewEntry} set to <code>true</code>. These identify all the entries
- *       that have changed and that require recompression.
- *   <li>Sort those {@link QualifiedRecommendation}s in order of decreasing uncompressed size.
+ *   <li>Identify all of the {@link PreDiffPlanEntry}s that have {@link
+ *       ZipEntryUncompressionOption#uncompressNewEntry} set to <code>true</code>. These identify
+ *       all the entries that have changed and that require recompression.
+ *   <li>Sort those {@link PreDiffPlanEntry}s in order of decreasing uncompressed size.
  *   <li>Iterate over the list in order. For each entry, if the uncompressed size is less than the
  *       number of uncompressed bytes remaining before hitting the cap, retain it; else, discard it.
  *   <li>Return the resulting list of the retained entries. Note that the order of this list may not
@@ -57,12 +57,12 @@ import java.util.List;
  * amount of compressed resources that are not considered here. To limit the size of the
  * delta-friendly old blob, use a {@link DeltaFriendlyOldBlobSizeLimiter}.
  */
-public class TotalRecompressionLimiter implements RecommendationModifier {
+public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
 
   /** The maximum number of bytes to allow to be recompressed. */
   private final long maxBytesToRecompress;
 
-  private static final Comparator<QualifiedRecommendation> COMPARATOR =
+  private static final Comparator<PreDiffPlanEntry> COMPARATOR =
       new UncompressedNewEntrySizeComparator();
 
   /**
@@ -81,45 +81,44 @@ public class TotalRecompressionLimiter implements RecommendationModifier {
   }
 
   @Override
-  public List<QualifiedRecommendation> getModifiedRecommendations(
-      File oldFile, File newFile, List<QualifiedRecommendation> originalRecommendations) {
+  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+      File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
 
-    List<QualifiedRecommendation> sorted = new ArrayList<>(originalRecommendations);
+    List<PreDiffPlanEntry> sorted = new ArrayList<PreDiffPlanEntry>(originalEntries);
     Collections.sort(sorted, Collections.reverseOrder(COMPARATOR));
 
-    List<QualifiedRecommendation> result = new ArrayList<>(sorted.size());
+    List<PreDiffPlanEntry> result = new ArrayList<>(sorted.size());
     long recompressibleBytesRemaining = maxBytesToRecompress;
-    for (QualifiedRecommendation originalRecommendation : sorted) {
-      if (originalRecommendation.getRecommendation().uncompressNewEntry) {
-        long bytesToRecompress = originalRecommendation.getNewEntry().getUncompressedSize();
+    for (PreDiffPlanEntry originalEntry : sorted) {
+      if (originalEntry.getZipEntryUncompressionOption().uncompressNewEntry) {
+        long bytesToRecompress = originalEntry.getNewEntry().getUncompressedSize();
         if (recompressibleBytesRemaining - bytesToRecompress >= 0) {
-          // Keep the original recommendation, but also subtract from the remaining space.
-          result.add(originalRecommendation);
+          // Keep the original entry, but also subtract from the remaining space.
+          result.add(originalEntry);
           recompressibleBytesRemaining -= bytesToRecompress;
         } else {
-          // Update the recommendation to prevent uncompressing this tuple.
+          // Update the entry to prevent uncompressing this tuple.
           result.add(
-              new QualifiedRecommendation(
-                  originalRecommendation.getOldEntry(),
-                  originalRecommendation.getNewEntry(),
-                  Recommendation.UNCOMPRESS_NEITHER,
-                  RecommendationReason.RESOURCE_CONSTRAINED));
+              new PreDiffPlanEntry(
+                  originalEntry.getOldEntry(),
+                  originalEntry.getNewEntry(),
+                  ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                  UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
         }
       } else {
-        // Keep the original recommendation, no need to track size since it won't be uncompressed.
-        result.add(originalRecommendation);
+        // Keep the original entry, no need to track size since it won't be uncompressed.
+        result.add(originalEntry);
       }
     }
     return result;
   }
 
   /** Helper class implementing the sort order described in the class documentation. */
-  private static class UncompressedNewEntrySizeComparator
-      implements Comparator<QualifiedRecommendation> {
+  private static class UncompressedNewEntrySizeComparator implements Comparator<PreDiffPlanEntry> {
     @Override
-    public int compare(QualifiedRecommendation qr1, QualifiedRecommendation qr2) {
+    public int compare(PreDiffPlanEntry e1, PreDiffPlanEntry e2) {
       return Long.compare(
-          qr1.getNewEntry().getUncompressedSize(), qr2.getNewEntry().getUncompressedSize());
+          e1.getNewEntry().getUncompressedSize(), e2.getNewEntry().getUncompressedSize());
     }
   }
 }

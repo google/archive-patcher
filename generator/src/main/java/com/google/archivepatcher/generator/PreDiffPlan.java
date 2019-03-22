@@ -14,37 +14,36 @@
 
 package com.google.archivepatcher.generator;
 
-import java.util.Iterator;
-import java.util.List;
-
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.TypedRange;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  * A plan for transforming the old and the new archive prior to running a diffing algorithm and for
  * recompressing the delta-friendly new archive afterwards.
- * <p>
- * The plan for uncompressing the old file is a {@link List} of {@link TypedRange} entries with void
- * metadata. This describes the chunks of the old file that need to be uncompressed prior to
+ *
+ * <p>The plan for uncompressing the old file is a {@link List} of {@link TypedRange} entries with
+ * void metadata. This describes the chunks of the old file that need to be uncompressed prior to
  * diffing, in file order. The file produced by executing this plan is the "delta-friendly" old
  * archive.
- * <p>
- * The plan for uncompressing the new file is similarly a {@link List} of {@link TypedRange}
+ *
+ * <p>The plan for uncompressing the new file is similarly a {@link List} of {@link TypedRange}
  * entries, but this time the metadata is of the type {@link JreDeflateParameters}. This describes
  * the chunks of the new file that need to be uncompressed prior to diffing, in file order. The
  * {@link JreDeflateParameters} metadata indicate the settings that need to be used to generate the
  * inverse transform (the delta friendly new file recompression plan; see below). The file produced
  * by executing this plan is the "delta-friendly" new archive.
- * <p>
- * The plan for recompressing the delta-friendly new archive is again a {@link List} of
- * {@link TypedRange} entries with {@link JreDeflateParameters} metadata. This describes the chunks
- * of the delta-friendly new file that need to be recompressed after diffing, again in file order.
- * The {@link JreDeflateParameters} metadata indicate the settings to use during recompression. The
- * file produced by executing this plan is the new archive, i.e. it reverse the transform of the
- * new file uncompression plan.
- * <p>
- * Finally, a {@link List} of all the {@link QualifiedRecommendation}s upon which all the plans are
- * based is available via {@link #getQualifiedRecommendations()}.
+ *
+ * <p>The plan for recompressing the delta-friendly new archive is again a {@link List} of {@link
+ * TypedRange} entries with {@link JreDeflateParameters} metadata. This describes the chunks of the
+ * delta-friendly new file that need to be recompressed after diffing, again in file order. The
+ * {@link JreDeflateParameters} metadata indicate the settings to use during recompression. The file
+ * produced by executing this plan is the new archive, i.e. it reverse the transform of the new file
+ * uncompression plan.
+ *
+ * <p>Finally, a {@link List} of all the {@link PreDiffPlanEntry}s upon which all the plans are
+ * based is available via {@link #getPreDiffPlanEntries()}.
  */
 public class PreDiffPlan {
   /**
@@ -62,41 +61,41 @@ public class PreDiffPlan {
    */
   private final List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan;
 
-  /**
-   * The recommendations upon which the plans are based.
-   */
-  private final List<QualifiedRecommendation> qualifiedRecommendations;
+  /** The entries upon which the plans are based. */
+  private final List<PreDiffPlanEntry> preDiffPlanEntries;
 
   /**
    * Constructs a new plan.
-   * @param qualifiedRecommendations the recommendations upon which the plans are based
+   *
+   * @param preDiffPlanEntries the entries upon which the plans are based
    * @param oldFileUncompressionPlan the plan for uncompressing the old file, in file order
    * @param newFileUncompressionPlan the plan for uncompressing the new file, in file order
    */
   public PreDiffPlan(
-      List<QualifiedRecommendation> qualifiedRecommendations,
+      List<PreDiffPlanEntry> preDiffPlanEntries,
       List<TypedRange<Void>> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan) {
-    this(qualifiedRecommendations, oldFileUncompressionPlan, newFileUncompressionPlan, null);
+    this(preDiffPlanEntries, oldFileUncompressionPlan, newFileUncompressionPlan, null);
   }
 
   /**
    * Constructs a new plan.
-   * @param qualifiedRecommendations the recommendations upon which the plans are based
+   *
+   * @param preDiffPlanEntries the entries upon which the plans are based
    * @param oldFileUncompressionPlan the plan for uncompressing the old file, in file order
    * @param newFileUncompressionPlan the plan for uncompressing the new file, in file order
    * @param deltaFriendlyNewFileRecompressionPlan the plan for recompression the delta-friendly new
-   * file, in file order
+   *     file, in file order
    */
   public PreDiffPlan(
-      List<QualifiedRecommendation> qualifiedRecommendations,
+      List<PreDiffPlanEntry> preDiffPlanEntries,
       List<TypedRange<Void>> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan) {
     ensureOrdered(oldFileUncompressionPlan);
     ensureOrdered(newFileUncompressionPlan);
     ensureOrdered(deltaFriendlyNewFileRecompressionPlan);
-    this.qualifiedRecommendations = qualifiedRecommendations;
+    this.preDiffPlanEntries = preDiffPlanEntries;
     this.oldFileUncompressionPlan = oldFileUncompressionPlan;
     this.newFileUncompressionPlan = newFileUncompressionPlan;
     this.deltaFriendlyNewFileRecompressionPlan = deltaFriendlyNewFileRecompressionPlan;
@@ -146,10 +145,11 @@ public class PreDiffPlan {
   }
 
   /**
-   * Returns the recommendations upon which the plans are based.
-   * @return the recommendations
+   * Returns the entries upon which the plans are based.
+   *
+   * @return the entries
    */
-  public final List<QualifiedRecommendation> getQualifiedRecommendations() {
-    return qualifiedRecommendations;
+  public final List<PreDiffPlanEntry> getPreDiffPlanEntries() {
+    return preDiffPlanEntries;
   }
 }

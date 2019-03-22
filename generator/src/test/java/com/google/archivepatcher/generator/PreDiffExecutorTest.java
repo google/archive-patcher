@@ -215,7 +215,7 @@ public class PreDiffExecutorTest {
         new PreDiffExecutor.Builder()
             .readingOriginalFiles(oldFile, newFile)
             .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
-            .withRecommendationModifier(limiter)
+            .withPreDiffEntryModifier(limiter)
             .build();
     PreDiffPlan plan = executor.prepareForDiffing();
     Assert.assertNotNull(plan);

@@ -18,9 +18,9 @@ import com.google.archivepatcher.explainer.EntryExplanation;
 import com.google.archivepatcher.explainer.PatchExplainer;
 import com.google.archivepatcher.explainer.PatchExplanation;
 import com.google.archivepatcher.generator.DeltaFriendlyOldBlobSizeLimiter;
-import com.google.archivepatcher.generator.RecommendationModifier;
-import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
 import com.google.archivepatcher.shared.DeflateCompressor;
 import java.io.File;
@@ -42,20 +42,25 @@ public class PatchExplainerTool extends AbstractTool {
   /** Usage instructions for the command line. */
   private static final String USAGE =
       "java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool <options>\n"
-          + "\nOptions:\n"
+          + "\n"
+          + "Options:\n"
           + "  --old           the old file\n"
           + "  --new           the new file\n"
           + "  --trl           optionally, the total bytes of recompression to allow (see below)\n"
-          + "  --dfobsl        optionally, a limit on the total size of the delta-friendly old blob (see below)\n"
+          + "  --dfobsl        optionally, a limit on the total size of the delta-friendly old"
+          + " blob (see below)\n"
           + "  --json          output JSON results instead of plain text\n"
-          + "\nTotal Recompression Limit (trl):\n"
+          + "\n"
+          + "Total Recompression Limit (trl):\n"
           + "  When generating a patch, a limit can be specified on the total number of bytes to\n"
-          + "  allow to be recompressed during the patch apply process. This can be for a variety\n"
+          + "  allow to be recompressed during the patch apply process. This can be for a"
+          + " variety\n"
           + "  of reasons, with the most obvious being to limit the amount of effort that has to\n"
           + "  be expended applying the patch on the target platform. To properly explain a\n"
           + "  patch that had such a limitation, it is necessary to specify the same limitation\n"
           + "  here.\n"
-          + "\nDelta Friendly Old Blob Size Limit (dfobsl):\n"
+          + "\n"
+          + "Delta Friendly Old Blob Size Limit (dfobsl):\n"
           + "  When generating a patch, a limit can be specified on the total size of the delta-\n"
           + "  friendly old blob. This implicitly limits the size of the temporary file that\n"
           + "  needs to be created when applying the patch. The size limit is \"soft\" in that \n"
@@ -64,7 +69,8 @@ public class PatchExplainerTool extends AbstractTool {
           + "  the content. If the limit is less than or equal to the size of the old file, no\n"
           + "  uncompression will be performed at all. Otherwise, the old file can expand into\n"
           + "  delta-friendly old blob until the size reaches this limit.\n"
-          + "\nExamples:\n"
+          + "\n"
+          + "Examples:\n"
           + "  To explain a patch from OLD to NEW, dumping plain human-readable text output:\n"
           + "    java -cp <classpath> com.google.archivepatcher.tools.PatchExplainerTool \\\n"
           + "      --old OLD --new NEW\n"
@@ -137,12 +143,12 @@ public class PatchExplainerTool extends AbstractTool {
     compressor.setCompressionLevel(9);
     PatchExplainer explainer =
         new PatchExplainer(new DeflateCompressor(), new BsDiffDeltaGenerator());
-    List<RecommendationModifier> recommendationModifiers = new ArrayList<RecommendationModifier>();
+    List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers = new ArrayList<>();
     if (totalRecompressionLimit != null) {
-      recommendationModifiers.add(new TotalRecompressionLimiter(totalRecompressionLimit));
+      preDiffPlanEntryModifiers.add(new TotalRecompressionLimiter(totalRecompressionLimit));
     }
     if (deltaFriendlyOldBlobSizeLimit != null) {
-      recommendationModifiers.add(
+      preDiffPlanEntryModifiers.add(
           new DeltaFriendlyOldBlobSizeLimiter(deltaFriendlyOldBlobSizeLimit));
     }
     PatchExplanation patchExplanation =
@@ -150,7 +156,7 @@ public class PatchExplainerTool extends AbstractTool {
             explainer.explainPatch(
                 oldFile,
                 newFile,
-                recommendationModifiers.toArray(new RecommendationModifier[] {})));
+                preDiffPlanEntryModifiers.toArray(new PreDiffPlanEntryModifier[] {})));
     if (outputJson) {
       patchExplanation.writeJson(new PrintWriter(System.out));
     } else {
@@ -224,7 +230,8 @@ public class PatchExplainerTool extends AbstractTool {
     }
     if (explanation.getCompressedSizeInPatch() > 0) {
       String metadata = "";
-      if (explanation.getReasonIncludedIfNotNew() == RecommendationReason.RESOURCE_CONSTRAINED) {
+      if (explanation.getExplanationIncludedIfNotNew()
+          == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
         metadata = " (forced to stay compressed by a limit)";
       }
       return "Changed file '"

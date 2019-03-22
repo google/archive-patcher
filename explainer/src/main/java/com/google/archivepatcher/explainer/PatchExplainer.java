@@ -20,10 +20,10 @@ import com.google.archivepatcher.generator.MinimalZipArchive;
 import com.google.archivepatcher.generator.MinimalZipEntry;
 import com.google.archivepatcher.generator.PreDiffExecutor;
 import com.google.archivepatcher.generator.PreDiffPlan;
-import com.google.archivepatcher.generator.QualifiedRecommendation;
-import com.google.archivepatcher.generator.RecommendationModifier;
-import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.PreDiffPlanEntry;
+import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
 import com.google.archivepatcher.generator.TempFileHolder;
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.CountingOutputStream;
 import com.google.archivepatcher.shared.DeflateUncompressor;
@@ -89,14 +89,14 @@ public class PatchExplainer {
    *
    * @param oldFile the old file
    * @param newFile the new file
-   * @param recommendationModifiers optionally, {@link RecommendationModifier}s to use during patch
-   *     planning. If null, a normal patch is generated.
+   * @param preDiffPlanEntryModifiers optionally, {@link PreDiffPlanEntryModifier}s to use during
+   *     patch planning. If null, a normal patch is generated.
    * @return a list of the explanations for each entry that would be
    * @throws IOException if unable to read data
    * @throws InterruptedException if any thread interrupts this thread
    */
   public List<EntryExplanation> explainPatch(
-      File oldFile, File newFile, RecommendationModifier... recommendationModifiers)
+      File oldFile, File newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
       throws IOException, InterruptedException {
     List<EntryExplanation> result = new ArrayList<>();
 
@@ -120,64 +120,65 @@ public class PatchExplainer {
     Uncompressor uncompressor = new DeflateUncompressor();
     PreDiffExecutor.Builder builder =
         new PreDiffExecutor.Builder().readingOriginalFiles(oldFile, newFile);
-    for (RecommendationModifier modifier : recommendationModifiers) {
-      builder.withRecommendationModifier(modifier);
+    for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
+      builder.withPreDiffEntryModifier(modifier);
     }
     PreDiffExecutor executor = builder.build();
     PreDiffPlan plan = executor.prepareForDiffing();
     try (TempFileHolder oldTemp = new TempFileHolder();
         TempFileHolder newTemp = new TempFileHolder();
         TempFileHolder deltaTemp = new TempFileHolder()) {
-      for (QualifiedRecommendation qualifiedRecommendation : plan.getQualifiedRecommendations()) {
+      for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
 
         // Short-circuit for identical resources.
-        if (qualifiedRecommendation.getReason()
-            == RecommendationReason.COMPRESSED_BYTES_IDENTICAL) {
+        if (preDiffPlanEntry.getExplanation()
+            == UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL) {
           // Patch size should be effectively zero.
           result.add(
               new EntryExplanation(
-                  new ByteArrayHolder(qualifiedRecommendation.getNewEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
                   false,
-                  qualifiedRecommendation.getReason(),
+                  preDiffPlanEntry.getExplanation(),
                   0L));
           continue;
         }
 
-        if (qualifiedRecommendation.getOldEntry().getCrc32OfUncompressedData()
-                == qualifiedRecommendation.getNewEntry().getCrc32OfUncompressedData()
-            && qualifiedRecommendation.getOldEntry().getUncompressedSize()
-                == qualifiedRecommendation.getNewEntry().getUncompressedSize()) {
+        if (preDiffPlanEntry.getOldEntry().getCrc32OfUncompressedData()
+                == preDiffPlanEntry.getNewEntry().getCrc32OfUncompressedData()
+            && preDiffPlanEntry.getOldEntry().getUncompressedSize()
+                == preDiffPlanEntry.getNewEntry().getUncompressedSize()) {
           // If the path, size and CRC32 are the same assume it's a match. Patch size should be
           // effectively zero.
           result.add(
               new EntryExplanation(
-                  new ByteArrayHolder(qualifiedRecommendation.getNewEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
                   false,
-                  qualifiedRecommendation.getReason(),
+                  preDiffPlanEntry.getExplanation(),
                   0L));
           continue;
         }
 
         // Everything past here is a resource that has changed in some way.
-        // NB: This magically takes care of RecommendationReason.RESOURCE_CONSTRAINED. The logic
+        // NB: This magically takes care of UncompressionOptionExplanation.RESOURCE_CONSTRAINED. The
+        // logic
         // below will keep the RESOURCE_CONSTRAINED entries compressed, running the delta on their
         // compressed contents, and the resulting explanation will preserve the RESOURCE_CONSTRAINED
         // reason. This will correctly attribute the size of these blobs to the RESOURCE_CONSTRAINED
         // category.
 
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
-        long oldOffset = qualifiedRecommendation.getOldEntry().getFileOffsetOfCompressedData();
-        long oldLength = qualifiedRecommendation.getOldEntry().getCompressedSize();
-        if (qualifiedRecommendation.getRecommendation().uncompressOldEntry) {
+        long oldOffset = preDiffPlanEntry.getOldEntry().getFileOffsetOfCompressedData();
+        long oldLength = preDiffPlanEntry.getOldEntry().getCompressedSize();
+        if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressOldEntry) {
           uncompress(oldFile, oldOffset, oldLength, uncompressor, oldTemp.file);
         } else {
           extractCopy(oldFile, oldOffset, oldLength, oldTemp.file);
         }
 
         // Get the inputs ready for running a delta: uncompress/copy the *new* content as necessary.
-        long newOffset = qualifiedRecommendation.getNewEntry().getFileOffsetOfCompressedData();
-        long newLength = qualifiedRecommendation.getNewEntry().getCompressedSize();
-        if (qualifiedRecommendation.getRecommendation().uncompressNewEntry) {
+        long newOffset = preDiffPlanEntry.getNewEntry().getFileOffsetOfCompressedData();
+        long newLength = preDiffPlanEntry.getNewEntry().getCompressedSize();
+        if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressNewEntry) {
           uncompress(newFile, newOffset, newLength, uncompressor, newTemp.file);
         } else {
           extractCopy(newFile, newOffset, newLength, newTemp.file);
@@ -194,9 +195,9 @@ public class PatchExplainer {
               getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);
           result.add(
               new EntryExplanation(
-                  new ByteArrayHolder(qualifiedRecommendation.getOldEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getOldEntry().getFileNameBytes()),
                   false,
-                  qualifiedRecommendation.getReason(),
+                  preDiffPlanEntry.getExplanation(),
                   compressedDeltaSize));
         }
       }

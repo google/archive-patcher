@@ -14,10 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
-/**
- * Reasons for a corresponding {@link Recommendation}.
- */
-public enum RecommendationReason {
+/** Reasons for a corresponding {@link ZipEntryUncompressionOption}. */
+public enum UncompressionOptionExplanation {
   /**
    * The entry in the new file is compressed using deflate in a way that cannot be reliably
    * reproduced. This could be caused by using an unsupported version of zlib.

@@ -14,10 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
-/**
- * Recommendations for how to uncompress entries in old and new archives.
- */
-public enum Recommendation {
+/** Options for how to uncompress entries in old and new archives. */
+public enum ZipEntryUncompressionOption {
 
   /**
    * Uncompress only the old entry.
@@ -50,11 +48,12 @@ public enum Recommendation {
   public final boolean uncompressNewEntry;
 
   /**
-   * Constructs a new recommendation with the specified behaviors.
+   * Constructs a new option with the specified behaviors.
+   *
    * @param uncompressOldEntry true if the old entry should be uncompressed
    * @param uncompressNewEntry true if the new entry should be uncompressed
    */
-  private Recommendation(boolean uncompressOldEntry, boolean uncompressNewEntry) {
+  private ZipEntryUncompressionOption(boolean uncompressOldEntry, boolean uncompressNewEntry) {
     this.uncompressOldEntry = uncompressOldEntry;
     this.uncompressNewEntry = uncompressNewEntry;
   }

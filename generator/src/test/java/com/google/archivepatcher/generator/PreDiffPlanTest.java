@@ -16,15 +16,13 @@ package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.TypedRange;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link PreDiffPlan}.
@@ -49,14 +47,13 @@ public class PreDiffPlanTest {
 
   @Test
   public void testConstructor_OrderOK() {
-    new PreDiffPlan(
-        Collections.<QualifiedRecommendation>emptyList(), SORTED_VOID_LIST, SORTED_DEFLATE_LIST);
+    new PreDiffPlan(Collections.emptyList(), SORTED_VOID_LIST, SORTED_DEFLATE_LIST);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_OldFileUncompressionOrderNotOK() {
     new PreDiffPlan(
-        Collections.<QualifiedRecommendation>emptyList(),
+        Collections.emptyList(),
         reverse(SORTED_VOID_LIST),
         SORTED_DEFLATE_LIST,
         SORTED_DEFLATE_LIST);
@@ -65,7 +62,7 @@ public class PreDiffPlanTest {
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_NewFileUncompressionOrderNotOK() {
     new PreDiffPlan(
-        Collections.<QualifiedRecommendation>emptyList(),
+        Collections.emptyList(),
         SORTED_VOID_LIST,
         reverse(SORTED_DEFLATE_LIST),
         SORTED_DEFLATE_LIST);
@@ -74,7 +71,7 @@ public class PreDiffPlanTest {
   @Test(expected = IllegalArgumentException.class)
   public void testConstructor_NewFileRecompressionOrderNotOK() {
     new PreDiffPlan(
-        Collections.<QualifiedRecommendation>emptyList(),
+        Collections.emptyList(),
         SORTED_VOID_LIST,
         SORTED_DEFLATE_LIST,
         reverse(SORTED_DEFLATE_LIST));

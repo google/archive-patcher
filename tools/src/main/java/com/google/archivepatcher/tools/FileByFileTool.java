@@ -17,7 +17,7 @@ package com.google.archivepatcher.tools;
 import com.google.archivepatcher.applier.FileByFileDeltaApplier;
 import com.google.archivepatcher.generator.DeltaFriendlyOldBlobSizeLimiter;
 import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
-import com.google.archivepatcher.generator.RecommendationModifier;
+import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -81,19 +81,15 @@ public class FileByFileTool extends AbstractTool {
           + "    java -cp <classpath> com.google.archivepatcher.tools.FileByFileTool --apply \\\n"
           + "      --old OLD --patch PATCH --new NEW";
 
-  /**
-   * Modes of operation.
-   */
-  private static enum Mode {
+  /** Modes of operation. */
+  private enum Mode {
     /**
      * Generate a patch.
      */
     GENERATE,
 
-    /**
-     * Apply a patch.
-     */
-    APPLY;
+    /** Apply a patch. */
+    APPLY
   }
 
   /**
@@ -121,7 +117,7 @@ public class FileByFileTool extends AbstractTool {
     Long totalRecompressionLimit = null;
     Long deltaFriendlyOldBlobSizeLimit = null;
     Mode mode = null;
-    Iterator<String> argIterator = new ArrayList<String>(Arrays.asList(args)).iterator();
+    Iterator<String> argIterator = new ArrayList<>(Arrays.asList(args)).iterator();
     while (argIterator.hasNext()) {
       String arg = argIterator.next();
       if ("--old".equals(arg)) {
@@ -192,17 +188,17 @@ public class FileByFileTool extends AbstractTool {
       Long totalRecompressionLimit,
       Long deltaFriendlyOldBlobSizeLimit)
       throws IOException, InterruptedException {
-    List<RecommendationModifier> recommendationModifiers = new ArrayList<RecommendationModifier>();
+    List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers = new ArrayList<>();
     if (totalRecompressionLimit != null) {
-      recommendationModifiers.add(new TotalRecompressionLimiter(totalRecompressionLimit));
+      preDiffPlanEntryModifiers.add(new TotalRecompressionLimiter(totalRecompressionLimit));
     }
     if (deltaFriendlyOldBlobSizeLimit != null) {
-      recommendationModifiers.add(
+      preDiffPlanEntryModifiers.add(
           new DeltaFriendlyOldBlobSizeLimiter(deltaFriendlyOldBlobSizeLimit));
     }
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
-            recommendationModifiers.toArray(new RecommendationModifier[] {}));
+            preDiffPlanEntryModifiers.toArray(new PreDiffPlanEntryModifier[] {}));
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
       generator.generateDelta(

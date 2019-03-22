@@ -15,11 +15,12 @@
 package com.google.archivepatcher.generator;
 
 /**
- * A fully qualified recommendation, consisting of an {@link MinimalZipEntry} from the old file,
- * a {@link MinimalZipEntry} from the new file, a {@link Recommendation} for how to proceed and a
- * {@link RecommendationReason} for that recommendation.
+ * An entry of {@link PreDiffPlan}, consisting of an {@link MinimalZipEntry} from the old file, a
+ * {@link MinimalZipEntry} from the new file, a {@link ZipEntryUncompressionOption} for how to
+ * uncompress the entries and a {@link UncompressionOptionExplanation} for that
+ * zipEntryUncompressionOption.
  */
-public class QualifiedRecommendation {
+public class PreDiffPlanEntry {
   /**
    * The entry in the old file.
    */
@@ -30,32 +31,29 @@ public class QualifiedRecommendation {
    */
   private final MinimalZipEntry newEntry;
 
-  /**
-   * The recommendation for how to proceed on the pair of entries.
-   */
-  private final Recommendation recommendation;
+  /** The zipEntryUncompressionOption for how to proceed on the pair of entries. */
+  private final ZipEntryUncompressionOption zipEntryUncompressionOption;
+
+  /** The explanation for the zipEntryUncompressionOption. */
+  private final UncompressionOptionExplanation explanation;
 
   /**
-   * The reason for the recommendation.
-   */
-  private final RecommendationReason reason;
-
-  /**
-   * Construct a new qualified recommendation with the specified data.
+   * Construct a new qualified zipEntryUncompressionOption with the specified data.
+   *
    * @param oldEntry the entry in the old file
    * @param newEntry the entry in the new file
-   * @param recommendation the recommendation for this tuple of entries
-   * @param reason the reason for the recommendation
+   * @param zipEntryUncompressionOption the zipEntryUncompressionOption for this tuple of entries
+   * @param explanation the explanation for the zipEntryUncompressionOption
    */
-  public QualifiedRecommendation(
+  public PreDiffPlanEntry(
       MinimalZipEntry oldEntry,
       MinimalZipEntry newEntry,
-      Recommendation recommendation,
-      RecommendationReason reason) {
+      ZipEntryUncompressionOption zipEntryUncompressionOption,
+      UncompressionOptionExplanation explanation) {
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
-    this.recommendation = recommendation;
-    this.reason = reason;
+    this.zipEntryUncompressionOption = zipEntryUncompressionOption;
+    this.explanation = explanation;
   }
 
   /**
@@ -75,19 +73,21 @@ public class QualifiedRecommendation {
   }
 
   /**
-   * Returns the recommendation for how to proceed for this tuple of entries.
+   * Returns the zipEntryUncompressionOption for how to proceed for this tuple of entries.
+   *
    * @return as described
    */
-  public Recommendation getRecommendation() {
-    return recommendation;
+  public ZipEntryUncompressionOption getZipEntryUncompressionOption() {
+    return zipEntryUncompressionOption;
   }
 
   /**
-   * Returns the reason for the recommendation.
+   * Returns the explanation for the zipEntryUncompressionOption.
+   *
    * @return as described
    */
-  public RecommendationReason getReason() {
-    return reason;
+  public UncompressionOptionExplanation getExplanation() {
+    return explanation;
   }
 
   @Override
@@ -96,8 +96,10 @@ public class QualifiedRecommendation {
     int result = 1;
     result = prime * result + ((newEntry == null) ? 0 : newEntry.hashCode());
     result = prime * result + ((oldEntry == null) ? 0 : oldEntry.hashCode());
-    result = prime * result + ((reason == null) ? 0 : reason.hashCode());
-    result = prime * result + ((recommendation == null) ? 0 : recommendation.hashCode());
+    result = prime * result + ((explanation == null) ? 0 : explanation.hashCode());
+    result =
+        prime * result
+            + ((zipEntryUncompressionOption == null) ? 0 : zipEntryUncompressionOption.hashCode());
     return result;
   }
 
@@ -106,13 +108,10 @@ public class QualifiedRecommendation {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
+    if (!(obj instanceof PreDiffPlanEntry)) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    QualifiedRecommendation other = (QualifiedRecommendation) obj;
+    PreDiffPlanEntry other = (PreDiffPlanEntry) obj;
     if (newEntry == null) {
       if (other.newEntry != null) {
         return false;
@@ -127,25 +126,20 @@ public class QualifiedRecommendation {
     } else if (!oldEntry.equals(other.oldEntry)) {
       return false;
     }
-    if (reason != other.reason) {
-      return false;
-    }
-    if (recommendation != other.recommendation) {
-      return false;
-    }
-    return true;
+    return explanation == other.explanation
+        && zipEntryUncompressionOption == other.zipEntryUncompressionOption;
   }
 
   @Override
   public String toString() {
-    return "QualifiedRecommendation [oldEntry="
+    return "PreDiffPlanEntry [oldEntry="
         + oldEntry.getFileName()
         + ", newEntry="
         + newEntry.getFileName()
-        + ", recommendation="
-        + recommendation
-        + ", reason="
-        + reason
+        + ", zipEntryUncompressionOption="
+        + zipEntryUncompressionOption
+        + ", explanation="
+        + explanation
         + "]";
   }
 

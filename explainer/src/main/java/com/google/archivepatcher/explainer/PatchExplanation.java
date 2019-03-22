@@ -14,8 +14,8 @@
 
 package com.google.archivepatcher.explainer;
 
-import com.google.archivepatcher.generator.RecommendationReason;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -95,8 +95,8 @@ public class PatchExplanation {
       if (explanation.isNew()) {
         tempEstimatedNewSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsNew.add(explanation);
-      } else if (explanation.getReasonIncludedIfNotNew()
-          == RecommendationReason.RESOURCE_CONSTRAINED) {
+      } else if (explanation.getExplanationIncludedIfNotNew()
+          == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
         tempEstimatedResourceConstrainedSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsResourceConstrained.add(explanation);
       } else if (explanation.getCompressedSizeInPatch() > 0) {
@@ -258,7 +258,7 @@ public class PatchExplanation {
     String reasonString =
         entryExplanation.isNew()
             ? "undefined"
-            : "'" + entryExplanation.getReasonIncludedIfNotNew().toString() + "'";
+            : "'" + entryExplanation.getExplanationIncludedIfNotNew() + "'";
     buffer
         .append(indent)
         .append("{ ")

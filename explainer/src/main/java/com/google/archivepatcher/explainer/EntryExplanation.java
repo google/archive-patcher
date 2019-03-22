@@ -15,7 +15,7 @@
 package com.google.archivepatcher.explainer;
 
 import com.google.archivepatcher.generator.ByteArrayHolder;
-import com.google.archivepatcher.generator.RecommendationReason;
+import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 
 /**
  * The explanation for a single entry that was considered during generation of patch.
@@ -31,10 +31,8 @@ public class EntryExplanation {
    */
   private final boolean isNew;
 
-  /**
-   * If the entry is not new, the reason for its inclusion in or exclusion from the patch.
-   */
-  private final RecommendationReason reasonIncludedIfNotNew;
+  /** If the entry is not new, the explanation for its inclusion in or exclusion from the patch. */
+  private final UncompressionOptionExplanation explanationIncludedIfNotNew;
 
   /**
    * The <strong>approximate</strong> size of the entry in the patch stream.
@@ -43,21 +41,23 @@ public class EntryExplanation {
 
   /**
    * Construct a new explanation for an entry.
+   *
    * @param path the path of the entry in the new archive
    * @param isNew true if the entry only exists in the new archive
-   * @param reasonIncludedIfNotNew when isNew is false, the reason that the entry is included
+   * @param explanationIncludedIfNotNew when isNew is false, the explanation that the entry is
+   *     included
    * @param compressedSizeInPatch the <strong>approximate</strong> size of the entry in the patch
-   * stream
+   *     stream
    */
   public EntryExplanation(
       ByteArrayHolder path,
       boolean isNew,
-      RecommendationReason reasonIncludedIfNotNew,
+      UncompressionOptionExplanation explanationIncludedIfNotNew,
       long compressedSizeInPatch) {
     super();
     this.path = path;
     this.isNew = isNew;
-    this.reasonIncludedIfNotNew = reasonIncludedIfNotNew;
+    this.explanationIncludedIfNotNew = explanationIncludedIfNotNew;
     this.compressedSizeInPatch = compressedSizeInPatch;
   }
 
@@ -79,10 +79,11 @@ public class EntryExplanation {
 
   /**
    * When {@link #isNew()} is false, the reason that the entry is included.
+   *
    * @return as described
    */
-  public RecommendationReason getReasonIncludedIfNotNew() {
-    return reasonIncludedIfNotNew;
+  public UncompressionOptionExplanation getExplanationIncludedIfNotNew() {
+    return explanationIncludedIfNotNew;
   }
 
   /**

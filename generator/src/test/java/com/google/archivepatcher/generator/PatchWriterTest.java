@@ -44,13 +44,13 @@ public class PatchWriterTest {
   private static final JreDeflateParameters DEFLATE_PARAMS = JreDeflateParameters.of(6, 0, true);
 
   private static final TypedRange<Void> OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE =
-      new TypedRange<Void>(BIG, 17L, null);
+      new TypedRange<>(BIG, 17L, null);
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_UNCOMPRESS_RANGE =
-      new TypedRange<JreDeflateParameters>(BIG - 100L, BIG, DEFLATE_PARAMS);
+      new TypedRange<>(BIG - 100L, BIG, DEFLATE_PARAMS);
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE =
-      new TypedRange<JreDeflateParameters>(BIG, BIG, DEFLATE_PARAMS);
+      new TypedRange<>(BIG, BIG, DEFLATE_PARAMS);
 
   private static final List<TypedRange<Void>> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
       Collections.singletonList(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
@@ -67,7 +67,7 @@ public class PatchWriterTest {
 
   private static final PreDiffPlan PLAN =
       new PreDiffPlan(
-          Collections.<QualifiedRecommendation>emptyList(),
+          Collections.emptyList(),
           OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN,
           NEW_DELTA_FRIENDLY_UNCOMPRESS_PLAN,
           NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN);

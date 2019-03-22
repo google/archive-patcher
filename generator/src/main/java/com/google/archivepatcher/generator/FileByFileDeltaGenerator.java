@@ -28,22 +28,22 @@ import java.util.List;
 public class FileByFileDeltaGenerator implements DeltaGenerator {
 
   /** Optional modifiers for planning and patch generation. */
-  private final List<RecommendationModifier> recommendationModifiers;
+  private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
 
   /**
    * Constructs a new generator for File-by-File v1 patches, using the specified configuration.
    *
-   * @param recommendationModifiers optionally, {@link RecommendationModifier}s to use for modifying
-   *     the planning phase of patch generation. These can be used to, e.g., limit the total amount
-   *     of recompression that a patch applier needs to do. Modifiers are applied in the order they
-   *     are specified.
+   * @param preDiffPlanEntryModifiers optionally, {@link PreDiffPlanEntryModifier}s to use for
+   *     modifying the planning phase of patch generation. These can be used to, e.g., limit the
+   *     total amount of recompression that a patch applier needs to do. Modifiers are applied in
+   *     the order they are specified.
    */
-  public FileByFileDeltaGenerator(RecommendationModifier... recommendationModifiers) {
-    if (recommendationModifiers != null) {
-      this.recommendationModifiers =
-          Collections.unmodifiableList(Arrays.asList(recommendationModifiers));
+  public FileByFileDeltaGenerator(PreDiffPlanEntryModifier... preDiffPlanEntryModifiers) {
+    if (preDiffPlanEntryModifiers != null) {
+      this.preDiffPlanEntryModifiers =
+          Collections.unmodifiableList(Arrays.asList(preDiffPlanEntryModifiers));
     } else {
-      this.recommendationModifiers = Collections.emptyList();
+      this.preDiffPlanEntryModifiers = Collections.emptyList();
     }
   }
 
@@ -93,8 +93,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
           new PreDiffExecutor.Builder()
               .readingOriginalFiles(oldFile, newFile)
               .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
-      for (RecommendationModifier modifier : recommendationModifiers) {
-        builder.withRecommendationModifier(modifier);
+      for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
+        builder.withPreDiffEntryModifier(modifier);
       }
       PreDiffExecutor executor = builder.build();
       PreDiffPlan preDiffPlan = executor.prepareForDiffing();
@@ -132,8 +132,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
           new PreDiffExecutor.Builder()
               .readingOriginalFiles(oldFile, newFile)
               .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
-      for (RecommendationModifier modifier : recommendationModifiers) {
-        builder.withRecommendationModifier(modifier);
+      for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
+        builder.withPreDiffEntryModifier(modifier);
       }
 
       PreDiffExecutor executor = builder.build();

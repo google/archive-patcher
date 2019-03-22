@@ -44,64 +44,64 @@ public class TotalRecompressionLimiterTest {
   private static final MinimalZipEntry IGNORED_C = makeFakeEntry("/ignored/c", 9101112);
   private static final MinimalZipEntry IGNORED_D = makeFakeEntry("/ignored/d", 13141516);
 
-  // First four recommendations are all ones where recompression is required. Note that there is a
+  // First four entries are all ones where recompression is required. Note that there is a
   // mix of UNCOMPRESS_NEW and UNCOMPRESS_BOTH, both of which will have the "new" entry flagged for
   // recompression (i.e., should be relevant to the filtering logic).
-  private static final QualifiedRecommendation REC_A_100K =
-      new QualifiedRecommendation(
+  private static final PreDiffPlanEntry REC_A_100K =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           ENTRY_A_100K,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_BYTES_CHANGED);
-  private static final QualifiedRecommendation REC_B_200K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+  private static final PreDiffPlanEntry REC_B_200K =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           ENTRY_B_200K,
-          Recommendation.UNCOMPRESS_NEW,
-          RecommendationReason.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
-  private static final QualifiedRecommendation REC_C_300K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEW,
+          UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+  private static final PreDiffPlanEntry REC_C_300K =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           ENTRY_C_300K,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_BYTES_CHANGED);
-  private static final QualifiedRecommendation REC_D_400K =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+  private static final PreDiffPlanEntry REC_D_400K =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           ENTRY_D_400K,
-          Recommendation.UNCOMPRESS_BOTH,
-          RecommendationReason.COMPRESSED_BYTES_CHANGED);
+          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
 
-  // Remaining recommendations are all ones where recompression is NOT required. Note the mixture of
+  // Remaining entries are all ones where recompression is NOT required. Note the mixture of
   // UNCOMPRESS_NEITHER and UNCOMPRESS_OLD, neither of which will have the "new" entry flagged for
   // recompression (ie., must be ignored by the filtering logic).
-  private static final QualifiedRecommendation REC_IGNORED_A_UNCHANGED =
-      new QualifiedRecommendation(
+  private static final PreDiffPlanEntry REC_IGNORED_A_UNCHANGED =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           IGNORED_A,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.COMPRESSED_BYTES_IDENTICAL);
-  private static final QualifiedRecommendation REC_IGNORED_B_BOTH_UNCOMPRESSED =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+  private static final PreDiffPlanEntry REC_IGNORED_B_BOTH_UNCOMPRESSED =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           IGNORED_B,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.BOTH_ENTRIES_UNCOMPRESSED);
-  private static final QualifiedRecommendation REC_IGNORED_C_UNSUITABLE =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
+  private static final PreDiffPlanEntry REC_IGNORED_C_UNSUITABLE =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           IGNORED_C,
-          Recommendation.UNCOMPRESS_NEITHER,
-          RecommendationReason.UNSUITABLE);
-  private static final QualifiedRecommendation REC_IGNORED_D_CHANGED_TO_UNCOMPRESSED =
-      new QualifiedRecommendation(
+          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+          UncompressionOptionExplanation.UNSUITABLE);
+  private static final PreDiffPlanEntry REC_IGNORED_D_CHANGED_TO_UNCOMPRESSED =
+      new PreDiffPlanEntry(
           UNIMPORTANT,
           IGNORED_D,
-          Recommendation.UNCOMPRESS_OLD,
-          RecommendationReason.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+          ZipEntryUncompressionOption.UNCOMPRESS_OLD,
+          UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
 
-  /** Convenience reference to all the recommendations that should be ignored by filtering. */
-  private static final List<QualifiedRecommendation> ALL_IGNORED_RECS =
+  /** Convenience reference to all the entries that should be ignored by filtering. */
+  private static final List<PreDiffPlanEntry> ALL_IGNORED_RECS =
       Collections.unmodifiableList(
           Arrays.asList(
               REC_IGNORED_A_UNCHANGED,
@@ -109,8 +109,8 @@ public class TotalRecompressionLimiterTest {
               REC_IGNORED_C_UNSUITABLE,
               REC_IGNORED_D_CHANGED_TO_UNCOMPRESSED));
 
-  /** Convenience reference to all the recommendations that are subject to filtering. */
-  private static final List<QualifiedRecommendation> ALL_RECS =
+  /** Convenience reference to all the entries that are subject to filtering. */
+  private static final List<PreDiffPlanEntry> ALL_RECS =
       Collections.unmodifiableList(
           Arrays.asList(
               REC_IGNORED_A_UNCHANGED,
@@ -123,29 +123,28 @@ public class TotalRecompressionLimiterTest {
               REC_C_300K));
 
   /**
-   * Given {@link QualifiedRecommendation}s, manufacture equivalents altered in the way that the
-   * {@link TotalRecompressionLimiter} would.
+   * Given {@link PreDiffPlanEntry}s, manufacture equivalents altered in the way that the {@link
+   * TotalRecompressionLimiter} would.
    *
-   * @param originals the original recommendations
-   * @return the altered recommendations
+   * @param originals the original entries
+   * @return the altered entries
    */
-  private static final List<QualifiedRecommendation> suppressed(
-      QualifiedRecommendation... originals) {
-    List<QualifiedRecommendation> result = new ArrayList<>(originals.length);
-    for (QualifiedRecommendation original : originals) {
+  private static final List<PreDiffPlanEntry> suppressed(PreDiffPlanEntry... originals) {
+    List<PreDiffPlanEntry> result = new ArrayList<>(originals.length);
+    for (PreDiffPlanEntry original : originals) {
       result.add(
-          new QualifiedRecommendation(
+          new PreDiffPlanEntry(
               original.getOldEntry(),
               original.getNewEntry(),
-              Recommendation.UNCOMPRESS_NEITHER,
-              RecommendationReason.RESOURCE_CONSTRAINED));
+              ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+              UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
     }
     return result;
   }
 
   /**
    * Make a structurally valid but totally bogus {@link MinimalZipEntry} for the purpose of testing
-   * the {@link RecommendationModifier}.
+   * the {@link PreDiffPlanEntryModifier}.
    *
    * @param path the path to set on the entry, to help with debugging
    * @param uncompressedSize the uncompressed size of the entry, in bytes
@@ -194,81 +193,81 @@ public class TotalRecompressionLimiterTest {
   @Test
   public void testZeroLimit() {
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(0);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testMaxLimit() {
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(Long.MAX_VALUE);
-    assertEquivalence(ALL_RECS, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(ALL_RECS, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_ExactlySmallest() {
     long limit = REC_A_100K.getNewEntry().getUncompressedSize(); // Exactly large enough
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_A_100K);
     expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_EdgeUnderSmallest() {
     long limit = REC_A_100K.getNewEntry().getUncompressedSize() - 1; // 1 byte too small
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_EdgeOverSmallest() {
     long limit = REC_A_100K.getNewEntry().getUncompressedSize() + 1; // 1 byte extra room
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_A_100K);
     expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_ExactlyLargest() {
     long limit = REC_D_400K.getNewEntry().getUncompressedSize(); // Exactly large enough
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_EdgeUnderLargest() {
     long limit = REC_D_400K.getNewEntry().getUncompressedSize() - 1; // 1 byte too small
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_C_300K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_D_400K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
   public void testLimit_EdgeOverLargest() {
     long limit = REC_D_400K.getNewEntry().getUncompressedSize() + 1; // 1 byte extra room
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 
   @Test
@@ -281,11 +280,11 @@ public class TotalRecompressionLimiterTest {
         REC_D_400K.getNewEntry().getUncompressedSize()
             + REC_B_200K.getNewEntry().getUncompressedSize();
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
-    List<QualifiedRecommendation> expected = new ArrayList<QualifiedRecommendation>();
+    List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(REC_B_200K);
     expected.add(REC_D_400K);
     expected.addAll(suppressed(REC_A_100K, REC_C_300K));
     expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedRecommendations(OLD_FILE, NEW_FILE, ALL_RECS));
+    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_RECS));
   }
 }
