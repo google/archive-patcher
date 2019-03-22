@@ -24,10 +24,10 @@ public class PatchConstants {
   public static final String IDENTIFIER = "GFbFv1_0"; // Google File-by-File v1.0
 
   /**
-   * All available compatibility windows. The {@link #patchValue} field specifies the value for
-   * each constant as represented in a patch file.
+   * All available compatibility windows. The {@link #patchValue} field specifies the value for each
+   * constant as represented in a patch file.
    */
-  public static enum CompatibilityWindowId {
+  public enum CompatibilityWindowId {
     /**
      * The {@link com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow}.
      */
@@ -38,10 +38,8 @@ public class PatchConstants {
      */
     public final byte patchValue;
 
-    /**
-     * Construct a new enumerated constant with the specified value in patch files.
-     */
-    private CompatibilityWindowId(byte patchValue) {
+    /** Construct a new enumerated constant with the specified value in patch files. */
+    CompatibilityWindowId(byte patchValue) {
       this.patchValue = patchValue;
     }
 
@@ -64,7 +62,7 @@ public class PatchConstants {
    * All available delta formats. The {@link #patchValue} field specifies the value for each
    * constant as represented in a patch file.
    */
-  public static enum DeltaFormat {
+  public enum DeltaFormat {
     /**
      * The bsdiff delta format.
      */
@@ -75,10 +73,8 @@ public class PatchConstants {
      */
     public final byte patchValue;
 
-    /**
-     * Construct a new enumerated constant with the specified value in patch files.
-     */
-    private DeltaFormat(byte patchValue) {
+    /** Construct a new enumerated constant with the specified value in patch files. */
+    DeltaFormat(byte patchValue) {
       this.patchValue = patchValue;
     }
 
