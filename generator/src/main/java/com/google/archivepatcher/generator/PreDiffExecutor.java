@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +49,6 @@ public class PreDiffExecutor {
      *
      * @param originalOldFile the original old file to read (will not be modified).
      * @param originalNewFile the original new file to read (will not be modified).
-     * @return this builder
      */
     public Builder readingOriginalFiles(File originalOldFile, File originalNewFile) {
       if (originalOldFile == null || originalNewFile == null) {
@@ -65,7 +65,6 @@ public class PreDiffExecutor {
      *
      * @param deltaFriendlyOldFile the intermediate file to write (will be overwritten if it exists)
      * @param deltaFriendlyNewFile the intermediate file to write (will be overwritten if it exists)
-     * @return this builder
      */
     public Builder writingDeltaFriendlyFiles(File deltaFriendlyOldFile, File deltaFriendlyNewFile) {
       if (deltaFriendlyOldFile == null || deltaFriendlyNewFile == null) {
@@ -81,20 +80,32 @@ public class PreDiffExecutor {
      * {@link PreDiffPlan} and/or delta-friendly blobs.
      *
      * @param preDiffPlanEntryModifier the modifier to set
-     * @return this builder
      */
-    public Builder withPreDiffEntryModifier(PreDiffPlanEntryModifier preDiffPlanEntryModifier) {
+    public Builder addPreDiffPlanEntryModifier(PreDiffPlanEntryModifier preDiffPlanEntryModifier) {
       if (preDiffPlanEntryModifier == null) {
-        throw new IllegalArgumentException("preDiffPlanEntryModifier cannot be null");
+        throw new IllegalArgumentException("cannot add null preDiffPlanEntryModifier");
       }
       this.preDiffPlanEntryModifiers.add(preDiffPlanEntryModifier);
       return this;
     }
 
     /**
-     * Builds and returns a {@link PreDiffExecutor} according to the currnet configuration.
+     * Appends a collection of {@link PreDiffPlanEntryModifier}s to be used during the generation of
+     * the {@link PreDiffPlan} and/or delta-friendly blobs.
      *
-     * @return the executor
+     * @param preDiffPlanEntryModifiers the modifier to set
+     */
+    public Builder addPreDiffPlanEntryModifiers(
+        Collection<? extends PreDiffPlanEntryModifier> preDiffPlanEntryModifiers) {
+      if (preDiffPlanEntryModifiers == null) {
+        throw new IllegalArgumentException("preDiffPlanEntryModifiers cannot be null");
+      }
+      this.preDiffPlanEntryModifiers.addAll(preDiffPlanEntryModifiers);
+      return this;
+    }
+
+    /**
+     * Builds and returns a {@link PreDiffExecutor} according to the currnet configuration.
      */
     public PreDiffExecutor build() {
       if (originalOldFile == null) {
@@ -150,7 +161,6 @@ public class PreDiffExecutor {
   /**
    * Prepare resources for diffing and returns the completed plan.
    *
-   * @return the plan
    * @throws IOException if unable to complete the operation due to an I/O error
    */
   public PreDiffPlan prepareForDiffing() throws IOException {
@@ -174,7 +184,6 @@ public class PreDiffExecutor {
    * file back into the original new file.
    *
    * @param preDiffPlan the plan to execute
-   * @return as described
    * @throws IOException if anything goes wrong
    */
   private List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(PreDiffPlan preDiffPlan)

@@ -89,15 +89,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
         TempFileHolder deltaFile = new TempFileHolder();
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
-      PreDiffExecutor.Builder builder =
-          new PreDiffExecutor.Builder()
-              .readingOriginalFiles(oldFile, newFile)
-              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
-      for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
-        builder.withPreDiffEntryModifier(modifier);
-      }
-      PreDiffExecutor executor = builder.build();
-      PreDiffPlan preDiffPlan = executor.prepareForDiffing();
+      PreDiffPlan preDiffPlan =
+          generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file,
@@ -120,26 +113,29 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    *
    * @param oldFile the original old file to read (will not be modified)
    * @param newFile the original new file to read (will not be modified)
-   * @return the plan
    * @throws IOException if unable to complete the operation due to an I/O error
-   * @throws InterruptedException if any thread has interrupted the current thread
    */
-  public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile)
-      throws IOException, InterruptedException {
+  public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile) throws IOException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
-      PreDiffExecutor.Builder builder =
-          new PreDiffExecutor.Builder()
-              .readingOriginalFiles(oldFile, newFile)
-              .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file);
-      for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
-        builder.withPreDiffEntryModifier(modifier);
-      }
-
-      PreDiffExecutor executor = builder.build();
-
-      return executor.prepareForDiffing();
+      return generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
     }
+  }
+
+  private PreDiffPlan generatePreDiffPlan(
+      File oldFile,
+      File newFile,
+      TempFileHolder deltaFriendlyOldFile,
+      TempFileHolder deltaFriendlyNewFile)
+      throws IOException {
+    PreDiffExecutor executor =
+        new PreDiffExecutor.Builder()
+            .readingOriginalFiles(oldFile, newFile)
+            .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
+            .addPreDiffPlanEntryModifiers(preDiffPlanEntryModifiers)
+            .build();
+
+    return executor.prepareForDiffing();
   }
 
   // Visible for testing only

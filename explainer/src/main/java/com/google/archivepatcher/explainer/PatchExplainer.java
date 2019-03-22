@@ -35,6 +35,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +99,9 @@ public class PatchExplainer {
   public List<EntryExplanation> explainPatch(
       File oldFile, File newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
       throws IOException, InterruptedException {
+    if (preDiffPlanEntryModifiers == null) {
+      throw new IllegalArgumentException("preDiffPlanEntryModifiers cannot be null");
+    }
     List<EntryExplanation> result = new ArrayList<>();
 
     // Isolate entries that are only found in the new archive.
@@ -118,12 +122,11 @@ public class PatchExplainer {
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
-    PreDiffExecutor.Builder builder =
-        new PreDiffExecutor.Builder().readingOriginalFiles(oldFile, newFile);
-    for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
-      builder.withPreDiffEntryModifier(modifier);
-    }
-    PreDiffExecutor executor = builder.build();
+    PreDiffExecutor executor =
+        new PreDiffExecutor.Builder()
+            .readingOriginalFiles(oldFile, newFile)
+            .addPreDiffPlanEntryModifiers(Arrays.asList(preDiffPlanEntryModifiers))
+            .build();
     PreDiffPlan plan = executor.prepareForDiffing();
     try (TempFileHolder oldTemp = new TempFileHolder();
         TempFileHolder newTemp = new TempFileHolder();
