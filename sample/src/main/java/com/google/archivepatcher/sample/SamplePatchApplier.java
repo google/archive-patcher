@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.sample;
 
-import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
+import com.google.archivepatcher.applier.FileByFileDeltaApplier;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,7 +35,7 @@ public class SamplePatchApplier {
         InflaterInputStream patchIn =
             new InflaterInputStream(compressedPatchIn, uncompressor, /* size= */ 32768);
         FileOutputStream newFileOut = new FileOutputStream(args[2])) {
-      new FileByFileV1DeltaApplier().applyDelta(oldFile, patchIn, newFileOut);
+      new FileByFileDeltaApplier().applyDelta(oldFile, patchIn, newFileOut);
     } finally {
       uncompressor.end();
     }

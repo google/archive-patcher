@@ -144,7 +144,7 @@ Files that are only in the *new* archive are always left alone, and the delta us
 The following code snippet illustrates how to generate a patch and compress it with deflate compression. The example in the subsequent section shows how to apply such a patch.
 
 ```java
-import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
+import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -164,7 +164,7 @@ public class SamplePatchGenerator {
     try (FileOutputStream patchOut = new FileOutputStream(args[2]);
         DeflaterOutputStream compressedPatchOut =
             new DeflaterOutputStream(patchOut, compressor, 32768)) {
-      new FileByFileV1DeltaGenerator().generateDelta(oldFile, newFile, compressedPatchOut);
+      new FileByFileDeltaGenerator().generateDelta(oldFile, newFile, compressedPatchOut);
       compressedPatchOut.finish();
       compressedPatchOut.flush();
     } finally {
@@ -178,7 +178,7 @@ public class SamplePatchGenerator {
 The following code snippet illustrates how to apply a patch that was compressed with deflate compression, as in the previous example.
 
 ```java
-import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
+import com.google.archivepatcher.applier.FileByFileDeltaApplier;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import java.io.File;
 import java.io.FileInputStream;
@@ -199,7 +199,7 @@ public class SamplePatchApplier {
         InflaterInputStream patchIn =
             new InflaterInputStream(compressedPatchIn, uncompressor, 32768);
         FileOutputStream newFileOut = new FileOutputStream(args[2])) {
-      new FileByFileV1DeltaApplier().applyDelta(oldFile, patchIn, newFileOut);
+      new FileByFileDeltaApplier().applyDelta(oldFile, patchIn, newFileOut);
     } finally {
       uncompressor.end();
     }

@@ -17,14 +17,6 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.TypedRange;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -33,6 +25,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link PatchWriter}.
@@ -108,7 +106,7 @@ public class PatchWriterTest {
     PatchWriter writer =
         new PatchWriter(
             PLAN, DELTA_FRIENDLY_OLD_FILE_SIZE, DELTA_FRIENDLY_NEW_FILE_SIZE, deltaFile);
-    writer.writeV1Patch(buffer);
+    writer.writePatch(buffer);
     DataInputStream patchIn = new DataInputStream(new ByteArrayInputStream(buffer.toByteArray()));
     byte[] eightBytes = new byte[8];
 

@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.sample;
 
-import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
+import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -34,7 +34,7 @@ public class SamplePatchGenerator {
     try (FileOutputStream patchOut = new FileOutputStream(args[2]);
         DeflaterOutputStream compressedPatchOut =
             new DeflaterOutputStream(patchOut, compressor, /* size= */ 32768)) {
-      new FileByFileV1DeltaGenerator()
+      new FileByFileDeltaGenerator()
           .generateDelta(oldFile, newFile, compressedPatchOut, /* generateDeltaNatively= */ false);
       compressedPatchOut.finish();
       compressedPatchOut.flush();

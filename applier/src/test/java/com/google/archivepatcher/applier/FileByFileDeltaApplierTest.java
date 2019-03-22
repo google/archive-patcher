@@ -17,14 +17,6 @@ package com.google.archivepatcher.applier;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -36,13 +28,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-/**
- * Tests for {@link FileByFileV1DeltaApplier}.
- */
+/** Tests for {@link FileByFileDeltaApplier}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
-public class FileByFileV1DeltaApplierTest {
+public class FileByFileDeltaApplierTest {
 
   // These constants are used to construct all the blobs (note the OLD and NEW contents):
   //   old file := UNCOMPRESSED_HEADER + COMPRESSED_OLD_CONTENT + UNCOMPRESSED_TRAILER
@@ -101,12 +97,12 @@ public class FileByFileV1DeltaApplierTest {
   private byte[] expectedDeltaFriendlyOldFileBytes;
 
   /**
-   * To mock the dependency on bsdiff, a subclass of FileByFileV1DeltaApplier is made that always
+   * To mock the dependency on bsdiff, a subclass of FileByFileDeltaApplier is made that always
    * returns a testing delta applier. This delta applier asserts that the old content is as
    * expected, and "patches" it by simply writing the expected *new* content to the output stream.
    */
-  private FileByFileV1DeltaApplier fakeApplier;
-  
+  private FileByFileDeltaApplier fakeApplier;
+
   @Before
   public void setUp() throws IOException {
     // Creates the following resources:
@@ -149,7 +145,8 @@ public class FileByFileV1DeltaApplierTest {
     patchBytes = writePatch();
 
     // Initialize fake delta applier to mock out dependency on bsdiff
-    fakeApplier = new FileByFileV1DeltaApplier(tempDir) {
+    fakeApplier =
+        new FileByFileDeltaApplier(tempDir) {
           @Override
           protected DeltaApplier getDeltaApplier() {
             return new FakeDeltaApplier();
@@ -163,10 +160,15 @@ public class FileByFileV1DeltaApplierTest {
    * @throws IOException if anything goes wrong
    */
   private byte[] writePatch() throws IOException {
+    // The long type cast is to prevent int overflow.
     long deltaFriendlyOldFileSize =
-        UNCOMPRESSED_HEADER.length + UNCOMPRESSED_OLD_CONTENT.length + UNCOMPRESSED_TRAILER.length;
+        ((long) UNCOMPRESSED_HEADER.length)
+            + UNCOMPRESSED_OLD_CONTENT.length
+            + UNCOMPRESSED_TRAILER.length;
     long deltaFriendlyNewFileSize =
-        UNCOMPRESSED_HEADER.length + UNCOMPRESSED_NEW_CONTENT.length + UNCOMPRESSED_TRAILER.length;
+        ((long) UNCOMPRESSED_HEADER.length)
+            + UNCOMPRESSED_NEW_CONTENT.length
+            + UNCOMPRESSED_TRAILER.length;
 
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(buffer);

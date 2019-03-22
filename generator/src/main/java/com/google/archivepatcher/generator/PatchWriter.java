@@ -73,11 +73,12 @@ public class PatchWriter {
   }
 
   /**
-   * Write a v1-style patch to the specified output stream.
+   * Write a patch to the specified output stream.
+   *
    * @param out the stream to write the patch to
    * @throws IOException if anything goes wrong
    */
-  public void writeV1Patch(OutputStream out) throws IOException {
+  public void writePatch(OutputStream out) throws IOException {
     // Use DataOutputStream for ease of writing. This is deliberately left open, as closing it would
     // close the output stream that was passed in and that is not part of the method's documented
     // behavior.

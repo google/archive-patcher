@@ -14,8 +14,8 @@
 
 package com.google.archivepatcher.integrationtest;
 
-import com.google.archivepatcher.applier.FileByFileV1DeltaApplier;
-import com.google.archivepatcher.generator.FileByFileV1DeltaGenerator;
+import com.google.archivepatcher.applier.FileByFileDeltaApplier;
+import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
 import java.io.ByteArrayInputStream;
@@ -38,7 +38,7 @@ import org.junit.runners.Parameterized.Parameters;
 /** High-level integration tests that fully exercise the code without any mocking or subclassing. */
 @RunWith(Parameterized.class)
 @SuppressWarnings("javadoc")
-public class FileByFileV1IntegrationTest {
+public class FileByFileIntegrationTest {
   @Parameters
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {{true}, {false}});
@@ -121,7 +121,7 @@ public class FileByFileV1IntegrationTest {
   private static final UnitTestZipEntry NEW_ENTRY13 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry13B", 0, "entry 13B", null);
 
-  FileByFileV1IntegrationTest(boolean useNativeBsDiff) {
+  FileByFileIntegrationTest(boolean useNativeBsDiff) {
     this.useNativeBsDiff = useNativeBsDiff;
   }
 
@@ -192,11 +192,11 @@ public class FileByFileV1IntegrationTest {
 
     // Generate the patch.
     ByteArrayOutputStream patchBuffer = new ByteArrayOutputStream();
-    FileByFileV1DeltaGenerator generator = new FileByFileV1DeltaGenerator();
+    FileByFileDeltaGenerator generator = new FileByFileDeltaGenerator();
     generator.generateDelta(oldFile, newFile, patchBuffer, useNativeBsDiff);
 
     // Apply the patch.
-    FileByFileV1DeltaApplier applier = new FileByFileV1DeltaApplier(tempDir);
+    FileByFileDeltaApplier applier = new FileByFileDeltaApplier(tempDir);
     ByteArrayInputStream patchIn = new ByteArrayInputStream(patchBuffer.toByteArray());
     ByteArrayOutputStream newOut = new ByteArrayOutputStream();
     applier.applyDelta(oldFile, patchIn, newOut);

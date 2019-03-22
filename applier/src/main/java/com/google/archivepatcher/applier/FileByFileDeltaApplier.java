@@ -22,10 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/**
- * Applies V1 patches.
- */
-public class FileByFileV1DeltaApplier implements DeltaApplier {
+/** Applies patches. */
+public class FileByFileDeltaApplier implements DeltaApplier {
 
   /**
    * Default size of the buffer to use for copying bytes in the recompression stream.
@@ -39,10 +37,10 @@ public class FileByFileV1DeltaApplier implements DeltaApplier {
 
   /**
    * Creates a new delta applier that will use the default temp directory for working files. This is
-   * equivalent to calling {@link #FileByFileV1DeltaApplier(File)} with a <code>null</code> file
+   * equivalent to calling {@link #FileByFileDeltaApplier(File)} with a <code>null</code> file
    * argument.
    */
-  public FileByFileV1DeltaApplier() {
+  public FileByFileDeltaApplier() {
     this(null);
   }
 
@@ -52,7 +50,7 @@ public class FileByFileV1DeltaApplier implements DeltaApplier {
    * @param tempDir a temp directory where the delta-friendly old blob can be written during the
    *     patch application process; if null, the system's default temporary directory is used
    */
-  public FileByFileV1DeltaApplier(File tempDir) {
+  public FileByFileDeltaApplier(File tempDir) {
     if (tempDir == null) {
       tempDir = new File(System.getProperty("java.io.tmpdir"));
     }

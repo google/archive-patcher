@@ -24,10 +24,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Generates file-by-file patches.
- */
-public class FileByFileV1DeltaGenerator implements DeltaGenerator {
+/** Generates file-by-file patches. */
+public class FileByFileDeltaGenerator implements DeltaGenerator {
 
   /** Optional modifiers for planning and patch generation. */
   private final List<RecommendationModifier> recommendationModifiers;
@@ -40,7 +38,7 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
    *     of recompression that a patch applier needs to do. Modifiers are applied in the order they
    *     are specified.
    */
-  public FileByFileV1DeltaGenerator(RecommendationModifier... recommendationModifiers) {
+  public FileByFileDeltaGenerator(RecommendationModifier... recommendationModifiers) {
     if (recommendationModifiers != null) {
       this.recommendationModifiers =
           Collections.unmodifiableList(Arrays.asList(recommendationModifiers));
@@ -113,7 +111,7 @@ public class FileByFileV1DeltaGenerator implements DeltaGenerator {
               deltaFriendlyOldFile.file.length(),
               deltaFriendlyNewFile.file.length(),
               deltaFile.file);
-      patchWriter.writeV1Patch(patchOut);
+      patchWriter.writePatch(patchOut);
     }
   }
 
