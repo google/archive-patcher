@@ -91,8 +91,12 @@ public final class PatchExplanationTest {
       long compressedSizeInPatch) {
     try {
       ByteArrayHolder pathHolder = new ByteArrayHolder(path.getBytes("UTF-8"));
-      return new EntryExplanation(
-          pathHolder, isNew, explanationIncludedIfNotNew, compressedSizeInPatch);
+      if (isNew) {
+        return EntryExplanation.forNew(pathHolder, compressedSizeInPatch);
+      } else {
+        return EntryExplanation.forOld(
+            pathHolder, compressedSizeInPatch, explanationIncludedIfNotNew);
+      }
     } catch (UnsupportedEncodingException e) {
       throw new RuntimeException("System doesn't support UTF-8", e);
     }

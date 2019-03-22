@@ -16,6 +16,7 @@ package com.google.archivepatcher.explainer;
 
 import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.UncompressionOptionExplanation;
+import java.util.Optional;
 
 /**
  * The explanation for a single entry that was considered during generation of patch.
@@ -32,12 +33,39 @@ public class EntryExplanation {
   private final boolean isNew;
 
   /** If the entry is not new, the explanation for its inclusion in or exclusion from the patch. */
-  private final UncompressionOptionExplanation explanationIncludedIfNotNew;
+  private final Optional<UncompressionOptionExplanation> explanationIncludedIfNotNew;
 
   /**
    * The <strong>approximate</strong> size of the entry in the patch stream.
    */
   private final long compressedSizeInPatch;
+
+  /**
+   * Construct a new explanation for an old entry.
+   *
+   * @param path the path of the entry in the new archive
+   * @param compressedSizeInPatch the <strong>approximate</strong> size of the entry in the patch
+   *     stream
+   * @param explanation the explanation that the entry is included
+   */
+  public static EntryExplanation forOld(
+      ByteArrayHolder path,
+      long compressedSizeInPatch,
+      UncompressionOptionExplanation explanation) {
+    return new EntryExplanation(
+        path, /* isNew= */ false, Optional.of(explanation), compressedSizeInPatch);
+  }
+
+  /**
+   * Construct a new explanation for a new entry.
+   *
+   * @param path the path of the entry in the new archive
+   * @param compressedSizeInPatch the <strong>approximate</strong> size of the entry in the patch
+   *     stream
+   */
+  public static EntryExplanation forNew(ByteArrayHolder path, long compressedSizeInPatch) {
+    return new EntryExplanation(path, /* isNew= */ true, Optional.empty(), compressedSizeInPatch);
+  }
 
   /**
    * Construct a new explanation for an entry.
@@ -49,10 +77,10 @@ public class EntryExplanation {
    * @param compressedSizeInPatch the <strong>approximate</strong> size of the entry in the patch
    *     stream
    */
-  public EntryExplanation(
+  private EntryExplanation(
       ByteArrayHolder path,
       boolean isNew,
-      UncompressionOptionExplanation explanationIncludedIfNotNew,
+      Optional<UncompressionOptionExplanation> explanationIncludedIfNotNew,
       long compressedSizeInPatch) {
     super();
     this.path = path;
@@ -82,7 +110,7 @@ public class EntryExplanation {
    *
    * @return as described
    */
-  public UncompressionOptionExplanation getExplanationIncludedIfNotNew() {
+  public Optional<UncompressionOptionExplanation> getExplanationIncludedIfNotNew() {
     return explanationIncludedIfNotNew;
   }
 
@@ -92,7 +120,6 @@ public class EntryExplanation {
    * the patching process may use arbitrary bytes from arbitrary locations in the old archive to
    * populate bytes in the new archive. Other factors may also contribute to inaccuracies, such as
    * overhead in the patch format itself or in compression technology, etceteras.
-   * @return as described
    */
   public long getCompressedSizeInPatch() {
     return compressedSizeInPatch;

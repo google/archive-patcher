@@ -95,8 +95,9 @@ public class PatchExplanation {
       if (explanation.isNew()) {
         tempEstimatedNewSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsNew.add(explanation);
-      } else if (explanation.getExplanationIncludedIfNotNew()
-          == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
+      } else if (explanation.getExplanationIncludedIfNotNew().isPresent()
+          && explanation.getExplanationIncludedIfNotNew().get()
+              == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
         tempEstimatedResourceConstrainedSize += explanation.getCompressedSizeInPatch();
         tempExplainedAsResourceConstrained.add(explanation);
       } else if (explanation.getCompressedSizeInPatch() > 0) {

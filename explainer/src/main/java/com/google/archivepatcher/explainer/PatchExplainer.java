@@ -114,11 +114,8 @@ public class PatchExplainer {
     for (Map.Entry<ByteArrayHolder, MinimalZipEntry> entry : completelyNewEntries.entrySet()) {
       long compressedSize = getCompressedSize(newFile, entry.getValue(), compressor);
       result.add(
-          new EntryExplanation(
-              new ByteArrayHolder(entry.getValue().getFileNameBytes()),
-              true,
-              null,
-              compressedSize));
+          EntryExplanation.forNew(
+              new ByteArrayHolder(entry.getValue().getFileNameBytes()), compressedSize));
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
@@ -138,11 +135,10 @@ public class PatchExplainer {
             == UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL) {
           // Patch size should be effectively zero.
           result.add(
-              new EntryExplanation(
+              EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
-                  false,
-                  preDiffPlanEntry.getExplanation(),
-                  0L));
+                  /* compressedSizeInPatch= */ 0L,
+                  preDiffPlanEntry.getExplanation()));
           continue;
         }
 
@@ -153,11 +149,10 @@ public class PatchExplainer {
           // If the path, size and CRC32 are the same assume it's a match. Patch size should be
           // effectively zero.
           result.add(
-              new EntryExplanation(
+              EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
-                  false,
-                  preDiffPlanEntry.getExplanation(),
-                  0L));
+                  /* compressedSizeInPatch= */ 0L,
+                  preDiffPlanEntry.getExplanation()));
           continue;
         }
 
@@ -197,11 +192,10 @@ public class PatchExplainer {
           long compressedDeltaSize =
               getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);
           result.add(
-              new EntryExplanation(
+              EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getOldEntry().getFileNameBytes()),
-                  false,
-                  preDiffPlanEntry.getExplanation(),
-                  compressedDeltaSize));
+                  compressedDeltaSize,
+                  preDiffPlanEntry.getExplanation()));
         }
       }
     }

@@ -173,11 +173,10 @@ public class PatchExplainerTest {
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
 
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_LEVEL_6),
-            false,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL,
-            0);
+            /* compressedSizeInPatch= */ 0,
+            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
     checkExplanation(explanations, expected);
   }
 
@@ -193,11 +192,10 @@ public class PatchExplainerTest {
     // should be zero, because the entries are actually identical in the delta-friendly files.
     // Additionally no diffing or compression should be performed.
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_LEVEL_9),
-            false,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
-            0L);
+            /* compressedSizeInPatch= */ 0,
+            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
     checkExplanation(explanations, expected);
   }
 
@@ -218,11 +216,10 @@ public class PatchExplainerTest {
     // The compressed bytes changed, and so did the uncompressed bytes. The patch size should be
     // non-zero because the entries are not identical in the delta-friendly files.
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A2_LEVEL_9),
-            false,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
     checkExplanation(explanations, expected);
   }
 
@@ -248,11 +245,10 @@ public class PatchExplainerTest {
     // The uncompressed bytes are not the same. The patch plan will want to uncompress the entries,
     // but the limiter will prevent it.
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A2_LEVEL_9),
-            false,
-            UncompressionOptionExplanation.RESOURCE_CONSTRAINED,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.RESOURCE_CONSTRAINED);
     checkExplanation(explanations, expected);
   }
 
@@ -268,11 +264,10 @@ public class PatchExplainerTest {
     // are identical in the delta-friendly files. Additionally no diffing or compression should be
     // performed.
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_STORED),
-            false,
-            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED,
-            0L);
+            /* compressedSizeInPatch= */ 0L,
+            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
     checkExplanation(explanations, expected);
   }
 
@@ -292,11 +287,10 @@ public class PatchExplainerTest {
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
     // The uncompressed bytes are not the same. Thus the patch size should be non-zero.
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A2_STORED),
-            false,
-            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
     checkExplanation(explanations, expected);
   }
 
@@ -315,11 +309,10 @@ public class PatchExplainerTest {
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_STORED),
-            false,
-            UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
     checkExplanation(explanations, expected);
   }
 
@@ -338,11 +331,10 @@ public class PatchExplainerTest {
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_LEVEL_6),
-            false,
-            UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
     checkExplanation(explanations, expected);
   }
 
@@ -372,11 +364,10 @@ public class PatchExplainerTest {
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, fakeDeltaGenerator);
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
     EntryExplanation expected =
-        new EntryExplanation(
+        EntryExplanation.forOld(
             path(ENTRY_A1_LEVEL_6),
-            false,
-            UncompressionOptionExplanation.DEFLATE_UNSUITABLE,
-            FakeCompressor.OUTPUT.length());
+            FakeCompressor.OUTPUT.length(),
+            UncompressionOptionExplanation.DEFLATE_UNSUITABLE);
     checkExplanation(explanations, expected);
   }
 
@@ -391,11 +382,7 @@ public class PatchExplainerTest {
     PatchExplainer explainer = new PatchExplainer(fakeCompressor, null);
     List<EntryExplanation> explanations = explainer.explainPatch(oldFile, newFile);
     EntryExplanation expected =
-        new EntryExplanation(
-            path(ENTRY_B_LEVEL_6),
-            /* isNew= */ true, // isNew
-            /* explanationIncludedIfNotNew= */ null, // null because the file is new
-            FakeCompressor.OUTPUT.length());
+        EntryExplanation.forNew(path(ENTRY_B_LEVEL_6), FakeCompressor.OUTPUT.length());
     checkExplanation(explanations, expected);
   }
 

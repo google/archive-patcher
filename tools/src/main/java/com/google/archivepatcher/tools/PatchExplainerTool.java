@@ -230,8 +230,9 @@ public class PatchExplainerTool extends AbstractTool {
     }
     if (explanation.getCompressedSizeInPatch() > 0) {
       String metadata = "";
-      if (explanation.getExplanationIncludedIfNotNew()
-          == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
+      if (explanation.getExplanationIncludedIfNotNew().isPresent()
+          && explanation.getExplanationIncludedIfNotNew().get()
+              == UncompressionOptionExplanation.RESOURCE_CONSTRAINED) {
         metadata = " (forced to stay compressed by a limit)";
       }
       return "Changed file '"
