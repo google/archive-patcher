@@ -19,6 +19,7 @@ import com.google.archivepatcher.generator.DeltaFriendlyOldBlobSizeLimiter;
 import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -27,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -198,7 +200,7 @@ public class FileByFileTool extends AbstractTool {
     }
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
-            preDiffPlanEntryModifiers.toArray(new PreDiffPlanEntryModifier[] {}));
+            preDiffPlanEntryModifiers, Collections.singletonList(DeltaFormat.BSDIFF));
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
       generator.generateDelta(oldFile, newFile, bufferedPatchOut);

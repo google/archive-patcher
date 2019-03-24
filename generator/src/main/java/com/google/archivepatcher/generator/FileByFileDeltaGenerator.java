@@ -15,20 +15,27 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /** Generates file-by-file patches. */
 public class FileByFileDeltaGenerator implements DeltaGenerator {
 
-  /** Optional modifiers for planning and patch generation. */
+  /** Modifiers for planning and patch generation. */
   private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
+
+  /**
+   * List of supported delta formats. For more info, see the "delta descriptor record" section of
+   * the patch format spec.
+   */
+  private final List<DeltaFormat> supportedDeltaFormats;
 
   /**
    * Constructs a new generator for File-by-File v1 patches, using the specified configuration.
@@ -37,14 +44,13 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    *     modifying the planning phase of patch generation. These can be used to, e.g., limit the
    *     total amount of recompression that a patch applier needs to do. Modifiers are applied in
    *     the order they are specified.
+   * @param supportedDeltaFormats
    */
-  public FileByFileDeltaGenerator(PreDiffPlanEntryModifier... preDiffPlanEntryModifiers) {
-    if (preDiffPlanEntryModifiers != null) {
-      this.preDiffPlanEntryModifiers =
-          Collections.unmodifiableList(Arrays.asList(preDiffPlanEntryModifiers));
-    } else {
-      this.preDiffPlanEntryModifiers = Collections.emptyList();
-    }
+  public FileByFileDeltaGenerator(
+      List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
+      List<DeltaFormat> supportedDeltaFormats) {
+    this.preDiffPlanEntryModifiers = getImmutableCopy(preDiffPlanEntryModifiers);
+    this.supportedDeltaFormats = getImmutableCopy(supportedDeltaFormats);
   }
 
   /**
@@ -69,7 +75,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
       PreDiffPlan preDiffPlan =
-          generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
+          generatePreDiffPlan(
+              oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);
@@ -94,7 +101,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
   public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile) throws IOException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
-      return generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
+      return generatePreDiffPlan(
+          oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
     }
   }
 
@@ -102,13 +110,15 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
       File oldFile,
       File newFile,
       TempFileHolder deltaFriendlyOldFile,
-      TempFileHolder deltaFriendlyNewFile)
+      TempFileHolder deltaFriendlyNewFile,
+      List<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     PreDiffExecutor executor =
         new PreDiffExecutor.Builder()
             .readingOriginalFiles(oldFile, newFile)
             .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
             .addPreDiffPlanEntryModifiers(preDiffPlanEntryModifiers)
+            .addSupportedDeltaFormats(supportedDeltaFormats)
             .build();
 
     return executor.prepareForDiffing();
@@ -117,5 +127,13 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
   // Visible for testing only
   protected DeltaGenerator getDeltaGenerator() {
     return new BsDiffDeltaGenerator();
+  }
+
+  private static <T> List<T> getImmutableCopy(List<T> input) {
+    if (input != null) {
+      return Collections.unmodifiableList(new ArrayList<>(input));
+    } else {
+      return Collections.emptyList();
+    }
   }
 }

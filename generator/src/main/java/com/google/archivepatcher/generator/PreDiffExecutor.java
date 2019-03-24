@@ -17,6 +17,7 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
 import com.google.archivepatcher.shared.DeltaFriendlyFile;
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -37,6 +38,7 @@ public class PreDiffExecutor {
   /** A helper class to build a {@link PreDiffExecutor} with a variety of configurations. */
   public static final class Builder {
     private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers = new ArrayList<>();
+    private final List<DeltaFormat> supportedDeltaFormats = new ArrayList<>();
 
     private File originalOldFile;
     private File originalNewFile;
@@ -105,6 +107,18 @@ public class PreDiffExecutor {
     }
 
     /**
+     * Amends a collection of {@link DeltaFormat}s to be used in the generation of the {@link
+     * PreDiffPlan}.
+     */
+    public Builder addSupportedDeltaFormats(Collection<DeltaFormat> supportedDeltaFormats) {
+      if (preDiffPlanEntryModifiers == null) {
+        throw new IllegalArgumentException("supportedDeltaFormats cannot be null");
+      }
+      this.supportedDeltaFormats.addAll(supportedDeltaFormats);
+      return this;
+    }
+
+    /**
      * Builds and returns a {@link PreDiffExecutor} according to the currnet configuration.
      */
     public PreDiffExecutor build() {
@@ -117,7 +131,8 @@ public class PreDiffExecutor {
           originalNewFile,
           deltaFriendlyOldFile,
           deltaFriendlyNewFile,
-          preDiffPlanEntryModifiers);
+          preDiffPlanEntryModifiers,
+          supportedDeltaFormats);
     }
   }
 
@@ -144,18 +159,23 @@ public class PreDiffExecutor {
    */
   private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
 
+  /** {@link DeltaFormat}s supported for generating the patch. */
+  private final List<DeltaFormat> supportedDeltaFormats;
+
   /** Constructs a new PreDiffExecutor to work with the specified configuration. */
   private PreDiffExecutor(
       File originalOldFile,
       File originalNewFile,
       File deltaFriendlyOldFile,
       File deltaFriendlyNewFile,
-      List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers) {
+      List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
+      List<DeltaFormat> supportedDeltaFormats) {
     this.originalOldFile = originalOldFile;
     this.originalNewFile = originalNewFile;
     this.deltaFriendlyOldFile = deltaFriendlyOldFile;
     this.deltaFriendlyNewFile = deltaFriendlyNewFile;
     this.preDiffPlanEntryModifiers = preDiffPlanEntryModifiers;
+    this.supportedDeltaFormats = supportedDeltaFormats;
   }
 
   /**
@@ -238,7 +258,8 @@ public class PreDiffExecutor {
             originalNewFile,
             originalNewArchiveZipEntriesByPath,
             originalNewArchiveJreDeflateParametersByPath,
-            preDiffPlanEntryModifiers.toArray(new PreDiffPlanEntryModifier[] {}));
+            preDiffPlanEntryModifiers,
+            supportedDeltaFormats);
     return preDiffPlanner.generatePreDiffPlan();
   }
 }

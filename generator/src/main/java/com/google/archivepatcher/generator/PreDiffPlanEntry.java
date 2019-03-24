@@ -14,6 +14,9 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import java.util.Objects;
+
 /**
  * An entry of {@link PreDiffPlan}, consisting of an {@link MinimalZipEntry} from the old file, a
  * {@link MinimalZipEntry} from the new file, a {@link ZipEntryUncompressionOption} for how to
@@ -21,6 +24,7 @@ package com.google.archivepatcher.generator;
  * zipEntryUncompressionOption.
  */
 public class PreDiffPlanEntry {
+
   /**
    * The entry in the old file.
    */
@@ -34,8 +38,14 @@ public class PreDiffPlanEntry {
   /** The zipEntryUncompressionOption for how to proceed on the pair of entries. */
   private final ZipEntryUncompressionOption zipEntryUncompressionOption;
 
-  /** The explanation for the zipEntryUncompressionOption. */
-  private final UncompressionOptionExplanation explanation;
+  /** The uncompressionOptionExplanation for the zipEntryUncompressionOption. */
+  private final UncompressionOptionExplanation uncompressionOptionExplanation;
+
+  /** The {@link DeltaFormat} to be used for this entry. */
+  private final DeltaFormat deltaFormat;
+
+  /** The explanation for {@link #deltaFormat}. */
+  private final DeltaFormatExplanation deltaFormatExplanation;
 
   /**
    * Construct a new qualified zipEntryUncompressionOption with the specified data.
@@ -43,17 +53,23 @@ public class PreDiffPlanEntry {
    * @param oldEntry the entry in the old file
    * @param newEntry the entry in the new file
    * @param zipEntryUncompressionOption the zipEntryUncompressionOption for this tuple of entries
-   * @param explanation the explanation for the zipEntryUncompressionOption
+   * @param uncompressionOptionExplanation the uncompressionOptionExplanation for the
+   * @param deltaFormat delta format for this pair of entries
+   * @param deltaFormatExplanation explanation for the {@code deltaFormat}
    */
-  public PreDiffPlanEntry(
+  private PreDiffPlanEntry(
       MinimalZipEntry oldEntry,
       MinimalZipEntry newEntry,
       ZipEntryUncompressionOption zipEntryUncompressionOption,
-      UncompressionOptionExplanation explanation) {
+      UncompressionOptionExplanation uncompressionOptionExplanation,
+      DeltaFormat deltaFormat,
+      DeltaFormatExplanation deltaFormatExplanation) {
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
     this.zipEntryUncompressionOption = zipEntryUncompressionOption;
-    this.explanation = explanation;
+    this.uncompressionOptionExplanation = uncompressionOptionExplanation;
+    this.deltaFormat = deltaFormat;
+    this.deltaFormatExplanation = deltaFormatExplanation;
   }
 
   /**
@@ -82,25 +98,33 @@ public class PreDiffPlanEntry {
   }
 
   /**
-   * Returns the explanation for the zipEntryUncompressionOption.
+   * Returns the uncompressionOptionExplanation for the zipEntryUncompressionOption.
    *
    * @return as described
    */
-  public UncompressionOptionExplanation getExplanation() {
-    return explanation;
+  public UncompressionOptionExplanation getUncompressionOptionExplanation() {
+    return uncompressionOptionExplanation;
+  }
+
+  /** Returns the delta format for this entry. */
+  public DeltaFormat getDeltaFormat() {
+    return deltaFormat;
+  }
+
+  /** Returns the explanation for {@link #deltaFormat}. */
+  public DeltaFormatExplanation getDeltaFormatExplanation() {
+    return deltaFormatExplanation;
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((newEntry == null) ? 0 : newEntry.hashCode());
-    result = prime * result + ((oldEntry == null) ? 0 : oldEntry.hashCode());
-    result = prime * result + ((explanation == null) ? 0 : explanation.hashCode());
-    result =
-        prime * result
-            + ((zipEntryUncompressionOption == null) ? 0 : zipEntryUncompressionOption.hashCode());
-    return result;
+    return Objects.hash(
+        oldEntry,
+        newEntry,
+        zipEntryUncompressionOption,
+        uncompressionOptionExplanation,
+        deltaFormat,
+        deltaFormatExplanation);
   }
 
   @Override
@@ -111,23 +135,17 @@ public class PreDiffPlanEntry {
     if (!(obj instanceof PreDiffPlanEntry)) {
       return false;
     }
-    PreDiffPlanEntry other = (PreDiffPlanEntry) obj;
-    if (newEntry == null) {
-      if (other.newEntry != null) {
-        return false;
-      }
-    } else if (!newEntry.equals(other.newEntry)) {
-      return false;
-    }
-    if (oldEntry == null) {
-      if (other.oldEntry != null) {
-        return false;
-      }
-    } else if (!oldEntry.equals(other.oldEntry)) {
-      return false;
-    }
-    return explanation == other.explanation
-        && zipEntryUncompressionOption == other.zipEntryUncompressionOption;
+    PreDiffPlanEntry otherEntry = (PreDiffPlanEntry) obj;
+    return equalsOrBothNull(oldEntry, otherEntry.oldEntry)
+        && equalsOrBothNull(newEntry, otherEntry.newEntry)
+        && equalsOrBothNull(zipEntryUncompressionOption, otherEntry.zipEntryUncompressionOption)
+        && equalsOrBothNull(uncompressionOptionExplanation, otherEntry.uncompressionOptionExplanation)
+        && equalsOrBothNull(deltaFormat, otherEntry.deltaFormat)
+        && equalsOrBothNull(deltaFormatExplanation, otherEntry.deltaFormatExplanation);
+  }
+
+  private static boolean equalsOrBothNull(Object a, Object b) {
+    return a == null || a.equals(b);
   }
 
   @Override
@@ -138,9 +156,80 @@ public class PreDiffPlanEntry {
         + newEntry.getFileName()
         + ", zipEntryUncompressionOption="
         + zipEntryUncompressionOption
-        + ", explanation="
-        + explanation
+        + ", uncompressionOptionExplanation="
+        + uncompressionOptionExplanation
+        + ", deltaFormat="
+        + deltaFormat
+        + ", deltaFormatExplanation="
+        + deltaFormatExplanation
         + "]";
   }
 
+  /** Builder for {@link PreDiffPlanEntry}. */
+  public static class Builder {
+    private MinimalZipEntry oldEntry;
+    private MinimalZipEntry newEntry;
+    private ZipEntryUncompressionOption zipEntryUncompressionOption;
+    private UncompressionOptionExplanation uncompressionOptionExplanation;
+    private DeltaFormat deltaFormat;
+    private DeltaFormatExplanation deltaFormatExplanation;
+
+    private Builder() {}
+
+    /** Sets the pair of zip entries. */
+    public Builder setZipEntries(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+      this.oldEntry = oldEntry;
+      this.newEntry = newEntry;
+      return this;
+    }
+
+    /** Sets the uncompression option and the explanation. */
+    public Builder setUncompressionOption(
+        ZipEntryUncompressionOption uncompressionOption,
+        UncompressionOptionExplanation explanation) {
+      this.zipEntryUncompressionOption = uncompressionOption;
+      this.uncompressionOptionExplanation = explanation;
+      return this;
+    }
+
+    /** Sets the delta format and the explanation. */
+    public Builder setDeltaFormat(DeltaFormat deltaFormat, DeltaFormatExplanation explanation) {
+      this.deltaFormat = deltaFormat;
+      this.deltaFormatExplanation = explanation;
+      return this;
+    }
+
+    /** Builds the {@link PreDiffPlanEntry}. */
+    public PreDiffPlanEntry build() {
+      if (oldEntry == null || newEntry == null) {
+        throw new IllegalArgumentException("Old entry and new entry cannot be null");
+      }
+      if (zipEntryUncompressionOption == null || uncompressionOptionExplanation == null) {
+        throw new IllegalArgumentException("UncompressionOption and explanation cannot be null");
+      }
+      if (deltaFormat == null || deltaFormatExplanation == null) {
+        throw new IllegalArgumentException("Delta format and explanation cannot be null");
+      }
+      return new PreDiffPlanEntry(
+          oldEntry,
+          newEntry,
+          zipEntryUncompressionOption,
+          uncompressionOptionExplanation,
+          deltaFormat,
+          deltaFormatExplanation);
+    }
+  }
+
+  /** Returns a {@link Builder} for {@link PreDiffPlanEntry}. */
+  public static Builder builder() {
+    return new Builder().setDeltaFormat(DeltaFormat.BSDIFF, DeltaFormatExplanation.DEFAULT);
+  }
+
+  /** Returns a {@link Builder} with the current state. */
+  public Builder toBuilder() {
+    return new Builder()
+        .setZipEntries(oldEntry, newEntry)
+        .setUncompressionOption(zipEntryUncompressionOption, uncompressionOptionExplanation)
+        .setDeltaFormat(deltaFormat, deltaFormatExplanation);
+  }
 }
