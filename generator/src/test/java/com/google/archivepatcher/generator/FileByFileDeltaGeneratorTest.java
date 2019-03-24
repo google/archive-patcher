@@ -43,8 +43,7 @@ public class FileByFileDeltaGeneratorTest {
         TempFileHolder newArchive = new TempFileHolder()) {
       UnitTestZipArchive.saveTestZip(oldArchive.file);
       UnitTestZipArchive.saveTestZip(newArchive.file);
-      generator.generateDelta(
-          oldArchive.file, newArchive.file, buffer, /* generateDeltaNatively= */ false);
+      generator.generateDelta(oldArchive.file, newArchive.file, buffer);
     }
     byte[] result = buffer.toByteArray();
     Assert.assertTrue(result.length > 0);
