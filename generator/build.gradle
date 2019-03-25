@@ -19,4 +19,9 @@ task copyTestResources(type: Copy) {
 
 processTestResources.dependsOn copyTestResources
 
+test {
+    // TODO: let gradle build the native library.
+    exclude 'com/google/archivepatcher/generator/bsdiff/wrapper/*'
+}
+
 // EOF

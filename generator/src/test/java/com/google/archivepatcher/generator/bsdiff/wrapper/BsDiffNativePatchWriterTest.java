@@ -14,17 +14,13 @@
 
 package com.google.archivepatcher.generator.bsdiff.wrapper;
 
-import static org.junit.Assert.assertArrayEquals;
-
-import com.google.archivepatcher.applier.bsdiff.BsPatch;
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessFileObject;
-import com.google.common.io.Files;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -53,25 +49,19 @@ public final class BsDiffNativePatchWriterTest {
   public void testBsDiffNativePatchWriter() throws Exception {
     // Read old file
     byte[] oldData = readTestData("BsDiffInternalTestOld.txt");
-    File oldFile = new File(mTemporaryFolder.getRoot(), "oldFile.txt");
-    Files.write(oldData, oldFile);
+    Path oldFile = Paths.get(mTemporaryFolder.getRoot().getAbsolutePath(), "oldFile.txt");
+    Files.write(oldFile, oldData);
 
     // Read new file.
     byte[] newData = readTestData("BsDiffInternalTestNew.txt");
-    File newFile = new File(mTemporaryFolder.getRoot(), "newFile.txt");
-    Files.write(newData, newFile);
+    Path newFile = Paths.get(mTemporaryFolder.getRoot().getAbsolutePath(), "newFile.txt");
+    Files.write(newFile, newData);
 
     // Generate a patch based on the old file and the new file.
     ByteArrayOutputStream bsdiffOutputStream = new ByteArrayOutputStream();
-    BsDiffNativePatchWriter.generatePatch(oldFile, newFile, bsdiffOutputStream);
+    BsDiffNativePatchWriter.generatePatch(oldFile.toFile(), newFile.toFile(), bsdiffOutputStream);
 
-    // Apply the generated patch to the old file and check if the result is the expected new file.
-    ByteArrayInputStream patchInputStream =
-        new ByteArrayInputStream(bsdiffOutputStream.toByteArray());
-    ByteArrayOutputStream patchApplyResult = new ByteArrayOutputStream();
-    RandomAccessFile randomAccessOldFile = new RandomAccessFileObject(oldFile, "r");
-    BsPatch.applyPatch(randomAccessOldFile, patchApplyResult, patchInputStream);
-
-    assertArrayEquals(newData, patchApplyResult.toByteArray());
+    byte[] patchExpected = readTestData("BsDiffInternalTestPatchExpected.patch");
+    Assert.assertArrayEquals(patchExpected, bsdiffOutputStream.toByteArray());
   }
 }

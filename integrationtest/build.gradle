@@ -9,4 +9,10 @@ dependencies {
     testCompile 'junit:junit:4.12'
     testCompile project(':sharedtest')
 }
+
+test {
+    // TODO: let gradle build the native library.
+    // FileByFileIntegrationTest internally uses native BsDiff which doesn't build with gradle
+    exclude 'com/google/archivepatcher/integrationtest/*'
+}
 // EOF
