@@ -14,6 +14,14 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithBothEntriesUncompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesChanged;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesIdentical;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedToUncompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithDeflateUnsuitable;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUncompressedToCompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUnsuitable;
+
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
@@ -289,7 +297,9 @@ public class PreDiffPlannerTest {
           expected[x].getNewEntry().getFileName(), actual.getNewEntry().getFileName());
       Assert.assertEquals(
           expected[x].getZipEntryUncompressionOption(), actual.getZipEntryUncompressionOption());
-      Assert.assertEquals(expected[x].getExplanation(), actual.getExplanation());
+      Assert.assertEquals(
+          expected[x].getUncompressionOptionExplanation(),
+          actual.getUncompressionOptionExplanation());
     }
   }
 
@@ -305,11 +315,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, ENTRY_A_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL));
+        builderWithCompressedBytesIdentical()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, ENTRY_A_LEVEL_6))
+            .build());
   }
 
   @Test
@@ -331,11 +339,9 @@ public class PreDiffPlannerTest {
         findRangeWithParams(newFile, ENTRY_A_LEVEL_9), plan.getNewFileUncompressionPlan().get(0));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, ENTRY_A_LEVEL_9),
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED));
+        builderWithCompressedBytesChanged()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, ENTRY_A_LEVEL_9))
+            .build());
   }
 
   @Test
@@ -362,11 +368,11 @@ public class PreDiffPlannerTest {
         plan.getNewFileUncompressionPlan().get(0));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, FIXED_LENGTH_ENTRY_C1_LEVEL_6),
-            findEntry(newFile, FIXED_LENGTH_ENTRY_C2_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED));
+        builderWithCompressedBytesChanged()
+            .setZipEntries(
+                findEntry(oldFile, FIXED_LENGTH_ENTRY_C1_LEVEL_6),
+                findEntry(newFile, FIXED_LENGTH_ENTRY_C2_LEVEL_6))
+            .build());
   }
 
   @Test
@@ -384,11 +390,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_STORED),
-            findEntry(newFile, ENTRY_A_STORED),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED));
+        builderWithBothEntriesUncompressed()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_STORED), findEntry(newFile, ENTRY_A_STORED))
+            .build());
   }
 
   @Test
@@ -409,11 +413,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_9),
-            findEntry(newFile, ENTRY_A_STORED),
-            ZipEntryUncompressionOption.UNCOMPRESS_OLD,
-            UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED));
+        builderWithCompressedToUncompressed()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_LEVEL_9), findEntry(newFile, ENTRY_A_STORED))
+            .build());
   }
 
   @Test
@@ -433,11 +435,9 @@ public class PreDiffPlannerTest {
         findRangeWithParams(newFile, ENTRY_A_LEVEL_6), plan.getNewFileUncompressionPlan().get(0));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_STORED),
-            findEntry(newFile, ENTRY_A_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEW,
-            UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED));
+        builderWithUncompressedToCompressed()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_STORED), findEntry(newFile, ENTRY_A_LEVEL_6))
+            .build());
   }
 
   @Test
@@ -459,11 +459,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_STORED),
-            findEntry(newFile, ENTRY_A_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.DEFLATE_UNSUITABLE));
+        builderWithDeflateUnsuitable()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_STORED), findEntry(newFile, ENTRY_A_LEVEL_6))
+            .build());
   }
 
   @Test
@@ -484,11 +482,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_STORED),
-            findEntry(newFile, ENTRY_A_LEVEL_9),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.UNSUITABLE));
+        builderWithUnsuitable()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_STORED), findEntry(newFile, ENTRY_A_LEVEL_9))
+            .build());
   }
 
   @Test
@@ -508,11 +504,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_9),
-            findEntry(newFile, ENTRY_A_STORED),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.UNSUITABLE));
+        builderWithUnsuitable()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_LEVEL_9), findEntry(newFile, ENTRY_A_STORED))
+            .build());
   }
 
   @Test
@@ -533,11 +527,9 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, ENTRY_A_LEVEL_9),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.UNSUITABLE));
+        builderWithUnsuitable()
+            .setZipEntries(findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, ENTRY_A_LEVEL_9))
+            .build());
   }
 
   @Test
@@ -604,11 +596,10 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL));
+        builderWithCompressedBytesIdentical()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6))
+            .build());
   }
 
   @Test
@@ -635,11 +626,10 @@ public class PreDiffPlannerTest {
         plan.getNewFileUncompressionPlan().get(0));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9),
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED));
+        builderWithCompressedBytesChanged()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9))
+            .build());
   }
 
   @Test
@@ -678,16 +668,14 @@ public class PreDiffPlannerTest {
         plan.getNewFileUncompressionPlan().get(1));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_1),
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED),
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9),
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED));
+        builderWithCompressedBytesChanged()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, SHADOW_ENTRY_A_LEVEL_1))
+            .build(),
+        builderWithCompressedBytesChanged()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9))
+            .build());
   }
 
   @Test
@@ -711,11 +699,10 @@ public class PreDiffPlannerTest {
     Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_LEVEL_6),
-            findEntry(newFile, SHADOW_ENTRY_A_STORED),
-            ZipEntryUncompressionOption.UNCOMPRESS_OLD,
-            UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED));
+        builderWithCompressedToUncompressed()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_LEVEL_6), findEntry(newFile, SHADOW_ENTRY_A_STORED))
+            .build());
   }
 
   @Test
@@ -739,11 +726,10 @@ public class PreDiffPlannerTest {
         plan.getNewFileUncompressionPlan().get(0));
     checkPreDiffPlanEntry(
         plan,
-        new PreDiffPlanEntry(
-            findEntry(oldFile, ENTRY_A_STORED),
-            findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6),
-            ZipEntryUncompressionOption.UNCOMPRESS_NEW,
-            UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED));
+        builderWithUncompressedToCompressed()
+            .setZipEntries(
+                findEntry(oldFile, ENTRY_A_STORED), findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6))
+            .build());
   }
 
 }
