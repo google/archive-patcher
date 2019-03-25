@@ -27,7 +27,7 @@ public interface PreDiffPlanEntryModifier {
    * arbitrarily adjusted as desired by the implementation. Implementations must return a list of
    * entries that contains the same tuples of (oldEntry, newEntry) but may change the results of
    * {@link PreDiffPlanEntry#getZipEntryUncompressionOption()} and {@link
-   * PreDiffPlanEntry#getExplanation()} to any sane values.
+   * PreDiffPlanEntry#getUncompressionOptionExplanation()} to any sane values.
    *
    * @param oldFile the old file that is being diffed
    * @param newFile the new file that is being diffed

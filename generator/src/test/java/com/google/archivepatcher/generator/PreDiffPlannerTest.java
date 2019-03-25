@@ -289,7 +289,9 @@ public class PreDiffPlannerTest {
           expected[x].getNewEntry().getFileName(), actual.getNewEntry().getFileName());
       Assert.assertEquals(
           expected[x].getZipEntryUncompressionOption(), actual.getZipEntryUncompressionOption());
-      Assert.assertEquals(expected[x].getExplanation(), actual.getExplanation());
+      Assert.assertEquals(
+          expected[x].getUncompressionOptionExplanation(),
+          actual.getUncompressionOptionExplanation());
     }
   }
 

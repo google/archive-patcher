@@ -36,8 +36,8 @@ public class PreDiffPlanEntry {
   /** The zipEntryUncompressionOption for how to proceed on the pair of entries. */
   private final ZipEntryUncompressionOption zipEntryUncompressionOption;
 
-  /** The explanation for the zipEntryUncompressionOption. */
-  private final UncompressionOptionExplanation explanation;
+  /** The uncompressionOptionExplanation for the zipEntryUncompressionOption. */
+  private final UncompressionOptionExplanation uncompressionOptionExplanation;
 
   /**
    * Construct a new qualified zipEntryUncompressionOption with the specified data.
@@ -45,17 +45,18 @@ public class PreDiffPlanEntry {
    * @param oldEntry the entry in the old file
    * @param newEntry the entry in the new file
    * @param zipEntryUncompressionOption the zipEntryUncompressionOption for this tuple of entries
-   * @param explanation the explanation for the zipEntryUncompressionOption
+   * @param uncompressionOptionExplanation the uncompressionOptionExplanation for the
+   *     zipEntryUncompressionOption
    */
   public PreDiffPlanEntry(
       MinimalZipEntry oldEntry,
       MinimalZipEntry newEntry,
       ZipEntryUncompressionOption zipEntryUncompressionOption,
-      UncompressionOptionExplanation explanation) {
+      UncompressionOptionExplanation uncompressionOptionExplanation) {
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
     this.zipEntryUncompressionOption = zipEntryUncompressionOption;
-    this.explanation = explanation;
+    this.uncompressionOptionExplanation = uncompressionOptionExplanation;
   }
 
   /**
@@ -84,17 +85,18 @@ public class PreDiffPlanEntry {
   }
 
   /**
-   * Returns the explanation for the zipEntryUncompressionOption.
+   * Returns the uncompressionOptionExplanation for the zipEntryUncompressionOption.
    *
    * @return as described
    */
-  public UncompressionOptionExplanation getExplanation() {
-    return explanation;
+  public UncompressionOptionExplanation getUncompressionOptionExplanation() {
+    return uncompressionOptionExplanation;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(oldEntry, newEntry, zipEntryUncompressionOption, explanation);
+    return Objects.hash(
+        oldEntry, newEntry, zipEntryUncompressionOption, uncompressionOptionExplanation);
   }
 
   @Override
@@ -109,7 +111,7 @@ public class PreDiffPlanEntry {
     return Objects.equals(oldEntry, otherEntry.oldEntry)
         && Objects.equals(newEntry, otherEntry.newEntry)
         && zipEntryUncompressionOption == otherEntry.zipEntryUncompressionOption
-        && explanation == otherEntry.explanation;
+        && uncompressionOptionExplanation == otherEntry.uncompressionOptionExplanation;
   }
 
   @Override
@@ -120,8 +122,8 @@ public class PreDiffPlanEntry {
         + newEntry.getFileName()
         + ", zipEntryUncompressionOption="
         + zipEntryUncompressionOption
-        + ", explanation="
-        + explanation
+        + ", uncompressionOptionExplanation="
+        + uncompressionOptionExplanation
         + "]";
   }
 
