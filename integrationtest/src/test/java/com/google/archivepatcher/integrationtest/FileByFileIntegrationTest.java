@@ -122,7 +122,7 @@ public class FileByFileIntegrationTest {
   private static final UnitTestZipEntry NEW_ENTRY13 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry13B", 0, "entry 13B", null);
 
-  FileByFileIntegrationTest(boolean useNativeBsDiff) {
+  public FileByFileIntegrationTest(boolean useNativeBsDiff) {
     this.useNativeBsDiff = useNativeBsDiff;
   }
 
@@ -196,8 +196,9 @@ public class FileByFileIntegrationTest {
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
             /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singleton(DeltaFormat.BSDIFF));
-    generator.generateDelta(oldFile, newFile, patchBuffer, useNativeBsDiff);
+            Collections.singleton(DeltaFormat.BSDIFF),
+            useNativeBsDiff);
+    generator.generateDelta(oldFile, newFile, patchBuffer);
 
     // Apply the patch.
     FileByFileDeltaApplier applier = new FileByFileDeltaApplier(tempDir);

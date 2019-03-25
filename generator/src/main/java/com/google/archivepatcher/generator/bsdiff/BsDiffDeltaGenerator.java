@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_BY_DEFAULT;
+
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.bsdiff.wrapper.BsDiffNativePatchWriter;
 import java.io.File;
@@ -30,17 +32,21 @@ public class BsDiffDeltaGenerator implements DeltaGenerator {
    */
   private static final int MATCH_LENGTH_BYTES = 16;
 
-  @Override
-  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
-      throws IOException, InterruptedException {
-    generateDelta(oldBlob, newBlob, deltaOut, /* generateDeltaNatively= */ false);
+  /** Whether to use the native version of BsDiff for generating patches. */
+  private final boolean useNativeBsDiff;
+
+  public BsDiffDeltaGenerator() {
+    this(USE_NATIVE_BSDIFF_BY_DEFAULT);
+  }
+
+  public BsDiffDeltaGenerator(boolean useNativeBsDiff) {
+    this.useNativeBsDiff = useNativeBsDiff;
   }
 
   @Override
-  public void generateDelta(
-      File oldBlob, File newBlob, OutputStream deltaOut, boolean generateDeltaNatively)
+  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
       throws IOException, InterruptedException {
-    if (generateDeltaNatively) {
+    if (useNativeBsDiff) {
       BsDiffNativePatchWriter.generatePatch(oldBlob, newBlob, deltaOut);
     } else {
       BsDiffPatchWriter.generatePatch(oldBlob, newBlob, deltaOut, MATCH_LENGTH_BYTES);

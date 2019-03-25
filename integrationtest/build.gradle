@@ -12,7 +12,8 @@ dependencies {
 
 test {
     // TODO: let gradle build the native library.
-    // FileByFileIntegrationTest internally uses native BsDiff which doesn't build with gradle
-    exclude 'com/google/archivepatcher/integrationtest/*'
+    filter {
+        excludeTestsMatching "*FileByFileIntegrationTest.*[0]"
+    }
 }
 // EOF

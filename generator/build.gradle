@@ -22,6 +22,9 @@ processTestResources.dependsOn copyTestResources
 test {
     // TODO: let gradle build the native library.
     exclude 'com/google/archivepatcher/generator/bsdiff/wrapper/*'
+    filter {
+        excludeTestsMatching('*FileByFileDeltaGeneratorTest*[0]')
+    }
 }
 
 // EOF
