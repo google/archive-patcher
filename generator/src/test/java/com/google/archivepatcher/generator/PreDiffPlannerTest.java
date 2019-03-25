@@ -17,6 +17,7 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
@@ -26,13 +27,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -92,13 +94,16 @@ public class PreDiffPlannerTest {
   private static final UnitTestZipEntry SHADOW_ENTRY_A_STORED =
       UnitTestZipArchive.makeUnitTestZipEntry("/same as A stored", 0, "entry A", null);
 
+  private static final List<PreDiffPlanEntryModifier> EMPTY_MODIFIERS = Collections.emptyList();
+  private static final Set<DeltaFormat> BSDIFF_ONLY = Collections.singleton(DeltaFormat.BSDIFF);
+
   private List<File> tempFilesCreated;
   private Map<File, Map<ByteArrayHolder, MinimalZipEntry>> entriesByPathByTempFile;
 
   @Before
   public void setup() {
-    tempFilesCreated = new LinkedList<File>();
-    entriesByPathByTempFile = new HashMap<File, Map<ByteArrayHolder, MinimalZipEntry>>();
+    tempFilesCreated = new ArrayList<>();
+    entriesByPathByTempFile = new HashMap<>();
   }
 
   @After
@@ -237,7 +242,10 @@ public class PreDiffPlannerTest {
   }
 
   private PreDiffPlan invokeGeneratePreDiffPlan(
-      File oldFile, File newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
+      File oldFile,
+      File newFile,
+      List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
+      Set<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     Map<ByteArrayHolder, MinimalZipEntry> originalOldArchiveZipEntriesByPath =
         new LinkedHashMap<ByteArrayHolder, MinimalZipEntry>();
@@ -265,7 +273,8 @@ public class PreDiffPlannerTest {
             newFile,
             originalNewArchiveZipEntriesByPath,
             originalNewArchiveJreDeflateParametersByPath,
-            preDiffPlanEntryModifiers);
+            preDiffPlanEntryModifiers,
+            supportedDeltaFormats);
     return preDiffPlanner.generatePreDiffPlan();
   }
 
@@ -289,7 +298,7 @@ public class PreDiffPlannerTest {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
     File oldFile = storeAndMapArchive(bytes);
     File newFile = storeAndMapArchive(bytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to leave the entry alone in both the old and new archives (empty plans).
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
@@ -310,7 +319,7 @@ public class PreDiffPlannerTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_9));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the entry in both the old and new archives.
     Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
@@ -340,7 +349,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Collections.singletonList(FIXED_LENGTH_ENTRY_C2_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the entry in both the old and new archives.
     Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
@@ -368,7 +377,7 @@ public class PreDiffPlannerTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_STORED));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing because both entries are already uncompressed
     Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
@@ -389,7 +398,7 @@ public class PreDiffPlannerTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_STORED));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the entry in the old archive and do nothing in the new
     // archive (empty plan)
@@ -414,7 +423,7 @@ public class PreDiffPlannerTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_A_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing in the old archive (empty plan) and uncompress the entry in
     // the new archive
@@ -441,7 +450,7 @@ public class PreDiffPlannerTest {
     File newFile = storeAndMapArchive(newBytes);
     // Deliberately break the entry in the new file so that it will not be divinable
     corruptEntryData(newFile, ENTRY_A_LEVEL_6);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan WOULD be to do nothing in the old archive (empty plan) and uncompress the entry in
     // the new archive, but because the new entry is un-divinable it cannot be recompressed and so
@@ -466,7 +475,7 @@ public class PreDiffPlannerTest {
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
     corruptCompressionMethod(newFile, ENTRY_A_LEVEL_9);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing (empty plans) because the the entry in the old archive is
     // already uncompressed and the entry in the new archive is not compressed with deflate (i.e.,
@@ -491,7 +500,7 @@ public class PreDiffPlannerTest {
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
     corruptCompressionMethod(oldFile, ENTRY_A_LEVEL_9);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing (empty plans) because the the entry in the old archive is
     // not compressed with deflate, so there is no point in trying to do anything at all.
@@ -516,7 +525,7 @@ public class PreDiffPlannerTest {
     File newFile = storeAndMapArchive(newBytes);
     corruptCompressionMethod(oldFile, ENTRY_A_LEVEL_6);
     corruptCompressionMethod(newFile, ENTRY_A_LEVEL_9);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing (empty plans) because the entries are not compressed with
     // deflate
@@ -539,7 +548,7 @@ public class PreDiffPlannerTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_B_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing (empty plans) because entry A is only in the old archive and
     // entry B is only in the new archive, so there is nothing to diff.
@@ -559,7 +568,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Arrays.asList(ENTRY_B_LEVEL_9, ENTRY_A_LEVEL_9));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress both entries, but the order is important. File order should
     // be in both plans.
@@ -586,7 +595,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to do nothing (empty plans) because the bytes are identical in both files
     // so the entries should remain compressed. However, unlike the case where there was no match,
@@ -613,7 +622,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_9));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress both entries so that a super-efficient delta can be done.
     Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
@@ -652,7 +661,7 @@ public class PreDiffPlannerTest {
             Arrays.asList(SHADOW_ENTRY_A_LEVEL_1, SHADOW_ENTRY_A_LEVEL_9));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress both entries so that a super-efficient delta can be done.
     // Critically there should only be ONE command for the old file uncompression step!
@@ -691,7 +700,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_STORED));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the old entry so that a super-efficient delta can be done.
     // The new entry isn't touched because it is already uncompressed.
@@ -719,7 +728,7 @@ public class PreDiffPlannerTest {
         UnitTestZipArchive.makeTestZip(Collections.singletonList(SHADOW_ENTRY_A_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile);
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
     Assert.assertNotNull(plan);
     // The plan should be to uncompress the new entry so that a super-efficient delta can be done.
     // The old entry isn't touched because it is already uncompressed.

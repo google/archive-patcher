@@ -42,7 +42,7 @@ public class FileByFileDeltaGeneratorTest {
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
             /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singletonList(DeltaFormat.BSDIFF));
+            Collections.singleton(DeltaFormat.BSDIFF));
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempFileHolder oldArchive = new TempFileHolder();
         TempFileHolder newArchive = new TempFileHolder()) {

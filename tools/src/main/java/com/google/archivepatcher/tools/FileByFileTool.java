@@ -200,7 +200,7 @@ public class FileByFileTool extends AbstractTool {
     }
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
-            preDiffPlanEntryModifiers, Collections.singletonList(DeltaFormat.BSDIFF));
+            preDiffPlanEntryModifiers, Collections.singleton(DeltaFormat.BSDIFF));
     try (FileOutputStream patchOut = new FileOutputStream(patchFile);
         BufferedOutputStream bufferedPatchOut = new BufferedOutputStream(patchOut)) {
       generator.generateDelta(

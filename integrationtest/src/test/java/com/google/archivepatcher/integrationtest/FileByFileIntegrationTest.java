@@ -196,7 +196,7 @@ public class FileByFileIntegrationTest {
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
             /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singletonList(DeltaFormat.BSDIFF));
+            Collections.singleton(DeltaFormat.BSDIFF));
     generator.generateDelta(oldFile, newFile, patchBuffer, useNativeBsDiff);
 
     // Apply the patch.

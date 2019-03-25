@@ -38,7 +38,7 @@ public class SamplePatchGenerator {
             new DeflaterOutputStream(patchOut, compressor, /* size= */ 32768)) {
       new FileByFileDeltaGenerator(
               /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-              Collections.singletonList(DeltaFormat.BSDIFF))
+              Collections.singleton(DeltaFormat.BSDIFF))
           .generateDelta(oldFile, newFile, compressedPatchOut, /* generateDeltaNatively= */ false);
       compressedPatchOut.finish();
       compressedPatchOut.flush();

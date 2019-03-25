@@ -17,12 +17,12 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -83,14 +83,14 @@ class PreDiffPlanner {
       File newFile,
       Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath,
       Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath,
-      PreDiffPlanEntryModifier... preDiffPlanEntryModifiers) {
+      List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
+      Set<DeltaFormat> supportedDeltaFormats) {
     this.oldFile = oldFile;
     this.oldArchiveZipEntriesByPath = oldArchiveZipEntriesByPath;
     this.newFile = newFile;
     this.newArchiveZipEntriesByPath = newArchiveZipEntriesByPath;
     this.newArchiveJreDeflateParametersByPath = newArchiveJreDeflateParametersByPath;
-    this.preDiffPlanEntryModifiers =
-        Collections.unmodifiableList(Arrays.asList(preDiffPlanEntryModifiers));
+    this.preDiffPlanEntryModifiers = preDiffPlanEntryModifiers;
   }
 
   /**
@@ -198,6 +198,7 @@ class PreDiffPlanner {
   private PreDiffPlanEntry getPreDiffPlanEntry(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
 
+    // TODO: use supported delta format here for getting default "deltaOption".
     // Reject anything that is unsuitable for uncompressed diffing.
     // Reason singled out in order to monitor unsupported versions of zlib.
     if (unsuitableDeflate(newEntry)) {

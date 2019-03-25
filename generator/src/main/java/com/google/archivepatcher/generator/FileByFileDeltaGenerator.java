@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /** Generates file-by-file patches. */
 public class FileByFileDeltaGenerator implements DeltaGenerator {
@@ -35,8 +37,7 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    * List of supported delta formats. For more info, see the "delta descriptor record" section of
    * the patch format spec.
    */
-  @SuppressWarnings("unused")
-  private final List<DeltaFormat> supportedDeltaFormats;
+  private final Set<DeltaFormat> supportedDeltaFormats;
 
   /**
    * Constructs a new generator for File-by-File patches, using the specified configuration.
@@ -48,9 +49,9 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    */
   public FileByFileDeltaGenerator(
       List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
-      List<DeltaFormat> supportedDeltaFormats) {
-    this.preDiffPlanEntryModifiers = getImmutableCopy(preDiffPlanEntryModifiers);
-    this.supportedDeltaFormats = getImmutableCopy(supportedDeltaFormats);
+      Set<DeltaFormat> supportedDeltaFormats) {
+    this.preDiffPlanEntryModifiers = getImmutableListCopy(preDiffPlanEntryModifiers);
+    this.supportedDeltaFormats = getImmutableSetCopy(supportedDeltaFormats);
   }
 
   /**
@@ -95,10 +96,9 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
         TempFileHolder deltaFile = new TempFileHolder();
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
-      // TODO: pass delta formats supported to generatePreDiffPlan and generate delta
-      //  accordingly.
       PreDiffPlan preDiffPlan =
-          generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
+          generatePreDiffPlan(
+              oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file,
@@ -126,7 +126,8 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
   public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile) throws IOException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
-      return generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
+      return generatePreDiffPlan(
+          oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
     }
   }
 
@@ -134,13 +135,15 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
       File oldFile,
       File newFile,
       TempFileHolder deltaFriendlyOldFile,
-      TempFileHolder deltaFriendlyNewFile)
+      TempFileHolder deltaFriendlyNewFile,
+      Set<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     PreDiffExecutor executor =
         new PreDiffExecutor.Builder()
             .readingOriginalFiles(oldFile, newFile)
             .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
             .addPreDiffPlanEntryModifiers(preDiffPlanEntryModifiers)
+            .addSupportedDeltaFormats(supportedDeltaFormats)
             .build();
 
     return executor.prepareForDiffing();
@@ -151,11 +154,19 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
     return new BsDiffDeltaGenerator();
   }
 
-  private static <T> List<T> getImmutableCopy(List<T> input) {
+  private static <T> List<T> getImmutableListCopy(List<T> input) {
     if (input != null) {
       return Collections.unmodifiableList(new ArrayList<>(input));
     } else {
       return Collections.emptyList();
+    }
+  }
+
+  private static <T> Set<T> getImmutableSetCopy(Set<T> input) {
+    if (input != null) {
+      return Collections.unmodifiableSet(new HashSet<>(input));
+    } else {
+      return Collections.emptySet();
     }
   }
 }
