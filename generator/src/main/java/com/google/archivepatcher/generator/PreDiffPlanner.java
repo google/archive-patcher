@@ -14,6 +14,18 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.DEFLATE_UNSUITABLE;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED;
+import static com.google.archivepatcher.generator.UncompressionOptionExplanation.UNSUITABLE;
+import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_BOTH;
+import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEITHER;
+import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEW;
+import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_OLD;
+
 import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
@@ -198,71 +210,37 @@ class PreDiffPlanner {
   private PreDiffPlanEntry getPreDiffPlanEntry(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
 
-    // TODO: use supported delta format here for getting default "deltaOption".
-    // Reject anything that is unsuitable for uncompressed diffing.
-    // Reason singled out in order to monitor unsupported versions of zlib.
+    PreDiffPlanEntry.Builder builder = PreDiffPlanEntry.builder().setZipEntries(oldEntry, newEntry);
+
+    // Below we try to find the suitable uncompression settings. It generally follows this logic:
+    // 1. If either old and new are unsuitable for uncompression, we leave them untouched.
+    // 2. If both are uncompressed, we have nothing to do.
+    // 3. Now at least one is compressed. If there is change, we uncompress accordingly.
+    // 4. Now both are compressed and identical. We do nothing.
     if (unsuitableDeflate(newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.DEFLATE_UNSUITABLE);
+      // 1. If either old and new are unsuitable for uncompression, we leave them untouched.
+      // Reason singled out in order to monitor unsupported versions of zlib.
+      builder.setUncompressionOption(UNCOMPRESS_NEITHER, DEFLATE_UNSUITABLE);
+    } else if (unsuitable(oldEntry, newEntry)) {
+      builder.setUncompressionOption(UNCOMPRESS_NEITHER, UNSUITABLE);
+    } else if (bothEntriesUncompressed(oldEntry, newEntry)) {
+      // 2. If both are uncompressed, we have nothing to do.
+      builder.setUncompressionOption(UNCOMPRESS_NEITHER, BOTH_ENTRIES_UNCOMPRESSED);
+    } else if (uncompressedChangedToCompressed(oldEntry, newEntry)) {
+      // 3. Now at least one is compressed. If there is change, we uncompress accordingly.
+      builder.setUncompressionOption(UNCOMPRESS_NEW, UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+    } else if (compressedChangedToUncompressed(oldEntry, newEntry)) {
+      builder.setUncompressionOption(UNCOMPRESS_OLD, COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+    } else if (compressedBytesChanged(oldEntry, newEntry)) {
+      builder.setUncompressionOption(UNCOMPRESS_BOTH, COMPRESSED_BYTES_CHANGED);
+    } else {
+      // 4. Now both are compressed and identical. We do nothing.
+      builder.setUncompressionOption(UNCOMPRESS_NEITHER, COMPRESSED_BYTES_IDENTICAL);
     }
 
-    // Reject anything that is unsuitable for uncompressed diffing.
-    if (unsuitable(oldEntry, newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.UNSUITABLE);
-    }
+    // TODO: use supported delta format here for getting default "deltaOption".
 
-    // If both entries are already uncompressed there is nothing to do.
-    if (bothEntriesUncompressed(oldEntry, newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
-    }
-
-    // The following are now true:
-    // 1. At least one of the entries is compressed.
-    // 1. The old entry is either uncompressed, or is compressed with deflate.
-    // 2. The new entry is either uncompressed, or is reproducibly compressed with deflate.
-
-    if (uncompressedChangedToCompressed(oldEntry, newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEW,
-          UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
-    }
-
-    if (compressedChangedToUncompressed(oldEntry, newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_OLD,
-          UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
-    }
-
-    // At this point, both entries must be compressed with deflate.
-    if (compressedBytesChanged(oldEntry, newEntry)) {
-      return new PreDiffPlanEntry(
-          oldEntry,
-          newEntry,
-          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
-    }
-
-    // If the compressed bytes have not changed, there is no need to do anything.
-    return new PreDiffPlanEntry(
-        oldEntry,
-        newEntry,
-        ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-        UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+    return builder.build();
   }
 
   /**

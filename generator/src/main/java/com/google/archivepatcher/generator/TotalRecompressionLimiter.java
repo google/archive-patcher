@@ -99,11 +99,11 @@ public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
         } else {
           // Update the entry to prevent uncompressing this tuple.
           result.add(
-              new PreDiffPlanEntry(
-                  originalEntry.getOldEntry(),
-                  originalEntry.getNewEntry(),
-                  ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-                  UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
+              originalEntry.toBuilder()
+                  .setUncompressionOption(
+                      ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                      UncompressionOptionExplanation.RESOURCE_CONSTRAINED)
+                  .build());
         }
       } else {
         // Keep the original entry, no need to track size since it won't be uncompressed.
