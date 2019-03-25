@@ -113,7 +113,7 @@ public class PreDiffExecutor {
      * PreDiffPlan}.
      */
     public Builder addSupportedDeltaFormats(Collection<DeltaFormat> supportedDeltaFormats) {
-      if (preDiffPlanEntryModifiers == null) {
+      if (supportedDeltaFormats == null) {
         throw new IllegalArgumentException("supportedDeltaFormats cannot be null");
       }
       this.supportedDeltaFormats.addAll(supportedDeltaFormats);

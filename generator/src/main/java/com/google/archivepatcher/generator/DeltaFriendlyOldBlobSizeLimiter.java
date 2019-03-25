@@ -64,7 +64,7 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
   }
 
   @Override
-  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
       File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
 
     List<PreDiffPlanEntry> sorted = sortPreDiffPlanEntries(originalEntries);
@@ -86,11 +86,11 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
         } else {
           // Update the entry to prevent uncompressing this tuple.
           result.add(
-              new PreDiffPlanEntry(
-                  originalEntry.getOldEntry(),
-                  originalEntry.getNewEntry(),
-                  ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-                  UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
+              originalEntry.toBuilder()
+                  .setUncompressionOption(
+                      ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                      UncompressionOptionExplanation.RESOURCE_CONSTRAINED)
+                  .build());
         }
       }
     }
