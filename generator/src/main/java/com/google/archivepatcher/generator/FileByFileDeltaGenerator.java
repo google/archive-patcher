@@ -63,6 +63,27 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
   @Override
   public void generateDelta(File oldFile, File newFile, OutputStream patchOut)
       throws IOException, InterruptedException {
+    generateDelta(oldFile, newFile, patchOut, /* generateDeltaNatively= */ false);
+  }
+
+  /**
+   * Generate a V1 patch for the specified input files and write the patch to the specified {@link
+   * OutputStream}. The written patch is <em>raw</em>, i.e. it has not been compressed. Compression
+   * should almost always be applied to the patch, either right in the specified {@link
+   * OutputStream} or in a post-processing step, prior to transmitting the patch to the patch
+   * applier.
+   *
+   * @param oldFile the original old file to read (will not be modified)
+   * @param newFile the original new file to read (will not be modified)
+   * @param patchOut the stream to write the patch to
+   * @param generateDeltaNatively indicates whether to use the native implementation of BsDiff
+   * @throws IOException if unable to complete the operation due to an I/O error
+   * @throws InterruptedException if any thread has interrupted the current thread
+   */
+  @Override
+  public void generateDelta(
+      File oldFile, File newFile, OutputStream patchOut, boolean generateDeltaNatively)
+      throws IOException, InterruptedException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
         TempFileHolder deltaFile = new TempFileHolder();
@@ -72,7 +93,10 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
           generatePreDiffPlan(oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
-          deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);
+          deltaFriendlyOldFile.file,
+          deltaFriendlyNewFile.file,
+          bufferedDeltaOut,
+          generateDeltaNatively);
       bufferedDeltaOut.close();
       PatchWriter patchWriter =
           new PatchWriter(

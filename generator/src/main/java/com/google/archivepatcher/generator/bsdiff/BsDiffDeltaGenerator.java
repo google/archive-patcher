@@ -31,8 +31,20 @@ public class BsDiffDeltaGenerator implements DeltaGenerator {
   private static final int MATCH_LENGTH_BYTES = 16;
 
   @Override
-  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut) throws IOException {
+  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+      throws IOException, InterruptedException {
+    generateDelta(oldBlob, newBlob, deltaOut, /* generateDeltaNatively= */ false);
+  }
+
+  @Override
+  public void generateDelta(
+      File oldBlob, File newBlob, OutputStream deltaOut, boolean generateDeltaNatively)
+      throws IOException, InterruptedException {
+    if (generateDeltaNatively) {
       BsDiffNativePatchWriter.generatePatch(oldBlob, newBlob, deltaOut);
+    } else {
+      BsDiffPatchWriter.generatePatch(oldBlob, newBlob, deltaOut, MATCH_LENGTH_BYTES);
+    }
   }
 
   public static void generateDelta(

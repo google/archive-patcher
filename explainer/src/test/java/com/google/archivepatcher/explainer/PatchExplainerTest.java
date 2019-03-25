@@ -108,6 +108,13 @@ public class PatchExplainerTest {
     @Override
     public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
         throws IOException {
+      generateDelta(oldBlob, newBlob, deltaOut, /* generateDeltaNatively= */ false);
+    }
+
+    @Override
+    public void generateDelta(
+        File oldBlob, File newBlob, OutputStream deltaOut, boolean generateDeltaNatively)
+        throws IOException {
       assertFileEquals(oldBlob, expectedOld);
       assertFileEquals(newBlob, expectedNew);
       deltaOut.write(OUTPUT.getBytes("US-ASCII"));
