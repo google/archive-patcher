@@ -131,14 +131,14 @@ public class PatchExplainer {
       for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
 
         // Short-circuit for identical resources.
-        if (preDiffPlanEntry.getExplanation()
+        if (preDiffPlanEntry.getUncompressionOptionExplanation()
             == UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL) {
           // Patch size should be effectively zero.
           result.add(
               EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
-                  preDiffPlanEntry.getExplanation()));
+                  preDiffPlanEntry.getUncompressionOptionExplanation()));
           continue;
         }
 
@@ -152,7 +152,7 @@ public class PatchExplainer {
               EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
-                  preDiffPlanEntry.getExplanation()));
+                  preDiffPlanEntry.getUncompressionOptionExplanation()));
           continue;
         }
 
@@ -195,7 +195,7 @@ public class PatchExplainer {
               EntryExplanation.forOld(
                   new ByteArrayHolder(preDiffPlanEntry.getOldEntry().getFileNameBytes()),
                   compressedDeltaSize,
-                  preDiffPlanEntry.getExplanation()));
+                  preDiffPlanEntry.getUncompressionOptionExplanation()));
         }
       }
     }

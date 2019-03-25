@@ -23,6 +23,7 @@ import java.util.Objects;
  * zipEntryUncompressionOption.
  */
 public class PreDiffPlanEntry {
+
   /**
    * The entry in the old file.
    */
@@ -36,8 +37,8 @@ public class PreDiffPlanEntry {
   /** The zipEntryUncompressionOption for how to proceed on the pair of entries. */
   private final ZipEntryUncompressionOption zipEntryUncompressionOption;
 
-  /** The explanation for the zipEntryUncompressionOption. */
-  private final UncompressionOptionExplanation explanation;
+  /** The uncompressionOptionExplanation for the zipEntryUncompressionOption. */
+  private final UncompressionOptionExplanation uncompressionOptionExplanation;
 
   /**
    * Construct a new qualified zipEntryUncompressionOption with the specified data.
@@ -45,17 +46,18 @@ public class PreDiffPlanEntry {
    * @param oldEntry the entry in the old file
    * @param newEntry the entry in the new file
    * @param zipEntryUncompressionOption the zipEntryUncompressionOption for this tuple of entries
-   * @param explanation the explanation for the zipEntryUncompressionOption
+   * @param uncompressionOptionExplanation the uncompressionOptionExplanation for the {@link
+   *     #zipEntryUncompressionOption}
    */
-  public PreDiffPlanEntry(
+  private PreDiffPlanEntry(
       MinimalZipEntry oldEntry,
       MinimalZipEntry newEntry,
       ZipEntryUncompressionOption zipEntryUncompressionOption,
-      UncompressionOptionExplanation explanation) {
+      UncompressionOptionExplanation uncompressionOptionExplanation) {
     this.oldEntry = oldEntry;
     this.newEntry = newEntry;
     this.zipEntryUncompressionOption = zipEntryUncompressionOption;
-    this.explanation = explanation;
+    this.uncompressionOptionExplanation = uncompressionOptionExplanation;
   }
 
   /**
@@ -84,17 +86,18 @@ public class PreDiffPlanEntry {
   }
 
   /**
-   * Returns the explanation for the zipEntryUncompressionOption.
+   * Returns the uncompressionOptionExplanation for the zipEntryUncompressionOption.
    *
    * @return as described
    */
-  public UncompressionOptionExplanation getExplanation() {
-    return explanation;
+  public UncompressionOptionExplanation getUncompressionOptionExplanation() {
+    return uncompressionOptionExplanation;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(oldEntry, newEntry, zipEntryUncompressionOption, explanation);
+    return Objects.hash(
+        oldEntry, newEntry, zipEntryUncompressionOption, uncompressionOptionExplanation);
   }
 
   @Override
@@ -109,7 +112,7 @@ public class PreDiffPlanEntry {
     return Objects.equals(oldEntry, otherEntry.oldEntry)
         && Objects.equals(newEntry, otherEntry.newEntry)
         && zipEntryUncompressionOption == otherEntry.zipEntryUncompressionOption
-        && explanation == otherEntry.explanation;
+        && uncompressionOptionExplanation == otherEntry.uncompressionOptionExplanation;
   }
 
   @Override
@@ -120,9 +123,58 @@ public class PreDiffPlanEntry {
         + newEntry.getFileName()
         + ", zipEntryUncompressionOption="
         + zipEntryUncompressionOption
-        + ", explanation="
-        + explanation
+        + ", uncompressionOptionExplanation="
+        + uncompressionOptionExplanation
         + "]";
   }
 
+  /** Builder for {@link PreDiffPlanEntry}. */
+  public static class Builder {
+    private MinimalZipEntry oldEntry;
+    private MinimalZipEntry newEntry;
+    private ZipEntryUncompressionOption zipEntryUncompressionOption;
+    private UncompressionOptionExplanation uncompressionOptionExplanation;
+
+    private Builder() {}
+
+    /** Sets the pair of zip entries. */
+    public Builder setZipEntries(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+      this.oldEntry = oldEntry;
+      this.newEntry = newEntry;
+      return this;
+    }
+
+    /** Sets the uncompression option and the explanation. */
+    public Builder setUncompressionOption(
+        ZipEntryUncompressionOption uncompressionOption,
+        UncompressionOptionExplanation explanation) {
+      this.zipEntryUncompressionOption = uncompressionOption;
+      this.uncompressionOptionExplanation = explanation;
+      return this;
+    }
+
+    /** Builds the {@link PreDiffPlanEntry}. */
+    public PreDiffPlanEntry build() {
+      if (oldEntry == null || newEntry == null) {
+        throw new IllegalArgumentException("Old entry and new entry cannot be null");
+      }
+      if (zipEntryUncompressionOption == null || uncompressionOptionExplanation == null) {
+        throw new IllegalArgumentException("UncompressionOption and explanation cannot be null");
+      }
+      return new PreDiffPlanEntry(
+          oldEntry, newEntry, zipEntryUncompressionOption, uncompressionOptionExplanation);
+    }
+  }
+
+  /** Returns a {@link Builder} for {@link PreDiffPlanEntry}. */
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /** Returns a {@link Builder} with the current state. */
+  public Builder toBuilder() {
+    return new Builder()
+        .setZipEntries(oldEntry, newEntry)
+        .setUncompressionOption(zipEntryUncompressionOption, uncompressionOptionExplanation);
+  }
 }
