@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import java.util.Objects;
+
 /**
  * An entry of {@link PreDiffPlan}, consisting of an {@link MinimalZipEntry} from the old file, a
  * {@link MinimalZipEntry} from the new file, a {@link ZipEntryUncompressionOption} for how to
@@ -92,15 +94,7 @@ public class PreDiffPlanEntry {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((newEntry == null) ? 0 : newEntry.hashCode());
-    result = prime * result + ((oldEntry == null) ? 0 : oldEntry.hashCode());
-    result = prime * result + ((explanation == null) ? 0 : explanation.hashCode());
-    result =
-        prime * result
-            + ((zipEntryUncompressionOption == null) ? 0 : zipEntryUncompressionOption.hashCode());
-    return result;
+    return Objects.hash(oldEntry, newEntry, zipEntryUncompressionOption, explanation);
   }
 
   @Override
@@ -111,23 +105,11 @@ public class PreDiffPlanEntry {
     if (!(obj instanceof PreDiffPlanEntry)) {
       return false;
     }
-    PreDiffPlanEntry other = (PreDiffPlanEntry) obj;
-    if (newEntry == null) {
-      if (other.newEntry != null) {
-        return false;
-      }
-    } else if (!newEntry.equals(other.newEntry)) {
-      return false;
-    }
-    if (oldEntry == null) {
-      if (other.oldEntry != null) {
-        return false;
-      }
-    } else if (!oldEntry.equals(other.oldEntry)) {
-      return false;
-    }
-    return explanation == other.explanation
-        && zipEntryUncompressionOption == other.zipEntryUncompressionOption;
+    PreDiffPlanEntry otherEntry = (PreDiffPlanEntry) obj;
+    return Objects.equals(oldEntry, otherEntry.oldEntry)
+        && Objects.equals(newEntry, otherEntry.newEntry)
+        && zipEntryUncompressionOption == otherEntry.zipEntryUncompressionOption
+        && explanation == otherEntry.explanation;
   }
 
   @Override
