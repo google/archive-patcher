@@ -14,8 +14,10 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import java.io.ByteArrayOutputStream;
+import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +39,10 @@ public class FileByFileDeltaGeneratorTest {
   @Test
   public void testGenerateDelta_BaseCase() throws Exception {
     // Simple test of generating a patch with no changes.
-    FileByFileDeltaGenerator generator = new FileByFileDeltaGenerator();
+    FileByFileDeltaGenerator generator =
+        new FileByFileDeltaGenerator(
+            /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
+            Collections.singletonList(DeltaFormat.BSDIFF));
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempFileHolder oldArchive = new TempFileHolder();
         TempFileHolder newArchive = new TempFileHolder()) {
