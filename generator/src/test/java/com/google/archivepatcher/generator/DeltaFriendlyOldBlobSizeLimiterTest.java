@@ -51,25 +51,25 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   // First four entries are all ones where uncompression of the old resource is required.
   // Note that there is a mix of UNCOMPRESS_OLD and UNCOMPRESS_BOTH, both of which will have the
   // "old" entry flagged for uncompression (i.e., should be relevant to the filtering logic).
-  private static final PreDiffPlanEntry REC_A_100K =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_A_100K =
       new PreDiffPlanEntry(
           ENTRY_A_100K,
           UNIMPORTANT,
           ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
           UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
-  private static final PreDiffPlanEntry REC_B_200K =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_B_200K =
       new PreDiffPlanEntry(
           ENTRY_B_200K,
           UNIMPORTANT,
           ZipEntryUncompressionOption.UNCOMPRESS_OLD,
           UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
-  private static final PreDiffPlanEntry REC_C_300K =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_C_300K =
       new PreDiffPlanEntry(
           ENTRY_C_300K,
           UNIMPORTANT,
           ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
           UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
-  private static final PreDiffPlanEntry REC_D_400K =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_D_400K =
       new PreDiffPlanEntry(
           ENTRY_D_400K,
           UNIMPORTANT,
@@ -79,19 +79,19 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   // Remaining entries are all ones where recompression is NOT required. Note the mixture of
   // UNCOMPRESS_NEITHER and UNCOMPRESS_OLD, neither of which will have the "new" entry flagged for
   // recompression (ie., must be ignored by the filtering logic).
-  private static final PreDiffPlanEntry REC_IGNORED_A_UNCHANGED =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_A_UNCHANGED =
       new PreDiffPlanEntry(
           IGNORED_A,
           UNIMPORTANT,
           ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
           UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
-  private static final PreDiffPlanEntry REC_IGNORED_B_BOTH_UNCOMPRESSED =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_B_BOTH_UNCOMPRESSED =
       new PreDiffPlanEntry(
           IGNORED_B,
           UNIMPORTANT,
           ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
           UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
-  private static final PreDiffPlanEntry REC_IGNORED_C_UNSUITABLE =
+  private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_C_UNSUITABLE =
       new PreDiffPlanEntry(
           IGNORED_C,
           UNIMPORTANT,
@@ -99,22 +99,24 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
           UncompressionOptionExplanation.UNSUITABLE);
 
   /** Convenience reference to all the entries that should be ignored by filtering. */
-  private static final List<PreDiffPlanEntry> ALL_IGNORED_RECS =
+  private static final List<PreDiffPlanEntry> ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES =
       Collections.unmodifiableList(
           Arrays.asList(
-              REC_IGNORED_A_UNCHANGED, REC_IGNORED_B_BOTH_UNCOMPRESSED, REC_IGNORED_C_UNSUITABLE));
+              PRE_DIFF_PLAN_ENTRY_IGNORED_A_UNCHANGED,
+              PRE_DIFF_PLAN_ENTRY_IGNORED_B_BOTH_UNCOMPRESSED,
+              PRE_DIFF_PLAN_ENTRY_IGNORED_C_UNSUITABLE));
 
   /** Convenience reference to all the entries that are subject to filtering. */
-  private static final List<PreDiffPlanEntry> ALL_RECS =
+  private static final List<PreDiffPlanEntry> ALL_PRE_DIFF_PLAN_ENTRIES =
       Collections.unmodifiableList(
           Arrays.asList(
-              REC_IGNORED_A_UNCHANGED,
-              REC_A_100K,
-              REC_IGNORED_B_BOTH_UNCOMPRESSED,
-              REC_D_400K,
-              REC_IGNORED_C_UNSUITABLE,
-              REC_B_200K,
-              REC_C_300K));
+              PRE_DIFF_PLAN_ENTRY_IGNORED_A_UNCHANGED,
+              PRE_DIFF_PLAN_ENTRY_A_100K,
+              PRE_DIFF_PLAN_ENTRY_IGNORED_B_BOTH_UNCOMPRESSED,
+              PRE_DIFF_PLAN_ENTRY_D_400K,
+              PRE_DIFF_PLAN_ENTRY_IGNORED_C_UNSUITABLE,
+              PRE_DIFF_PLAN_ENTRY_B_200K,
+              PRE_DIFF_PLAN_ENTRY_C_300K));
 
   /**
    * Make a structurally valid but totally bogus {@link MinimalZipEntry} for the purpose of testing
@@ -201,96 +203,132 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testZeroLimit() {
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(0);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_A_100K,
+            PRE_DIFF_PLAN_ENTRY_B_200K,
+            PRE_DIFF_PLAN_ENTRY_C_300K,
+            PRE_DIFF_PLAN_ENTRY_D_400K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testMaxLimit() {
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(Long.MAX_VALUE);
-    assertEquivalence(ALL_RECS, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    assertEquivalence(
+        ALL_PRE_DIFF_PLAN_ENTRIES,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_ExactlySmallest() {
     long limit =
-        REC_A_100K.getOldEntry().getUncompressedSize()
-            - REC_A_100K.getOldEntry().getCompressedSize(); // Exactly large enough
+        PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getCompressedSize(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_A_100K);
-    expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_A_100K);
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K, PRE_DIFF_PLAN_ENTRY_D_400K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_EdgeUnderSmallest() {
     long limit =
-        REC_A_100K.getOldEntry().getUncompressedSize()
-            - REC_A_100K.getOldEntry().getCompressedSize()
+        PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getCompressedSize()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K, REC_D_400K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_A_100K,
+            PRE_DIFF_PLAN_ENTRY_B_200K,
+            PRE_DIFF_PLAN_ENTRY_C_300K,
+            PRE_DIFF_PLAN_ENTRY_D_400K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_EdgeOverSmallest() {
     long limit =
-        REC_A_100K.getOldEntry().getUncompressedSize()
-            - REC_A_100K.getOldEntry().getCompressedSize()
+        PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_A_100K.getOldEntry().getCompressedSize()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_A_100K);
-    expected.addAll(suppressed(REC_B_200K, REC_C_300K, REC_D_400K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_A_100K);
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K, PRE_DIFF_PLAN_ENTRY_D_400K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_ExactlyLargest() {
     long limit =
-        REC_D_400K.getOldEntry().getUncompressedSize()
-            - REC_D_400K.getOldEntry().getCompressedSize(); // Exactly large enough
+        PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getCompressedSize(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_D_400K);
-    expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_EdgeUnderLargest() {
     long limit =
-        REC_D_400K.getOldEntry().getUncompressedSize()
-            - REC_D_400K.getOldEntry().getCompressedSize()
+        PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getCompressedSize()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_C_300K);
-    expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_D_400K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_C_300K);
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_D_400K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
   public void testLimit_EdgeOverLargest() {
     long limit =
-        REC_D_400K.getOldEntry().getUncompressedSize()
-            - REC_D_400K.getOldEntry().getCompressedSize()
+        PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getUncompressedSize()
+            - PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getCompressedSize()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_D_400K);
-    expected.addAll(suppressed(REC_A_100K, REC_B_200K, REC_C_300K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
+    expected.addAll(
+        suppressed(
+            PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -300,16 +338,18 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
     // adding the first largest, and the fourth largest will fail because there is not enough space
     // after adding the third largest. Tricky.
     long limit =
-        (REC_D_400K.getOldEntry().getUncompressedSize()
-                - REC_D_400K.getOldEntry().getCompressedSize())
-            + (REC_B_200K.getOldEntry().getUncompressedSize()
-                - REC_B_200K.getOldEntry().getCompressedSize());
+        (PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getUncompressedSize()
+                - PRE_DIFF_PLAN_ENTRY_D_400K.getOldEntry().getCompressedSize())
+            + (PRE_DIFF_PLAN_ENTRY_B_200K.getOldEntry().getUncompressedSize()
+                - PRE_DIFF_PLAN_ENTRY_B_200K.getOldEntry().getCompressedSize());
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
-    expected.add(REC_B_200K);
-    expected.add(REC_D_400K);
-    expected.addAll(suppressed(REC_A_100K, REC_C_300K));
-    expected.addAll(ALL_IGNORED_RECS);
-    assertEquivalence(expected, limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_RECS));
+    expected.add(PRE_DIFF_PLAN_ENTRY_B_200K);
+    expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
+    expected.addAll(suppressed(PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_C_300K));
+    expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
+    assertEquivalence(
+        expected,
+        limiter.getModifiedPreDiffPlanEntry(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 }
