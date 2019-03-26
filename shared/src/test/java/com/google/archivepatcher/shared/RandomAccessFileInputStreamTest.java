@@ -14,6 +14,13 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -21,15 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-
-/**
- * Tests for {@link RandomAccessFileInputStream}.
- */
+/** Tests for {@link RandomAccessFileInputStream}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class RandomAccessFileInputStreamTest {
@@ -89,9 +88,9 @@ public class RandomAccessFileInputStreamTest {
   @Test
   public void testRead_OneByte() throws IOException {
     for (int x = 0; x < testData.length; x++) {
-      Assert.assertEquals(x, stream.read());
+      assertThat(stream.read()).isEqualTo(x);
     }
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @Test
@@ -106,13 +105,13 @@ public class RandomAccessFileInputStreamTest {
         out.write(buffer, 0, numRead);
       }
     }
-    Assert.assertEquals(-1, stream.read(buffer, 0, 1));
-    Assert.assertArrayEquals(testData, out.toByteArray());
+    assertThat(stream.read(buffer, 0, 1)).isEqualTo(-1);
+    assertThat(out.toByteArray()).isEqualTo(testData);
   }
 
   @Test
   public void testRead_WithBuffer_NegativeLength() throws IOException {
-    Assert.assertEquals(0, stream.read(new byte[] {}, 0, -1));
+    assertThat(stream.read(new byte[] {}, 0, -1)).isEqualTo(0);
   }
 
   @Test
@@ -127,13 +126,13 @@ public class RandomAccessFileInputStreamTest {
         out.write(buffer, 0, numRead);
       }
     }
-    Assert.assertEquals(-1, stream.read());
-    Assert.assertArrayEquals(testData, out.toByteArray());
+    assertThat(stream.read()).isEqualTo(-1);
+    assertThat(out.toByteArray()).isEqualTo(testData);
   }
 
   @Test
   public void testMarkSupported() {
-    Assert.assertTrue(stream.markSupported());
+    assertThat(stream.markSupported()).isTrue();
   }
 
   @Test
@@ -142,52 +141,52 @@ public class RandomAccessFileInputStreamTest {
     stream.close();
     stream = new RandomAccessFileInputStream(tempFile, 1, testData.length - 2);
     // Set a mark after the first byte, which should be 1. Read a second byte, which should be 2.
-    Assert.assertEquals(1, stream.read());
+    assertThat(stream.read()).isEqualTo(1);
     stream.mark(1337 /* any value here, it is ignored */);
-    Assert.assertEquals(2, stream.read());
+    assertThat(stream.read()).isEqualTo(2);
     // Reset the stream, it should be back to 1 now.
     stream.reset();
-    Assert.assertEquals(2, stream.read());
+    assertThat(stream.read()).isEqualTo(2);
   }
 
   @Test
   public void testSkip() throws IOException {
     // Skip values <= 0 should always produce 0 and not actually skip anything.
-    Assert.assertEquals(0, stream.skip(-1));
-    Assert.assertEquals(0, stream.skip(0));
+    assertThat(stream.skip(-1)).isEqualTo(0);
+    assertThat(stream.skip(0)).isEqualTo(0);
     // Skip the first 5 bytes and read the 6th, which should have the value 5.
-    Assert.assertEquals(5, stream.skip(5));
-    Assert.assertEquals(5, stream.read());
+    assertThat(stream.skip(5)).isEqualTo(5);
+    assertThat(stream.read()).isEqualTo(5);
     // 6 bytes have been read, so the max skip is testDataLength - 6. Ensure this is true.
-    Assert.assertEquals(testData.length - 5 - 1, stream.skip(testData.length));
+    assertThat(stream.skip(testData.length)).isEqualTo(testData.length - 5 - 1);
     // At the end of the file, skip should always return 0.
-    Assert.assertEquals(0, stream.skip(17));
+    assertThat(stream.skip(17)).isEqualTo(0);
   }
 
   @Test
   public void testAvailable() throws IOException {
     // Available always knows the answer precisely unless the file length exceeds Integer.MAX_VALUE
-    Assert.assertEquals(testData.length, stream.available());
+    assertThat(stream.available()).isEqualTo(testData.length);
     stream.read(new byte[17]);
-    Assert.assertEquals(testData.length - 17, stream.available());
+    assertThat(stream.available()).isEqualTo(testData.length - 17);
     stream.read(new byte[testData.length]);
-    Assert.assertEquals(0, stream.available());
+    assertThat(stream.available()).isEqualTo(0);
     stream.read();
-    Assert.assertEquals(0, stream.available());
+    assertThat(stream.available()).isEqualTo(0);
   }
 
   @Test
   public void testSetRange() throws IOException {
     // Mess with the stream range multiple times
     stream.setRange(1, 3);
-    Assert.assertEquals(1, stream.read());
-    Assert.assertEquals(2, stream.read());
-    Assert.assertEquals(3, stream.read());
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(1);
+    assertThat(stream.read()).isEqualTo(2);
+    assertThat(stream.read()).isEqualTo(3);
+    assertThat(stream.read()).isEqualTo(-1);
     stream.setRange(99, 2);
-    Assert.assertEquals(99, stream.read());
-    Assert.assertEquals(100, stream.read());
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(99);
+    assertThat(stream.read()).isEqualTo(100);
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -233,7 +232,7 @@ public class RandomAccessFileInputStreamTest {
       stream.mark(0);
       Assert.fail("Executed code that should have failed.");
     } catch (Exception e) {
-      Assert.assertEquals("Blah314159", e.getCause().getMessage());
+      assertThat(e).hasCauseThat().hasMessageThat().isEqualTo("Blah314159");
     }
   }
 
@@ -250,24 +249,24 @@ public class RandomAccessFileInputStreamTest {
 
   @Test
   public void testLength() {
-    Assert.assertEquals(testData.length, stream.length());
+    assertThat(stream.length()).isEqualTo(testData.length);
   }
 
   @Test
   public void testConstructorWithSpecificLength() throws IOException {
     stream = new RandomAccessFileInputStream(tempFile, 5, 2);
-    Assert.assertEquals(5, stream.read());
-    Assert.assertEquals(6, stream.read());
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(5);
+    assertThat(stream.read()).isEqualTo(6);
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @Test
   public void testGetPosition() throws IOException {
     stream = new RandomAccessFileInputStream(tempFile, 5, 2);
-    Assert.assertEquals(5, stream.getPosition());
+    assertThat(stream.getPosition()).isEqualTo(5);
     stream.read();
-    Assert.assertEquals(6, stream.getPosition());
+    assertThat(stream.getPosition()).isEqualTo(6);
     stream.setRange(0, 1);
-    Assert.assertEquals(0, stream.getPosition());
+    assertThat(stream.getPosition()).isEqualTo(0);
   }
 }

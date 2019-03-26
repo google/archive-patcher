@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.applier;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
@@ -29,7 +31,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -217,7 +218,7 @@ public class FileByFileDeltaApplierTest {
       DataInputStream deltaData = new DataInputStream(deltaIn);
       byte[] actualDeltaDataRead = new byte[BSDIFF_DELTA.length()];
       deltaData.readFully(actualDeltaDataRead);
-      Assert.assertArrayEquals(BSDIFF_DELTA.getBytes("US-ASCII"), actualDeltaDataRead);
+      assertThat(actualDeltaDataRead).isEqualTo(BSDIFF_DELTA.getBytes("US-ASCII"));
 
       // Check that the old data is as expected
       int oldSize = (int) oldBlob.length();
@@ -225,7 +226,7 @@ public class FileByFileDeltaApplierTest {
       FileInputStream oldBlobIn = new FileInputStream(oldBlob);
       DataInputStream oldBlobDataIn = new DataInputStream(oldBlobIn);
       oldBlobDataIn.readFully(oldData);
-      Assert.assertArrayEquals(expectedDeltaFriendlyOldFileBytes, oldData);
+      assertThat(oldData).isEqualTo(expectedDeltaFriendlyOldFileBytes);
 
       // "Convert" the old blob to the new blow as if this were a real patching algorithm.
       newBlobOut.write(UNCOMPRESSED_HEADER);
@@ -251,7 +252,7 @@ public class FileByFileDeltaApplierTest {
     // recompressed. It's deceptively simple below, but this is a lot of moving parts.
     ByteArrayOutputStream actualNewBlobOut = new ByteArrayOutputStream();
     fakeApplier.applyDelta(oldFile, new ByteArrayInputStream(patchBytes), actualNewBlobOut);
-    Assert.assertArrayEquals(expectedNewBytes, actualNewBlobOut.toByteArray());
+    assertThat(actualNewBlobOut.toByteArray()).isEqualTo(expectedNewBytes);
   }
 
   @Test
@@ -265,8 +266,7 @@ public class FileByFileDeltaApplierTest {
       }
     };
     fakeApplier.applyDelta(oldFile, new ByteArrayInputStream(patchBytes), actualNewBlobOut);
-    Assert.assertArrayEquals(expectedNewBytes, actualNewBlobOut.toByteArray());
-    Assert.assertFalse(closed.get());
+    assertThat(actualNewBlobOut.toByteArray()).isEqualTo(expectedNewBytes);
+    assertThat(closed.get()).isFalse();
   }
-
 }

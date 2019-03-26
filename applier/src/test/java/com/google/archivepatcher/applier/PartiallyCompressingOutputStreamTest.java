@@ -14,25 +14,22 @@
 
 package com.google.archivepatcher.applier;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
-import org.junit.Assert;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-
-/**
- * Tests for {@link PartiallyCompressingOutputStream}.
- */
+/** Tests for {@link PartiallyCompressingOutputStream}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class PartiallyCompressingOutputStreamTest {
@@ -87,7 +84,7 @@ public class PartiallyCompressingOutputStreamTest {
     stream.write(input);
     stream.flush();
     stream.close();
-    Assert.assertArrayEquals(input, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(input);
   }
 
   @Test
@@ -100,7 +97,7 @@ public class PartiallyCompressingOutputStreamTest {
     byte[] expected = input.clone();
     stream.write(input);
     stream.flush();
-    Assert.assertArrayEquals(expected, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(expected);
   }
 
   @Test
@@ -113,7 +110,7 @@ public class PartiallyCompressingOutputStreamTest {
         new PartiallyCompressingOutputStream(Collections.singletonList(range), outBuffer, 32768);
     stream.write(ENTRY1.getUncompressedBinaryContent());
     stream.flush();
-    Assert.assertArrayEquals(ENTRY1.getCompressedBinaryContent(), outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(ENTRY1.getCompressedBinaryContent());
   }
 
   @Test
@@ -126,7 +123,7 @@ public class PartiallyCompressingOutputStreamTest {
     byte[] expected = fuse(PREAMBLE_BYTES, ENTRY1.getCompressedBinaryContent());
     stream.write(input);
     stream.flush();
-    Assert.assertArrayEquals(expected, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(expected);
   }
 
   @Test
@@ -139,7 +136,7 @@ public class PartiallyCompressingOutputStreamTest {
     byte[] expected = fuse(PREAMBLE_BYTES, ENTRY1.getCompressedBinaryContent(), GAP1_BYTES);
     stream.write(input);
     stream.flush();
-    Assert.assertArrayEquals(expected, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(expected);
   }
 
   @Test
@@ -166,6 +163,6 @@ public class PartiallyCompressingOutputStreamTest {
       stream.flush();
     }
     stream.close();
-    Assert.assertArrayEquals(expected, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(expected);
   }
 }

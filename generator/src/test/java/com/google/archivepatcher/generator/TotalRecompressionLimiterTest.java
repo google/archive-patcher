@@ -21,6 +21,7 @@ import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.buil
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUncompressedToCompressed;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUnsuitable;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.suppressed;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
@@ -141,9 +142,9 @@ public class TotalRecompressionLimiterTest {
    * @param c2 the second collection
    */
   private static <T> void assertEquivalence(Collection<T> c1, Collection<T> c2) {
-    Assert.assertEquals(c1.size(), c2.size());
-    Assert.assertTrue(c1.containsAll(c2));
-    Assert.assertTrue(c2.containsAll(c1));
+    assertThat(c2).hasSize(c1.size());
+    assertThat(c1.containsAll(c2)).isTrue();
+    assertThat(c2.containsAll(c1)).isTrue();
   }
 
   @Test

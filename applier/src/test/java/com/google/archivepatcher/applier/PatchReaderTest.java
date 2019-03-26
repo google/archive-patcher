@@ -14,16 +14,11 @@
 
 package com.google.archivepatcher.applier;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.TypedRange;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -32,6 +27,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link PatchReader}.
@@ -227,11 +226,11 @@ public class PatchReaderTest {
   public void testReadPatchApplyPlan() throws IOException {
     PatchApplyPlan plan =
         new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
-    Assert.assertEquals(DELTA_FRIENDLY_OLD_FILE_SIZE, plan.getDeltaFriendlyOldFileSize());
-    Assert.assertEquals(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN, plan.getOldFileUncompressionPlan());
-    Assert.assertEquals(
-        NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN, plan.getDeltaFriendlyNewFileRecompressionPlan());
-    Assert.assertEquals(DELTA_DESCRIPTORS, plan.getDeltaDescriptors());
+    assertThat(plan.getDeltaFriendlyOldFileSize()).isEqualTo(DELTA_FRIENDLY_OLD_FILE_SIZE);
+    assertThat(plan.getOldFileUncompressionPlan()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN);
+    assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan())
+        .isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN);
+    assertThat(plan.getDeltaDescriptors()).isEqualTo(DELTA_DESCRIPTORS);
   }
 
   @Test(expected = PatchFormatException.class)

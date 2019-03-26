@@ -14,19 +14,17 @@
 
 package com.google.archivepatcher.shared;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-
-/**
- * Tests for {@link CountingOutputStream}.
- */
+/** Tests for {@link CountingOutputStream}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class CountingOutputStreamTest {
@@ -61,19 +59,19 @@ public class CountingOutputStreamTest {
 
   @Test
   public void testGetNumBytesWritten_Zero() {
-    Assert.assertEquals(0, stream.getNumBytesWritten());
+    assertThat(stream.getNumBytesWritten()).isEqualTo(0);
   }
 
   @Test
   public void testGetNumBytesWritten_FewBytes() throws IOException {
     stream.write(1);
-    Assert.assertEquals(1, stream.getNumBytesWritten());
+    assertThat(stream.getNumBytesWritten()).isEqualTo(1);
     stream.write(new byte[] {2, 3, 4});
-    Assert.assertEquals(4, stream.getNumBytesWritten());
+    assertThat(stream.getNumBytesWritten()).isEqualTo(4);
     stream.write(new byte[] {4, 5, 6, 7, 8}, 1, 3); // Write only {5, 6, 7}
-    Assert.assertEquals(7, stream.getNumBytesWritten());
+    assertThat(stream.getNumBytesWritten()).isEqualTo(7);
     byte[] expected = new byte[] {1, 2, 3, 4, 5, 6, 7};
-    Assert.assertArrayEquals(expected, outBuffer.toByteArray());
+    assertThat(outBuffer.toByteArray()).isEqualTo(expected);
   }
 
   @Test
@@ -86,13 +84,13 @@ public class CountingOutputStreamTest {
       stream.write(buffer);
     }
     long expected = 2048L * 1024L * 1024L; // == 2GB, Integer.MAX_VALUE + 1
-    Assert.assertTrue(expected > Integer.MAX_VALUE);
-    Assert.assertEquals(expected, stream.getNumBytesWritten());
+    assertThat(expected > Integer.MAX_VALUE).isTrue();
+    assertThat(stream.getNumBytesWritten()).isEqualTo(expected);
     // Push it well past 4GB
     for (int x = 0; x < 78053; x++) {
       stream.write(buffer);
       expected += buffer.length;
-      Assert.assertEquals(expected, stream.getNumBytesWritten());
+      assertThat(stream.getNumBytesWritten()).isEqualTo(expected);
     }
   }
 }

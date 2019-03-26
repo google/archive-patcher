@@ -14,20 +14,18 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-
-/**
- * Tests for {@link RandomAccessFileInputStreamFactory}.
- */
+/** Tests for {@link RandomAccessFileInputStreamFactory}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class RandomAccessFileInputStreamFactoryTest {
@@ -75,13 +73,13 @@ public class RandomAccessFileInputStreamFactoryTest {
     RandomAccessFileInputStream rafis1 = factory.newStream();
     RandomAccessFileInputStream rafis2 = factory.newStream();
     try {
-      Assert.assertNotSame(rafis1, rafis2);
+      assertThat(rafis2).isNotSameAs(rafis1);
       for (int x = 0; x < testData.length; x++) {
-        Assert.assertEquals(x, rafis1.read());
-        Assert.assertEquals(x, rafis2.read());
+        assertThat(rafis1.read()).isEqualTo(x);
+        assertThat(rafis2.read()).isEqualTo(x);
       }
-      Assert.assertEquals(-1, rafis1.read());
-      Assert.assertEquals(-1, rafis2.read());
+      assertThat(rafis1.read()).isEqualTo(-1);
+      assertThat(rafis2.read()).isEqualTo(-1);
     } finally {
       try {
         rafis1.close();

@@ -14,22 +14,20 @@
 
 package com.google.archivepatcher.shared;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-/**
- * Tests for {@link RandomAccessFileOutputStream}.
- */
+/** Tests for {@link RandomAccessFileOutputStream}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class RandomAccessFileOutputStreamTest {
@@ -75,7 +73,7 @@ public class RandomAccessFileOutputStreamTest {
   @Test
   public void testCreateAndSize() throws IOException {
     stream = new RandomAccessFileOutputStream(tempFile, 11L);
-    Assert.assertEquals(11, tempFile.length());
+    assertThat(tempFile.length()).isEqualTo(11);
   }
 
   @Test(expected = IOException.class)
@@ -103,7 +101,7 @@ public class RandomAccessFileOutputStreamTest {
     FileInputStream in = null;
     try {
       in = new FileInputStream(tempFile);
-      Assert.assertEquals(7, in.read());
+      assertThat(in.read()).isEqualTo(7);
     } finally {
       try {
         in.close();
@@ -126,7 +124,7 @@ public class RandomAccessFileOutputStreamTest {
       dataIn = new DataInputStream(in);
       byte[] actual = new byte[testData.length];
       dataIn.readFully(actual);
-      Assert.assertArrayEquals(testData, actual);
+      assertThat(actual).isEqualTo(testData);
     } finally {
       if (dataIn != null) {
         try {

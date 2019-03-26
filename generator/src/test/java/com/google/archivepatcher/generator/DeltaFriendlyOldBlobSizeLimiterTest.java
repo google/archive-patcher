@@ -20,6 +20,7 @@ import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.buil
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedToUncompressed;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUnsuitable;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.suppressed;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.File;
 import java.io.IOException;
@@ -145,9 +146,9 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
    */
   private static <T> void assertEquivalence(Collection<T> c1, Collection<T> c2) {
     String errorMessage = "Expected " + c1 + " but was " + c2;
-    Assert.assertEquals(errorMessage, c1.size(), c2.size());
-    Assert.assertTrue(errorMessage, c1.containsAll(c2));
-    Assert.assertTrue(errorMessage, c2.containsAll(c1));
+    assertWithMessage(errorMessage).that(c2.size()).isEqualTo(c1.size());
+    assertWithMessage(errorMessage).that(c1.containsAll(c2)).isTrue();
+    assertWithMessage(errorMessage).that(c2.containsAll(c1)).isTrue();
   }
 
   private File tempFile = null;

@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
@@ -113,10 +115,10 @@ public class PreDiffExecutorTest {
   }
 
   private void assertFileEquals(File file1, File file2) throws IOException {
-    Assert.assertEquals(file1.length(), file2.length());
+    assertThat(file2.length()).isEqualTo(file1.length());
     byte[] content1 = readFile(file1);
     byte[] content2 = readFile(file2);
-    Assert.assertArrayEquals(content1, content2);
+    assertThat(content2).isEqualTo(content1);
   }
 
   @Test
@@ -130,11 +132,11 @@ public class PreDiffExecutorTest {
             .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
             .build();
     PreDiffPlan plan = executor.prepareForDiffing();
-    Assert.assertNotNull(plan);
+    assertThat(plan).isNotNull();
     // The plan should be to leave everything alone because there is no change.
-    Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
-    Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
-    Assert.assertTrue(plan.getDeltaFriendlyNewFileRecompressionPlan().isEmpty());
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan()).isEmpty();
     // Because nothing has changed, the delta-friendly files should be exact matches for the
     // original files.
     assertFileEquals(oldFile, deltaFriendlyOldFile);
@@ -153,20 +155,19 @@ public class PreDiffExecutorTest {
             .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
             .build();
     PreDiffPlan plan = executor.prepareForDiffing();
-    Assert.assertNotNull(plan);
+    assertThat(plan).isNotNull();
     // The plan should be to uncompress the data in both the old and new files.
-    Assert.assertEquals(1, plan.getOldFileUncompressionPlan().size());
-    Assert.assertEquals(1, plan.getNewFileUncompressionPlan().size());
-    Assert.assertEquals(1, plan.getDeltaFriendlyNewFileRecompressionPlan().size());
+    assertThat(plan.getOldFileUncompressionPlan()).hasSize(1);
+    assertThat(plan.getNewFileUncompressionPlan()).hasSize(1);
+    assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan()).hasSize(1);
     // The delta-friendly files should be larger than the originals.
-    Assert.assertTrue(oldFile.length() < deltaFriendlyOldFile.length());
-    Assert.assertTrue(newFile.length() < deltaFriendlyNewFile.length());
+    assertThat(oldFile.length()).isLessThan(deltaFriendlyOldFile.length());
+    assertThat(newFile.length()).isLessThan(deltaFriendlyNewFile.length());
 
-    Assert.assertEquals(1, plan.getPreDiffPlanEntries().size());
-    Assert.assertEquals(DeltaFormat.BSDIFF, plan.getPreDiffPlanEntries().get(0).getDeltaFormat());
-    Assert.assertEquals(
-        DeltaFormatExplanation.DEFAULT,
-        plan.getPreDiffPlanEntries().get(0).getDeltaFormatExplanation());
+    assertThat(plan.getPreDiffPlanEntries()).hasSize(1);
+    assertThat(plan.getPreDiffPlanEntries().get(0).getDeltaFormat()).isEqualTo(DeltaFormat.BSDIFF);
+    assertThat(plan.getPreDiffPlanEntries().get(0).getDeltaFormatExplanation())
+        .isEqualTo(DeltaFormatExplanation.DEFAULT);
 
     // Nitty-gritty, assert that the file content is exactly what is expected.
     // 1. Find the entry in the old file.
@@ -189,7 +190,7 @@ public class PreDiffExecutorTest {
       expectedDeltaFriendlyOldFileBytes.write(oldBytes, oldRemainderOffset, oldRemainderLength);
       byte[] expectedOld = expectedDeltaFriendlyOldFileBytes.toByteArray();
       byte[] actualOld = readFile(deltaFriendlyOldFile);
-      Assert.assertArrayEquals(expectedOld, actualOld);
+      assertThat(actualOld).isEqualTo(expectedOld);
     }
 
     // Now do the same for the new file and new entry
@@ -205,7 +206,7 @@ public class PreDiffExecutorTest {
       expectedDeltaFriendlyNewFileBytes.write(newBytes, newRemainderOffset, newRemainderLength);
       byte[] expectedNew = expectedDeltaFriendlyNewFileBytes.toByteArray();
       byte[] actualNew = readFile(deltaFriendlyNewFile);
-      Assert.assertArrayEquals(expectedNew, actualNew);
+      assertThat(actualNew).isEqualTo(expectedNew);
     }
   }
 
@@ -225,11 +226,11 @@ public class PreDiffExecutorTest {
             .addPreDiffPlanEntryModifier(limiter)
             .build();
     PreDiffPlan plan = executor.prepareForDiffing();
-    Assert.assertNotNull(plan);
+    assertThat(plan).isNotNull();
     // The plan should be to leave everything alone because of the limiter
-    Assert.assertTrue(plan.getOldFileUncompressionPlan().isEmpty());
-    Assert.assertTrue(plan.getNewFileUncompressionPlan().isEmpty());
-    Assert.assertTrue(plan.getDeltaFriendlyNewFileRecompressionPlan().isEmpty());
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan()).isEmpty();
     // Because nothing has changed, the delta-friendly files should be exact matches for the
     // original files.
     assertFileEquals(oldFile, deltaFriendlyOldFile);

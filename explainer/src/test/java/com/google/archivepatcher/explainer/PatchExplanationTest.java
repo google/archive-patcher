@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.explainer;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -105,12 +106,12 @@ public final class PatchExplanationTest {
   @Test
   public void testConstructor_Simple() {
     PatchExplanation patchExplanation = new PatchExplanation(ALL_EXPLANATIONS);
-    Assert.assertEquals(EXPECTED_NEW_EXPLANATIONS, patchExplanation.getExplainedAsNew());
-    Assert.assertEquals(EXPECTED_CHANGED_EXPLANATIONS, patchExplanation.getExplainedAsChanged());
-    Assert.assertEquals(
-        EXPECTED_UNCHANGED_OR_FREE_EXPLANATIONS, patchExplanation.getExplainedAsUnchangedOrFree());
-    Assert.assertEquals(EXPECTED_NEW_SIZE, patchExplanation.getEstimatedNewSize());
-    Assert.assertEquals(EXPECTED_CHANGED_SIZE, patchExplanation.getEstimatedChangedSize());
+    assertThat(patchExplanation.getExplainedAsNew()).isEqualTo(EXPECTED_NEW_EXPLANATIONS);
+    assertThat(patchExplanation.getExplainedAsChanged()).isEqualTo(EXPECTED_CHANGED_EXPLANATIONS);
+    assertThat(patchExplanation.getExplainedAsUnchangedOrFree())
+        .isEqualTo(EXPECTED_UNCHANGED_OR_FREE_EXPLANATIONS);
+    assertThat(patchExplanation.getEstimatedNewSize()).isEqualTo(EXPECTED_NEW_SIZE);
+    assertThat(patchExplanation.getEstimatedChangedSize()).isEqualTo(EXPECTED_CHANGED_SIZE);
   }
 
   @Test
@@ -119,12 +120,12 @@ public final class PatchExplanationTest {
     Collections.reverse(reversed);
     PatchExplanation patchExplanation = new PatchExplanation(reversed);
     // Order should remaining the same despite reversing the inputs.
-    Assert.assertEquals(EXPECTED_NEW_EXPLANATIONS, patchExplanation.getExplainedAsNew());
-    Assert.assertEquals(EXPECTED_CHANGED_EXPLANATIONS, patchExplanation.getExplainedAsChanged());
-    Assert.assertEquals(
-        EXPECTED_UNCHANGED_OR_FREE_EXPLANATIONS, patchExplanation.getExplainedAsUnchangedOrFree());
-    Assert.assertEquals(EXPECTED_NEW_SIZE, patchExplanation.getEstimatedNewSize());
-    Assert.assertEquals(EXPECTED_CHANGED_SIZE, patchExplanation.getEstimatedChangedSize());
+    assertThat(patchExplanation.getExplainedAsNew()).isEqualTo(EXPECTED_NEW_EXPLANATIONS);
+    assertThat(patchExplanation.getExplainedAsChanged()).isEqualTo(EXPECTED_CHANGED_EXPLANATIONS);
+    assertThat(patchExplanation.getExplainedAsUnchangedOrFree())
+        .isEqualTo(EXPECTED_UNCHANGED_OR_FREE_EXPLANATIONS);
+    assertThat(patchExplanation.getEstimatedNewSize()).isEqualTo(EXPECTED_NEW_SIZE);
+    assertThat(patchExplanation.getEstimatedChangedSize()).isEqualTo(EXPECTED_CHANGED_SIZE);
   }
 
   @Test
@@ -137,12 +138,12 @@ public final class PatchExplanationTest {
       patchExplanation.writeJson(writer);
       writer.flush();
       String asString = buffer.toString();
-      Assert.assertTrue(asString.startsWith("{"));
-      Assert.assertFalse(asString.isEmpty());
+      assertThat(asString).startsWith("{");
+      assertThat(asString).isNotEmpty();
       for (EntryExplanation explanation : ALL_EXPLANATIONS) {
-        Assert.assertTrue(asString.contains(new String(explanation.getPath().getData(), "UTF-8")));
+        assertThat(asString).contains(new String(explanation.getPath().getData(), "UTF-8"));
       }
-      Assert.assertTrue(asString.endsWith("}"));
+      assertThat(asString).endsWith("}");
     }
   }
 }
