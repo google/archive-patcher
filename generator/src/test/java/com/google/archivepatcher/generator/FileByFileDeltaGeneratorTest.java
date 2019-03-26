@@ -17,11 +17,14 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import java.io.ByteArrayOutputStream;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 /**
  * Tests for {@link FileByFileDeltaGenerator}. This relies heavily on the correctness of {@link
@@ -32,9 +35,22 @@ import org.junit.runners.JUnit4;
  * functionality together to create a patch; so the tests here are just ensuring that a patch can be
  * produced.
  */
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 @SuppressWarnings("javadoc")
 public class FileByFileDeltaGeneratorTest {
+
+  @Parameters
+  public static Collection<Object[]> data() {
+    // Note that the order of the parameter is important for gradle to ignore the native test.
+    return Arrays.asList(new Object[][] {{true}, {false}});
+  }
+
+  // Indicates whether native BsDiff should be used
+  private final boolean useNativeBsDiff;
+
+  public FileByFileDeltaGeneratorTest(boolean useNativeBsDiff) {
+    this.useNativeBsDiff = useNativeBsDiff;
+  }
 
   @Test
   public void testGenerateDelta_BaseCase() throws Exception {
@@ -42,14 +58,14 @@ public class FileByFileDeltaGeneratorTest {
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
             /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singleton(DeltaFormat.BSDIFF));
+            Collections.singleton(DeltaFormat.BSDIFF),
+            useNativeBsDiff);
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempFileHolder oldArchive = new TempFileHolder();
         TempFileHolder newArchive = new TempFileHolder()) {
       UnitTestZipArchive.saveTestZip(oldArchive.file);
       UnitTestZipArchive.saveTestZip(newArchive.file);
-      generator.generateDelta(
-          oldArchive.file, newArchive.file, buffer, /* generateDeltaNatively= */ false);
+      generator.generateDelta(oldArchive.file, newArchive.file, buffer);
     }
     byte[] result = buffer.toByteArray();
     Assert.assertTrue(result.length > 0);

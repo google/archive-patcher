@@ -39,7 +39,7 @@ public class SamplePatchGenerator {
       new FileByFileDeltaGenerator(
               /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
               Collections.singleton(DeltaFormat.BSDIFF))
-          .generateDelta(oldFile, newFile, compressedPatchOut, /* generateDeltaNatively= */ false);
+          .generateDelta(oldFile, newFile, compressedPatchOut);
       compressedPatchOut.finish();
       compressedPatchOut.flush();
     } finally {

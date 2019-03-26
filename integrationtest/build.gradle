@@ -11,8 +11,10 @@ dependencies {
 }
 
 test {
-    // TODO: let gradle build the native library.
-    // FileByFileIntegrationTest internally uses native BsDiff which doesn't build with gradle
-    exclude 'com/google/archivepatcher/integrationtest/*'
+    // TODO: Get gradle to work with JNI
+    filter {
+        // First option always hard coded to be "use native bsdiff"
+        excludeTestsMatching "*FileByFileIntegrationTest.*[0]"
+    }
 }
 // EOF

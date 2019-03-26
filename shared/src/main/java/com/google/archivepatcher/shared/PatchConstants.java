@@ -24,6 +24,15 @@ public class PatchConstants {
   public static final String IDENTIFIER = "GFbFv1_0"; // Google File-by-File v1.0
 
   /**
+   * Whether we should use native bsdiff by default.
+   *
+   * <p>Note that we couldn't get JNI to work with gradle so this will be changed to false in github
+   * repo.
+   */
+  // TODO: Get gradle to work with JNI
+  public static final boolean USE_NATIVE_BSDIFF_BY_DEFAULT = false;
+
+  /**
    * All available compatibility windows. The {@link #patchValue} field specifies the value for each
    * constant as represented in a patch file.
    */

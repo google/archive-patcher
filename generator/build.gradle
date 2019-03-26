@@ -20,8 +20,12 @@ task copyTestResources(type: Copy) {
 processTestResources.dependsOn copyTestResources
 
 test {
-    // TODO: let gradle build the native library.
+    // TODO: Get gradle to work with JNI
     exclude 'com/google/archivepatcher/generator/bsdiff/wrapper/*'
+    filter {
+        // First option always hard coded to be "use native bsdiff"
+        excludeTestsMatching('*FileByFileDeltaGeneratorTest*[0]')
+    }
 }
 
 // EOF
