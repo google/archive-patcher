@@ -116,7 +116,7 @@ class PreDiffPlanner {
     List<PreDiffPlanEntry> defaultEntries = getDefaultPreDiffPlanEntries();
     for (PreDiffPlanEntryModifier modifier : preDiffPlanEntryModifiers) {
       // Allow changing the entries base on arbitrary criteria.
-      defaultEntries = modifier.getModifiedPreDiffPlanEntry(oldFile, newFile, defaultEntries);
+      defaultEntries = modifier.getModifiedPreDiffPlanEntries(oldFile, newFile, defaultEntries);
     }
 
     // Process entries to extract ranges for decompression & recompression

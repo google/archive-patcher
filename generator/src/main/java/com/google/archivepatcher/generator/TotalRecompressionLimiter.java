@@ -81,7 +81,7 @@ public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
   }
 
   @Override
-  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
       File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
 
     List<PreDiffPlanEntry> sorted = new ArrayList<PreDiffPlanEntry>(originalEntries);

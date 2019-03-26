@@ -159,7 +159,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -167,7 +167,7 @@ public class TotalRecompressionLimiterTest {
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(Long.MAX_VALUE);
     assertEquivalence(
         ALL_PRE_DIFF_PLAN_ENTRIES,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -183,7 +183,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -201,7 +201,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -217,7 +217,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -233,7 +233,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -249,7 +249,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -265,7 +265,7 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 
   @Test
@@ -285,6 +285,6 @@ public class TotalRecompressionLimiterTest {
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
     assertEquivalence(
         expected,
-        limiter.getModifiedPreDiffPlanEntry(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
+        limiter.getModifiedPreDiffPlanEntries(OLD_FILE, NEW_FILE, ALL_PRE_DIFF_PLAN_ENTRIES));
   }
 }

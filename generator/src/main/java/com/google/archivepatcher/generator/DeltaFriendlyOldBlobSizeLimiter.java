@@ -64,7 +64,7 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
   }
 
   @Override
-  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+  public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
       File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
 
     List<PreDiffPlanEntry> sorted = sortPreDiffPlanEntries(originalEntries);

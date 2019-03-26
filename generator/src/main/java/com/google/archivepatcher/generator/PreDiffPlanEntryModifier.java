@@ -34,6 +34,6 @@ public interface PreDiffPlanEntryModifier {
    * @param originalEntries the original {@link PreDiffPlanEntry}
    * @return the updated list of {@link PreDiffPlanEntry}
    */
-  List<PreDiffPlanEntry> getModifiedPreDiffPlanEntry(
+  List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
       File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries);
 }
