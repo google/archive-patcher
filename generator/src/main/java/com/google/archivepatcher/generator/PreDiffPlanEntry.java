@@ -23,6 +23,7 @@ import java.util.Objects;
  * zipEntryUncompressionOption.
  */
 public class PreDiffPlanEntry {
+
   /**
    * The entry in the old file.
    */
@@ -45,10 +46,10 @@ public class PreDiffPlanEntry {
    * @param oldEntry the entry in the old file
    * @param newEntry the entry in the new file
    * @param zipEntryUncompressionOption the zipEntryUncompressionOption for this tuple of entries
-   * @param uncompressionOptionExplanation the uncompressionOptionExplanation for the
-   *     zipEntryUncompressionOption
+   * @param uncompressionOptionExplanation the uncompressionOptionExplanation for the {@link
+   *     #zipEntryUncompressionOption}
    */
-  public PreDiffPlanEntry(
+  private PreDiffPlanEntry(
       MinimalZipEntry oldEntry,
       MinimalZipEntry newEntry,
       ZipEntryUncompressionOption zipEntryUncompressionOption,
@@ -127,4 +128,53 @@ public class PreDiffPlanEntry {
         + "]";
   }
 
+  /** Builder for {@link PreDiffPlanEntry}. */
+  public static class Builder {
+    private MinimalZipEntry oldEntry;
+    private MinimalZipEntry newEntry;
+    private ZipEntryUncompressionOption zipEntryUncompressionOption;
+    private UncompressionOptionExplanation uncompressionOptionExplanation;
+
+    private Builder() {}
+
+    /** Sets the pair of zip entries. */
+    public Builder setZipEntries(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+      this.oldEntry = oldEntry;
+      this.newEntry = newEntry;
+      return this;
+    }
+
+    /** Sets the uncompression option and the explanation. */
+    public Builder setUncompressionOption(
+        ZipEntryUncompressionOption uncompressionOption,
+        UncompressionOptionExplanation explanation) {
+      this.zipEntryUncompressionOption = uncompressionOption;
+      this.uncompressionOptionExplanation = explanation;
+      return this;
+    }
+
+    /** Builds the {@link PreDiffPlanEntry}. */
+    public PreDiffPlanEntry build() {
+      if (oldEntry == null || newEntry == null) {
+        throw new IllegalStateException("Old entry and new entry cannot be null");
+      }
+      if (zipEntryUncompressionOption == null || uncompressionOptionExplanation == null) {
+        throw new IllegalStateException("UncompressionOption and explanation cannot be null");
+      }
+      return new PreDiffPlanEntry(
+          oldEntry, newEntry, zipEntryUncompressionOption, uncompressionOptionExplanation);
+    }
+  }
+
+  /** Returns a {@link Builder} for {@link PreDiffPlanEntry}. */
+  public static Builder builder() {
+    return new Builder();
+  }
+
+  /** Returns a {@link Builder} with the current state. */
+  public Builder toBuilder() {
+    return new Builder()
+        .setZipEntries(oldEntry, newEntry)
+        .setUncompressionOption(zipEntryUncompressionOption, uncompressionOptionExplanation);
+  }
 }

@@ -14,6 +14,14 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithBothEntriesUncompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesChanged;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesIdentical;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedToUncompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUncompressedToCompressed;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUnsuitable;
+import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.suppressed;
+
 import java.io.File;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -48,57 +56,25 @@ public class TotalRecompressionLimiterTest {
   // mix of UNCOMPRESS_NEW and UNCOMPRESS_BOTH, both of which will have the "new" entry flagged for
   // recompression (i.e., should be relevant to the filtering logic).
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_A_100K =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          ENTRY_A_100K,
-          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_A_100K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_B_200K =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          ENTRY_B_200K,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEW,
-          UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+      builderWithUncompressedToCompressed().setZipEntries(UNIMPORTANT, ENTRY_B_200K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_C_300K =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          ENTRY_C_300K,
-          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_C_300K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_D_400K =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          ENTRY_D_400K,
-          ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-          UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_D_400K).build();
 
   // Remaining entries are all ones where recompression is NOT required. Note the mixture of
   // UNCOMPRESS_NEITHER and UNCOMPRESS_OLD, neither of which will have the "new" entry flagged for
   // recompression (ie., must be ignored by the filtering logic).
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_A_UNCHANGED =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          IGNORED_A,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+      builderWithCompressedBytesIdentical().setZipEntries(UNIMPORTANT, IGNORED_A).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_B_BOTH_UNCOMPRESSED =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          IGNORED_B,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
+      builderWithBothEntriesUncompressed().setZipEntries(UNIMPORTANT, IGNORED_B).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_C_UNSUITABLE =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          IGNORED_C,
-          ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-          UncompressionOptionExplanation.UNSUITABLE);
+      builderWithUnsuitable().setZipEntries(UNIMPORTANT, IGNORED_C).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_D_CHANGED_TO_UNCOMPRESSED =
-      new PreDiffPlanEntry(
-          UNIMPORTANT,
-          IGNORED_D,
-          ZipEntryUncompressionOption.UNCOMPRESS_OLD,
-          UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+      builderWithCompressedToUncompressed().setZipEntries(UNIMPORTANT, IGNORED_D).build();
 
   /** Convenience reference to all the entries that should be ignored by filtering. */
   private static final List<PreDiffPlanEntry> ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES =
@@ -121,26 +97,6 @@ public class TotalRecompressionLimiterTest {
               PRE_DIFF_PLAN_ENTRY_B_200K,
               PRE_DIFF_PLAN_ENTRY_IGNORED_D_CHANGED_TO_UNCOMPRESSED,
               PRE_DIFF_PLAN_ENTRY_C_300K));
-
-  /**
-   * Given {@link PreDiffPlanEntry}s, manufacture equivalents altered in the way that the {@link
-   * TotalRecompressionLimiter} would.
-   *
-   * @param originals the original entries
-   * @return the altered entries
-   */
-  private static final List<PreDiffPlanEntry> suppressed(PreDiffPlanEntry... originals) {
-    List<PreDiffPlanEntry> result = new ArrayList<>(originals.length);
-    for (PreDiffPlanEntry original : originals) {
-      result.add(
-          new PreDiffPlanEntry(
-              original.getOldEntry(),
-              original.getNewEntry(),
-              ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-              UncompressionOptionExplanation.RESOURCE_CONSTRAINED));
-    }
-    return result;
-  }
 
   /**
    * Make a structurally valid but totally bogus {@link MinimalZipEntry} for the purpose of testing
