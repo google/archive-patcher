@@ -105,6 +105,6 @@ public class PreDiffPlanEntryTest {
         DEFAULT_QUALIFIED_RECOMMENDATION.getZipEntryUncompressionOption());
     Assert.assertEquals(
         UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
-        DEFAULT_QUALIFIED_RECOMMENDATION.getExplanation());
+        DEFAULT_QUALIFIED_RECOMMENDATION.getUncompressionOptionExplanation());
   }
 }
