@@ -14,7 +14,8 @@
 
 package com.google.archivepatcher.shared;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -202,7 +203,7 @@ public class UnitTestZipArchive {
       checkEntry(zipEntry, zipIn);
       zipIn.closeEntry();
     }
-    Assert.assertNull(zipIn.getNextEntry());
+    assertThat(zipIn.getNextEntry()).isNull();
     zipIn.close();
   }
 
@@ -234,9 +235,9 @@ public class UnitTestZipArchive {
         if (testEntry.level == 0) {
           // This entry should be uncompressed. So the "compressed" size should be the same as the
           // uncompressed size.
-          Assert.assertEquals(0, entry.getMethod());
-          Assert.assertEquals(
-              testEntry.getUncompressedBinaryContent().length, entry.getCompressedSize());
+          assertThat(entry.getMethod()).isEqualTo(0);
+          assertThat(entry.getCompressedSize())
+              .isEqualTo(testEntry.getUncompressedBinaryContent().length);
         }
         ByteArrayOutputStream uncompressedData = new ByteArrayOutputStream();
         byte[] buffer = new byte[4096];
@@ -244,11 +245,11 @@ public class UnitTestZipArchive {
         while ((numRead = zipIn.read(buffer)) >= 0) {
           uncompressedData.write(buffer, 0, numRead);
         }
-        Assert.assertArrayEquals(
-            testEntry.getUncompressedBinaryContent(), uncompressedData.toByteArray());
+        assertThat(uncompressedData.toByteArray())
+            .isEqualTo(testEntry.getUncompressedBinaryContent());
         return;
       }
     }
-    Assert.fail("entry unknown: " + entry.getName());
+    assertWithMessage("entry unknown: " + entry.getName()).fail();
   }
 }

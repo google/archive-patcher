@@ -1,7 +1,5 @@
 // applier module
 
-apply plugin: 'java'
-
 dependencies {
     compile project(':shared')
 

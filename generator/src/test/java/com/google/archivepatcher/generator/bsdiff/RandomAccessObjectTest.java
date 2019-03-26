@@ -14,10 +14,8 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
@@ -28,6 +26,9 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class RandomAccessObjectTest {
@@ -38,7 +39,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
-      Assert.assertEquals(13, obj.length());
+      assertThat(obj.length()).isEqualTo(13);
     } finally {
       tmpFile.delete();
     }
@@ -47,7 +48,7 @@ public class RandomAccessObjectTest {
   @Test
   public void byteArrayLengthTest() throws IOException {
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(BLOB)) {
-      Assert.assertEquals(13, obj.length());
+      assertThat(obj.length()).isEqualTo(13);
     }
   }
 
@@ -57,7 +58,7 @@ public class RandomAccessObjectTest {
 
     try (RandomAccessObject obj =
         new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
-      Assert.assertEquals(13, obj.length());
+      assertThat(obj.length()).isEqualTo(13);
     } finally {
       tmpFile.delete();
     }
@@ -69,12 +70,12 @@ public class RandomAccessObjectTest {
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
       for (int x = 0; x < BLOB.length; x++) {
-        Assert.assertEquals(x + 1, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(x + 1);
       }
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown an IOException");
+        assertWithMessage("Should've thrown an IOException").fail();
       } catch (IOException expected) {
       }
     } finally {
@@ -88,12 +89,12 @@ public class RandomAccessObjectTest {
     byte[] bytes = new byte[] {-128, -127, -126, -1, 0, 1, 125, 126, 127};
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(bytes)) {
       for (int x = 0; x < bytes.length; x++) {
-        Assert.assertEquals(bytes[x], obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(bytes[x]);
       }
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown an IOException");
+        assertWithMessage("Should've thrown an IOException").fail();
       } catch (BufferUnderflowException expected) {
       }
     }
@@ -106,12 +107,12 @@ public class RandomAccessObjectTest {
     byte[] bytes = new byte[] {(byte) 0xff, (byte) 0xfe, (byte) 0xfd};
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(bytes)) {
       for (int x = 0; x < bytes.length; x++) {
-        Assert.assertEquals(ints[x], obj.readUnsignedByte());
+        assertThat(obj.readUnsignedByte()).isEqualTo(ints[x]);
       }
 
       try {
         obj.readUnsignedByte();
-        Assert.fail("Should've thrown an IOException");
+        assertWithMessage("Should've thrown an IOException").fail();
       } catch (BufferUnderflowException expected) {
       }
     }
@@ -124,12 +125,12 @@ public class RandomAccessObjectTest {
     try (RandomAccessObject obj =
         new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
       for (int x = 0; x < BLOB.length; x++) {
-        Assert.assertEquals(x + 1, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(x + 1);
       }
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown an BufferUnderflowException");
+        assertWithMessage("Should've thrown an BufferUnderflowException").fail();
       } catch (BufferUnderflowException expected) {
       }
     } finally {
@@ -151,19 +152,19 @@ public class RandomAccessObjectTest {
 
       // As per RandomAccessFile documentation, the reported length should update after writing off
       // the end of a file.
-      Assert.assertEquals(BLOB.length + 1, obj.length());
+      assertThat(obj.length()).isEqualTo(BLOB.length + 1);
 
       obj.seek(0);
       for (int x = 0; x < BLOB.length; x++) {
-        Assert.assertEquals(5 - x, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(5 - x);
       }
 
       // Note that because of signed bytes, if cased to an int, this would actually resolve to -13.
-      Assert.assertEquals((byte) 243, obj.readByte());
+      assertThat(obj.readByte()).isEqualTo((byte) 243);
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown an IOException");
+        assertWithMessage("Should've thrown an IOException").fail();
       } catch (IOException expected) {
       }
     } finally {
@@ -182,10 +183,10 @@ public class RandomAccessObjectTest {
 
       obj.seek(0);
       for (int x = 0; x < BLOB.length; x++) {
-        Assert.assertEquals(5 - x, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(5 - x);
       }
 
-      Assert.assertEquals(BLOB.length, obj.length());
+      assertThat(obj.length()).isEqualTo(BLOB.length);
     } finally {
       tmpFile.delete();
     }
@@ -203,18 +204,18 @@ public class RandomAccessObjectTest {
       try {
         // Writing a byte past the end of an array is not ok.
         obj.writeByte((byte) 243);
-        Assert.fail("Should've thrown a BufferOverflowException");
+        assertWithMessage("Should've thrown a BufferOverflowException").fail();
       } catch (BufferOverflowException expected) {
       }
 
       obj.seek(0);
       for (int x = 0; x < len; x++) {
-        Assert.assertEquals(5 - x, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(5 - x);
       }
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown a BufferUnderflowException");
+        assertWithMessage("Should've thrown a BufferUnderflowException").fail();
       } catch (BufferUnderflowException expected) {
       }
     }
@@ -233,20 +234,20 @@ public class RandomAccessObjectTest {
       try {
         // Writing a byte past the end of an mmap is not ok.
         obj.writeByte((byte) 243);
-        Assert.fail("Should've thrown an BufferOverflowException");
+        assertWithMessage("Should've thrown an BufferOverflowException").fail();
       } catch (BufferOverflowException expected) {
       }
 
-      Assert.assertEquals(BLOB.length, obj.length());
+      assertThat(obj.length()).isEqualTo(BLOB.length);
 
       obj.seek(0);
       for (int x = 0; x < BLOB.length; x++) {
-        Assert.assertEquals(5 - x, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(5 - x);
       }
 
       try {
         obj.readByte();
-        Assert.fail("Should've thrown an BufferUnderflowException");
+        assertWithMessage("Should've thrown an BufferUnderflowException").fail();
       } catch (BufferUnderflowException expected) {
       }
     } finally {
@@ -264,26 +265,26 @@ public class RandomAccessObjectTest {
         try {
           // Writing a byte past the end of an mmap is not ok.
           obj.writeByte((byte) (5 - x));
-          Assert.fail("Should've thrown an BufferOverflowException");
+          assertWithMessage("Should've thrown an BufferOverflowException").fail();
         } catch (BufferOverflowException expected) {
         }
       }
 
       try {
         obj.seek(BLOB.length);
-        Assert.fail("Should've thrown an IllegalArgumentException");
+        assertWithMessage("Should've thrown an IllegalArgumentException").fail();
       } catch (IllegalArgumentException expected) {
       }
 
       for (int x = 0; x < BLOB.length; x++) {
         try {
           obj.readByte();
-          Assert.fail("Should've thrown an BufferUnderflowException");
+          assertWithMessage("Should've thrown an BufferUnderflowException").fail();
         } catch (BufferUnderflowException expected) {
         }
       }
 
-      Assert.assertEquals(0, obj.length());
+      assertThat(obj.length()).isEqualTo(0);
     } finally {
       tmpFile.delete();
     }
@@ -299,7 +300,7 @@ public class RandomAccessObjectTest {
 
       try {
         obj.seek(-1);
-        Assert.fail("Should've thrown an IOException");
+        assertWithMessage("Should've thrown an IOException").fail();
       } catch (IOException expected) {
       }
 
@@ -319,7 +320,7 @@ public class RandomAccessObjectTest {
 
     try {
       obj.seek(-1);
-      Assert.fail("Should've thrown an IllegalArgumentException");
+      assertWithMessage("Should've thrown an IllegalArgumentException").fail();
     } catch (IllegalArgumentException expected) {
     }
 
@@ -329,7 +330,7 @@ public class RandomAccessObjectTest {
     // Only fails once you try to read past the end.
     try {
       obj.readByte();
-      Assert.fail("Should've thrown a BufferUnderflowException");
+      assertWithMessage("Should've thrown a BufferUnderflowException").fail();
     } catch (BufferUnderflowException expected) {
     }
   }
@@ -345,7 +346,7 @@ public class RandomAccessObjectTest {
 
       try {
         obj.seek(-1);
-        Assert.fail("Should've thrown an IllegalArgumentException");
+        assertWithMessage("Should've thrown an IllegalArgumentException").fail();
       } catch (IllegalArgumentException expected) {
       }
 
@@ -355,7 +356,7 @@ public class RandomAccessObjectTest {
       // Only fails once you try to read past the end.
       try {
         obj.readByte();
-        Assert.fail("Should've thrown a BufferUnderflowException");
+        assertWithMessage("Should've thrown a BufferUnderflowException").fail();
       } catch (BufferUnderflowException expected) {
       }
     } finally {
@@ -372,7 +373,7 @@ public class RandomAccessObjectTest {
       readIntTest(obj);
       try {
         obj.readInt();
-        Assert.fail("Should've thrown a EOFException");
+        assertWithMessage("Should've thrown a EOFException").fail();
       } catch (EOFException expected) {
       }
     } finally {
@@ -386,7 +387,7 @@ public class RandomAccessObjectTest {
     readIntTest(obj);
     try {
       obj.readInt();
-      Assert.fail("Should've thrown a BufferUnderflowException");
+      assertWithMessage("Should've thrown a BufferUnderflowException").fail();
     } catch (BufferUnderflowException expected) {
     }
   }
@@ -402,7 +403,7 @@ public class RandomAccessObjectTest {
 
       try {
         obj.readInt();
-        Assert.fail("Should've thrown an BufferUnderflowException");
+        assertWithMessage("Should've thrown an BufferUnderflowException").fail();
       } catch (BufferUnderflowException expected) {
       }
     } finally {
@@ -421,7 +422,7 @@ public class RandomAccessObjectTest {
 
       obj.seekToIntAligned(0);
       for (int x = 0; x < BLOB.length / 4; x++) {
-        Assert.assertEquals(500 + x, obj.readInt());
+        assertThat(obj.readInt()).isEqualTo(500 + x);
       }
     } finally {
       tmpFile.delete();
@@ -439,7 +440,7 @@ public class RandomAccessObjectTest {
 
       obj.seek(0);
       for (int x = 0; x < len / 4; x++) {
-        Assert.assertEquals(500 + x, obj.readInt());
+        assertThat(obj.readInt()).isEqualTo(500 + x);
       }
     }
   }
@@ -456,7 +457,7 @@ public class RandomAccessObjectTest {
 
       obj.seekToIntAligned(0);
       for (int x = 0; x < BLOB.length / 4; x++) {
-        Assert.assertEquals(500 + x, obj.readInt());
+        assertThat(obj.readInt()).isEqualTo(500 + x);
       }
     } finally {
       tmpFile.delete();
@@ -503,7 +504,7 @@ public class RandomAccessObjectTest {
     try {
       RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r", true);
       obj.close();
-      Assert.assertFalse(tmpFile.exists());
+      assertThat(tmpFile.exists()).isFalse();
       tmpFile = null;
     } finally {
       if (tmpFile != null) {
@@ -516,7 +517,7 @@ public class RandomAccessObjectTest {
     try {
       RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r");
       obj.close();
-      Assert.assertTrue(tmpFile.exists());
+      assertThat(tmpFile.exists()).isTrue();
     } finally {
       tmpFile.delete();
     }
@@ -528,7 +529,7 @@ public class RandomAccessObjectTest {
 
     try {
       try (RandomAccessObject obj = new RandomAccessObject.RandomAccessMmapObject(tmpFile, "r")) {}
-      Assert.assertFalse(tmpFile.exists());
+      assertThat(tmpFile.exists()).isFalse();
       tmpFile = null;
     } finally {
       if (tmpFile != null) {
@@ -541,7 +542,7 @@ public class RandomAccessObjectTest {
     try {
       try (RandomAccessObject obj =
           new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {}
-      Assert.assertTrue(tmpFile.exists());
+      assertThat(tmpFile.exists()).isTrue();
     } finally {
       tmpFile.delete();
     }
@@ -549,56 +550,56 @@ public class RandomAccessObjectTest {
 
   private void seekTest(final RandomAccessObject obj) throws IOException {
     obj.seek(7);
-    Assert.assertEquals(8, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(8);
     obj.seek(3);
-    Assert.assertEquals(4, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(4);
     obj.seek(9);
-    Assert.assertEquals(10, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(10);
     obj.seek(5);
     obj.writeByte((byte) 23);
     obj.seek(5);
-    Assert.assertEquals(23, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(23);
     obj.seek(4);
-    Assert.assertEquals(5, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(5);
 
     obj.seek(0);
     for (int x = 0; x < BLOB.length; x++) {
       if (x == 5) {
-        Assert.assertEquals(23, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(23);
       } else {
-        Assert.assertEquals(x + 1, obj.readByte());
+        assertThat(obj.readByte()).isEqualTo(x + 1);
       }
     }
   }
 
   private void readIntTest(final RandomAccessObject obj) throws IOException {
-    Assert.assertEquals(0x01020304, obj.readInt());
-    Assert.assertEquals(0x05060708, obj.readInt());
-    Assert.assertEquals(0x090A0B0C, obj.readInt());
+    assertThat(obj.readInt()).isEqualTo(0x01020304);
+    assertThat(obj.readInt()).isEqualTo(0x05060708);
+    assertThat(obj.readInt()).isEqualTo(0x090A0B0C);
   }
 
   private void seekToIntAlignedTest(final RandomAccessObject obj) throws IOException {
     obj.seekToIntAligned(3);
-    Assert.assertEquals(3 * 4 + 1, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(3 * 4 + 1);
 
     obj.seekToIntAligned(2);
-    Assert.assertEquals(2 * 4 + 1, obj.readByte());
-    Assert.assertEquals(0x0A0B0C0D, obj.readInt());
+    assertThat(obj.readByte()).isEqualTo(2 * 4 + 1);
+    assertThat(obj.readInt()).isEqualTo(0x0A0B0C0D);
 
     obj.seekToIntAligned(0);
-    Assert.assertEquals(1, obj.readByte());
+    assertThat(obj.readByte()).isEqualTo(1);
 
     obj.seekToIntAligned(1);
-    Assert.assertEquals(5, obj.readByte());
-    Assert.assertEquals(0x06070809, obj.readInt());
+    assertThat(obj.readByte()).isEqualTo(5);
+    assertThat(obj.readInt()).isEqualTo(0x06070809);
 
     obj.seekToIntAligned(2);
     obj.writeInt(0x26391bd2);
 
     obj.seekToIntAligned(0);
-    Assert.assertEquals(0x01020304, obj.readInt());
-    Assert.assertEquals(0x05060708, obj.readInt());
-    Assert.assertEquals(0x26391bd2, obj.readInt());
+    assertThat(obj.readInt()).isEqualTo(0x01020304);
+    assertThat(obj.readInt()).isEqualTo(0x05060708);
+    assertThat(obj.readInt()).isEqualTo(0x26391bd2);
   }
 
   private File storeInTempFile(InputStream content) throws IOException {

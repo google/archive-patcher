@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
 import com.google.archivepatcher.shared.ByteArrayInputStreamFactory;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
@@ -26,7 +28,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -68,9 +69,10 @@ public class DefaultDeflateCompressionDivinerTest {
   @Test
   public void testDivineDeflateParameters_JunkData() throws IOException {
     final byte[] junk = new byte[] {0, 1, 2, 3, 4};
-    Assert.assertNull(
-        DefaultDeflateCompressionDiviner.divineDeflateParameters(
-            new ByteArrayInputStreamFactory(junk)));
+    assertThat(
+            DefaultDeflateCompressionDiviner.divineDeflateParameters(
+                new ByteArrayInputStreamFactory(junk)))
+        .isNull();
   }
 
   @Test
@@ -83,20 +85,18 @@ public class DefaultDeflateCompressionDivinerTest {
           JreDeflateParameters divinedParameters =
               DefaultDeflateCompressionDiviner.divineDeflateParameters(
                   new ByteArrayInputStreamFactory(buffer));
-          Assert.assertNotNull(divinedParameters);
+          assertThat(divinedParameters).isNotNull();
           // TODO make *CERTAIN 100%( that strategy doesn't matter for level < 4.
           if (strategy == 1 && level <= 3) {
             // Strategy 1 produces identical output at levels 1, 2 and 3.
-            Assert.assertEquals(
-                /*expected=*/ JreDeflateParameters.of(level, 0, nowrap),
-                /*actual=*/ divinedParameters);
+            assertThat(divinedParameters).isEqualTo(JreDeflateParameters.of(level, 0, nowrap));
           } else if (strategy == 2) {
             // All levels are the same with strategy 2.
             // TODO: Assert only one test gets done for this, should be the first level always.
-            Assert.assertEquals(nowrap, divinedParameters.nowrap);
-            Assert.assertEquals(strategy, divinedParameters.strategy);
+            assertThat(divinedParameters.nowrap).isEqualTo(nowrap);
+            assertThat(divinedParameters.strategy).isEqualTo(strategy);
           } else {
-            Assert.assertEquals(trueParameters, divinedParameters);
+            assertThat(divinedParameters).isEqualTo(trueParameters);
           }
         } // End of iteration on level
       } // End of iteration on strategy
@@ -111,23 +111,23 @@ public class DefaultDeflateCompressionDivinerTest {
       UnitTestZipArchive.saveTestZip(tempFile);
       List<DivinationResult> results =
           DefaultDeflateCompressionDiviner.divineDeflateParameters(tempFile);
-      Assert.assertEquals(UnitTestZipArchive.allEntriesInFileOrder.size(), results.size());
+      assertThat(results).hasSize(UnitTestZipArchive.allEntriesInFileOrder.size());
       for (int x = 0; x < results.size(); x++) {
         UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);
         DivinationResult actual = results.get(x);
-        Assert.assertEquals(expected.path, actual.minimalZipEntry.getFileName());
+        assertThat(actual.minimalZipEntry.getFileName()).isEqualTo(expected.path);
         int expectedLevel = expected.level;
         if (expectedLevel > 0) {
           // Compressed entry
-          Assert.assertTrue(actual.minimalZipEntry.isDeflateCompressed());
-          Assert.assertNotNull(actual.divinedParameters);
-          Assert.assertEquals(expectedLevel, actual.divinedParameters.level);
-          Assert.assertEquals(0, actual.divinedParameters.strategy);
-          Assert.assertTrue(actual.divinedParameters.nowrap);
+          assertThat(actual.minimalZipEntry.isDeflateCompressed()).isTrue();
+          assertThat(actual.divinedParameters).isNotNull();
+          assertThat(actual.divinedParameters.level).isEqualTo(expectedLevel);
+          assertThat(actual.divinedParameters.strategy).isEqualTo(0);
+          assertThat(actual.divinedParameters.nowrap).isTrue();
         } else {
           // Uncompressed entry
-          Assert.assertFalse(actual.minimalZipEntry.isDeflateCompressed());
-          Assert.assertNull(actual.divinedParameters);
+          assertThat(actual.minimalZipEntry.isDeflateCompressed()).isFalse();
+          assertThat(actual.divinedParameters).isNull();
         }
       }
     } finally {

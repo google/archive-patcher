@@ -14,13 +14,13 @@
 
 package com.google.archivepatcher.generator;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
 * Tests for {@link TempFileHolder}.
@@ -33,10 +33,10 @@ public class TempFileHolderTest {
     // Tests that a temp file can be created and that it is deleted upon close().
     File allocated = null;
     try(TempFileHolder holder = new TempFileHolder()) {
-      Assert.assertNotNull(holder.file);
-      Assert.assertTrue(holder.file.exists());
+      assertThat(holder.file).isNotNull();
+      assertThat(holder.file.exists()).isTrue();
       allocated = holder.file;
     }
-    Assert.assertFalse(allocated.exists());
+    assertThat(allocated.exists()).isFalse();
   }
 }

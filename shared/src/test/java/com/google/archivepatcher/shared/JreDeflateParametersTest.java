@@ -14,7 +14,9 @@
 
 package com.google.archivepatcher.shared;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -40,7 +42,7 @@ public class JreDeflateParametersTest {
   private void assertIllegalArgumentException(int level, int strategy, boolean nowrap) {
     try {
       JreDeflateParameters.of(level, strategy, nowrap);
-      Assert.fail("Invalid configuration allowed");
+      assertWithMessage("Invalid configuration allowed").fail();
     } catch (IllegalArgumentException expected) {
       // Pass
     }
@@ -59,7 +61,7 @@ public class JreDeflateParametersTest {
   @Test
   public void testToString() {
     // Ensure that toString() doesn't crash and produces a non-empty string.
-    Assert.assertTrue(JreDeflateParameters.of(1, 0, true).toString().length() > 0);
+    assertThat(JreDeflateParameters.of(1, 0, true).toString().length()).isGreaterThan(0);
   }
 
   @Test
@@ -70,7 +72,7 @@ public class JreDeflateParametersTest {
           JreDeflateParameters params = JreDeflateParameters.of(level, strategy, nowrap);
           String asString = params.toString();
           JreDeflateParameters fromString = JreDeflateParameters.parseString(asString);
-          Assert.assertEquals(params, fromString);
+          assertThat(fromString).isEqualTo(params);
         }
       }
     }

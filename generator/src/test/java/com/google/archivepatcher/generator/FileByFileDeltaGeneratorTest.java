@@ -14,13 +14,14 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -68,6 +69,6 @@ public class FileByFileDeltaGeneratorTest {
       generator.generateDelta(oldArchive.file, newArchive.file, buffer);
     }
     byte[] result = buffer.toByteArray();
-    Assert.assertTrue(result.length > 0);
+    assertThat(result).isNotEmpty();
   }
 }

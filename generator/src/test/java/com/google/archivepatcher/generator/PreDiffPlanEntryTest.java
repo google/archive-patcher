@@ -15,13 +15,13 @@
 package com.google.archivepatcher.generator;
 
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesChanged;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -62,16 +62,17 @@ public class PreDiffPlanEntryTest {
           Arrays.asList(ALTERED_ENTRY1, ALTERED_ENTRY2, ALTERED_RECOMMENDATION, ALTERED_REASON));
 
   @Test
-  @SuppressWarnings("EqualsIncompatibleType") // For ErrorProne
+  @SuppressWarnings({"EqualsIncompatibleType", "TruthSelfEquals"}) // For ErrorProne
   public void testEquals() {
-    Assert.assertEquals(DEFAULT_QUALIFIED_RECOMMENDATION, DEFAULT_QUALIFIED_RECOMMENDATION);
-    Assert.assertEquals(DEFAULT_QUALIFIED_RECOMMENDATION, CLONED_DEFAULT_QUALIFIED_RECOMMENDATION);
-    Assert.assertNotSame(DEFAULT_QUALIFIED_RECOMMENDATION, CLONED_DEFAULT_QUALIFIED_RECOMMENDATION);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION).isEqualTo(DEFAULT_QUALIFIED_RECOMMENDATION);
+    assertThat(CLONED_DEFAULT_QUALIFIED_RECOMMENDATION).isEqualTo(DEFAULT_QUALIFIED_RECOMMENDATION);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION)
+        .isNotSameAs(CLONED_DEFAULT_QUALIFIED_RECOMMENDATION);
     for (PreDiffPlanEntry mutation : ALL_MUTATIONS) {
-      Assert.assertNotEquals(DEFAULT_QUALIFIED_RECOMMENDATION, mutation);
+      assertThat(mutation).isNotEqualTo(DEFAULT_QUALIFIED_RECOMMENDATION);
     }
-    Assert.assertFalse(DEFAULT_QUALIFIED_RECOMMENDATION.equals(null));
-    Assert.assertFalse(DEFAULT_QUALIFIED_RECOMMENDATION.equals("foo"));
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.equals(null)).isFalse();
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.equals("foo")).isFalse();
   }
 
   @Test
@@ -79,20 +80,18 @@ public class PreDiffPlanEntryTest {
     Set<PreDiffPlanEntry> hashSet = new HashSet<>();
     hashSet.add(DEFAULT_QUALIFIED_RECOMMENDATION);
     hashSet.add(CLONED_DEFAULT_QUALIFIED_RECOMMENDATION);
-    Assert.assertEquals(1, hashSet.size());
+    assertThat(hashSet).hasSize(1);
     hashSet.addAll(ALL_MUTATIONS);
-    Assert.assertEquals(1 + ALL_MUTATIONS.size(), hashSet.size());
+    assertThat(hashSet).hasSize(1 + ALL_MUTATIONS.size());
   }
 
   @Test
   public void testGetters() {
-    Assert.assertEquals(ENTRY1, DEFAULT_QUALIFIED_RECOMMENDATION.getOldEntry());
-    Assert.assertEquals(ENTRY2, DEFAULT_QUALIFIED_RECOMMENDATION.getNewEntry());
-    Assert.assertEquals(
-        ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-        DEFAULT_QUALIFIED_RECOMMENDATION.getZipEntryUncompressionOption());
-    Assert.assertEquals(
-        UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED,
-        DEFAULT_QUALIFIED_RECOMMENDATION.getUncompressionOptionExplanation());
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getOldEntry()).isEqualTo(ENTRY1);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getNewEntry()).isEqualTo(ENTRY2);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getZipEntryUncompressionOption())
+        .isEqualTo(ZipEntryUncompressionOption.UNCOMPRESS_BOTH);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getUncompressionOptionExplanation())
+        .isEqualTo(UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
   }
 }

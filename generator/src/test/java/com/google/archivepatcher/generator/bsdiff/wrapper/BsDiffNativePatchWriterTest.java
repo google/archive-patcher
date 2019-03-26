@@ -14,13 +14,14 @@
 
 package com.google.archivepatcher.generator.bsdiff.wrapper;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -62,6 +63,6 @@ public final class BsDiffNativePatchWriterTest {
     BsDiffNativePatchWriter.generatePatch(oldFile.toFile(), newFile.toFile(), bsdiffOutputStream);
 
     byte[] patchExpected = readTestData("BsDiffInternalTestPatchExpected.patch");
-    Assert.assertArrayEquals(patchExpected, bsdiffOutputStream.toByteArray());
+    assertThat(bsdiffOutputStream.toByteArray()).isEqualTo(patchExpected);
   }
 }

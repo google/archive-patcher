@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.integrationtest;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.applier.FileByFileDeltaApplier;
 import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
@@ -29,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -209,6 +210,6 @@ public class FileByFileIntegrationTest {
 
     // Finally, expect that the result of applying the patch is exactly the same as the new archive
     // that was written to disk.
-    Assert.assertArrayEquals(newArchiveBytes, newOut.toByteArray());
+    assertThat(newOut.toByteArray()).isEqualTo(newArchiveBytes);
   }
 }

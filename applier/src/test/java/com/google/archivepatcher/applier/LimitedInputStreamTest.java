@@ -14,17 +14,15 @@
 
 package com.google.archivepatcher.applier;
 
-import org.junit.Assert;
+import static com.google.common.truth.Truth.assertThat;
+
+import java.io.IOException;
+import java.io.InputStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-/**
- * Tests for {@link PartiallyCompressingOutputStream}.
- */
+/** Tests for {@link PartiallyCompressingOutputStream}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class LimitedInputStreamTest {
@@ -52,23 +50,23 @@ public class LimitedInputStreamTest {
   @Test
   public void testRead_WithLimit0() throws IOException {
     LimitedInputStream stream = new LimitedInputStream(new ForeverInputStream(), 0);
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @SuppressWarnings("resource")
   @Test
   public void testRead_WithLimit1() throws IOException {
     LimitedInputStream stream = new LimitedInputStream(new ForeverInputStream(), 1);
-    Assert.assertEquals(0, stream.read());
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read()).isEqualTo(0);
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @SuppressWarnings("resource")
   @Test
   public void testRead_WithLimit100() throws IOException {
     LimitedInputStream stream = new LimitedInputStream(new ForeverInputStream(), 100);
-    Assert.assertEquals(100, stream.read(new byte[1000]));
-    Assert.assertEquals(-1, stream.read());
+    assertThat(stream.read(new byte[1000])).isEqualTo(100);
+    assertThat(stream.read()).isEqualTo(-1);
   }
 
   @SuppressWarnings("resource")

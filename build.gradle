@@ -12,3 +12,14 @@ allprojects {
         jcenter()
     }
 }
+
+subprojects {
+    apply plugin: "java"
+    buildscript {
+        repositories.mavenLocal()
+    }
+
+    dependencies {
+        implementation "com.google.truth:truth:0.43"
+    }
+}

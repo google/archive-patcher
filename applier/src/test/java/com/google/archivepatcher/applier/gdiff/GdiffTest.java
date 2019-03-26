@@ -14,6 +14,9 @@
 
 package com.google.archivepatcher.applier.gdiff;
 
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -21,7 +24,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.Random;
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -65,8 +67,8 @@ public class GdiffTest {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
 
     long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, newBytes.length);
-    Assert.assertEquals(newBytes.length, outputLength);
-    Assert.assertArrayEquals(newBytes, outputStream.toByteArray());
+    assertThat(outputLength).isEqualTo(newBytes.length);
+    assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
   }
 
   /**
@@ -114,8 +116,8 @@ public class GdiffTest {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
 
     long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, newBytes.length);
-    Assert.assertEquals(newBytes.length, outputLength);
-    Assert.assertArrayEquals(newBytes, outputStream.toByteArray());
+    assertThat(outputLength).isEqualTo(newBytes.length);
+    assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
   }
 
   /**
@@ -162,8 +164,8 @@ public class GdiffTest {
 
       // Run the patch and check the output file
       long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, data.length);
-      Assert.assertEquals(spanLength, outputLength);
-      Assert.assertArrayEquals(data, outputStream.toByteArray());
+      assertThat(outputLength).isEqualTo(spanLength);
+      assertThat(outputStream.toByteArray()).isEqualTo(data);
     }
   }
 
@@ -326,9 +328,9 @@ public class GdiffTest {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     try {
       Gdiff.patch(readInputFile, patchStream, outputStream, outputLimit);
-      Assert.fail("Expected IOException");
+      assertWithMessage("Expected IOException").fail();
     } catch (IOException expected) {
     }
-    Assert.assertTrue(outputStream.size() <= outputLimit);
+    assertThat(outputStream.size()).isAtMost(outputLimit);
   }
 }

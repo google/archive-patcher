@@ -20,17 +20,17 @@ import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.buil
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedToUncompressed;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithUnsuitable;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.suppressed;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -132,22 +132,10 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testNegativeLimit() {
     try {
       new DeltaFriendlyOldBlobSizeLimiter(-1);
-      Assert.fail("Set a negative limit");
+      assertWithMessage("Set a negative limit").fail();
     } catch (IllegalArgumentException expected) {
       // Pass
     }
-  }
-
-  /**
-   * Asserts that the two collections contain exactly the same elements. This isn't as rigorous as
-   * it should be, but is ok for this test scenario. Checks the contents but not the iteration order
-   * of the collections handed in.
-   */
-  private static <T> void assertEquivalence(Collection<T> c1, Collection<T> c2) {
-    String errorMessage = "Expected " + c1 + " but was " + c2;
-    Assert.assertEquals(errorMessage, c1.size(), c2.size());
-    Assert.assertTrue(errorMessage, c1.containsAll(c2));
-    Assert.assertTrue(errorMessage, c2.containsAll(c1));
   }
 
   private File tempFile = null;
@@ -175,17 +163,15 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             PRE_DIFF_PLAN_ENTRY_C_300K,
             PRE_DIFF_PLAN_ENTRY_D_400K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
   public void testMaxLimit() {
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(Long.MAX_VALUE);
-    assertEquivalence(
-        ALL_PRE_DIFF_PLAN_ENTRIES,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(ALL_PRE_DIFF_PLAN_ENTRIES);
   }
 
   @Test
@@ -200,9 +186,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         suppressed(
             PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K, PRE_DIFF_PLAN_ENTRY_D_400K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -220,9 +205,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             PRE_DIFF_PLAN_ENTRY_C_300K,
             PRE_DIFF_PLAN_ENTRY_D_400K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -238,9 +222,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         suppressed(
             PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K, PRE_DIFF_PLAN_ENTRY_D_400K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -255,9 +238,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         suppressed(
             PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -273,9 +255,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         suppressed(
             PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_D_400K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -291,9 +272,8 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
         suppressed(
             PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_B_200K, PRE_DIFF_PLAN_ENTRY_C_300K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 
   @Test
@@ -313,8 +293,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
     expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
     expected.addAll(suppressed(PRE_DIFF_PLAN_ENTRY_A_100K, PRE_DIFF_PLAN_ENTRY_C_300K));
     expected.addAll(ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES);
-    assertEquivalence(
-        expected,
-        limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES));
+    assertThat(limiter.getModifiedPreDiffPlanEntries(tempFile, tempFile, ALL_PRE_DIFF_PLAN_ENTRIES))
+        .containsExactlyElementsIn(expected);
   }
 }
