@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
 import java.io.ByteArrayOutputStream;
@@ -160,6 +161,12 @@ public class PreDiffExecutorTest {
     // The delta-friendly files should be larger than the originals.
     Assert.assertTrue(oldFile.length() < deltaFriendlyOldFile.length());
     Assert.assertTrue(newFile.length() < deltaFriendlyNewFile.length());
+
+    Assert.assertEquals(1, plan.getPreDiffPlanEntries().size());
+    Assert.assertEquals(DeltaFormat.BSDIFF, plan.getPreDiffPlanEntries().get(0).getDeltaFormat());
+    Assert.assertEquals(
+        DeltaFormatExplanation.DEFAULT,
+        plan.getPreDiffPlanEntries().get(0).getDeltaFormatExplanation());
 
     // Nitty-gritty, assert that the file content is exactly what is expected.
     // 1. Find the entry in the old file.

@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.DeltaFormatExplanation.DEFAULT;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL;
@@ -25,6 +26,7 @@ import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UN
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEITHER;
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEW;
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_OLD;
+import static com.google.archivepatcher.shared.PatchConstants.DeltaFormat.BSDIFF;
 
 import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
@@ -214,7 +216,7 @@ class PreDiffPlanner {
 
     setUncompressionOption(builder, oldEntry, newEntry);
 
-    // TODO: set delta format.
+    setDeltaFormat(builder);
 
     return builder.build();
   }
@@ -251,6 +253,10 @@ class PreDiffPlanner {
       // Compressed bytes not identical.
       builder.setUncompressionOption(UNCOMPRESS_BOTH, COMPRESSED_BYTES_CHANGED);
     }
+  }
+
+  private void setDeltaFormat(PreDiffPlanEntry.Builder builder) {
+    builder.setDeltaFormat(BSDIFF, DEFAULT);
   }
 
   /**

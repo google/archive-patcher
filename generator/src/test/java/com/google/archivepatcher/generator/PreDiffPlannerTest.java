@@ -300,6 +300,9 @@ public class PreDiffPlannerTest {
       Assert.assertEquals(
           expected[x].getUncompressionOptionExplanation(),
           actual.getUncompressionOptionExplanation());
+      Assert.assertEquals(expected[x].getDeltaFormat(), actual.getDeltaFormat());
+      Assert.assertEquals(
+          expected[x].getDeltaFormatExplanation(), actual.getDeltaFormatExplanation());
     }
   }
 
