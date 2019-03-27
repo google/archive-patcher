@@ -17,6 +17,7 @@ package com.google.archivepatcher.generator.bsdiff;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.archivepatcher.generator.RandomAccessObject;
 import java.util.Random;
 import org.junit.Test;
 

@@ -16,6 +16,7 @@ package com.google.archivepatcher.generator.bsdiff;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.archivepatcher.generator.RandomAccessObject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

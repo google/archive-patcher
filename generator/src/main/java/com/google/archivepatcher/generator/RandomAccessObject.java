@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.generator.bsdiff;
+package com.google.archivepatcher.generator;
 
 import java.io.Closeable;
 import java.io.DataInput;
@@ -27,8 +27,8 @@ import java.nio.channels.FileChannel;
 // separate files.
 
 /**
- * Interface which offers random access interface. This class exists to allow BsDiff to use either
- * a RandomAccessFile for disk-based io, or a byte[] for fully in-memory operation.
+ * Interface which offers random access interface. This class exists to allow delta generators to
+ * use either a RandomAccessFile for disk-based io, or a byte[] for fully in-memory operation.
  */
 public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
 
@@ -38,7 +38,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
    * @return the length of the file or byte array associated with the RandomAccessObject
    * @throws IOException if unable to determine the length of the file, when backed by a file
    */
-  public long length() throws IOException;
+  long length() throws IOException;
 
   /**
    * Seeks to a specified position, in bytes, into the file or byte array.
@@ -46,7 +46,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
    * @param pos the position to seek to
    * @throws IOException if seeking fails
    */
-  public void seek(long pos) throws IOException;
+  void seek(long pos) throws IOException;
 
   /**
    * Seek to a specified integer-aligned position in the associated file or byte array. For example,
@@ -56,15 +56,14 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
    * @param pos the position to seek to
    * @throws IOException if seeking fails
    */
-  public void seekToIntAligned(long pos) throws IOException;
+  void seekToIntAligned(long pos) throws IOException;
 
   /**
    * A {@link RandomAccessFile}-based implementation of {@link RandomAccessObject} which just
-   * delegates all operations to the equivalents in {@link RandomAccessFile}. Slower than the
-   * {@link RandomAccessMmapObject} implementation.
+   * delegates all operations to the equivalents in {@link RandomAccessFile}. Slower than the {@link
+   * RandomAccessMmapObject} implementation.
    */
-  public static final class RandomAccessFileObject extends RandomAccessFile
-      implements RandomAccessObject {
+  final class RandomAccessFileObject extends RandomAccessFile implements RandomAccessObject {
     private final boolean mShouldDeleteFileOnClose;
     private final File mFile;
 
@@ -126,7 +125,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
   /**
    * An array-based implementation of {@link RandomAccessObject} for entirely in-memory operations.
    */
-  public static class RandomAccessByteArrayObject implements RandomAccessObject {
+  class RandomAccessByteArrayObject implements RandomAccessObject {
     protected ByteBuffer mByteBuffer;
 
     /**
@@ -344,7 +343,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
    * A {@link ByteBuffer}-based implementation of {@link RandomAccessObject} that uses files on
    * disk, but is significantly faster than the RandomAccessFile implementation.
    */
-  public static final class RandomAccessMmapObject extends RandomAccessByteArrayObject {
+  final class RandomAccessMmapObject extends RandomAccessByteArrayObject {
     private final boolean mShouldDeleteFileOnRelease;
     private final File mFile;
     private final FileChannel mFileChannel;

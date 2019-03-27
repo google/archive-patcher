@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.generator.bsdiff;
+package com.google.archivepatcher.generator;
 
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessByteArrayObject;
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessFileObject;
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessMmapObject;
-
+import com.google.archivepatcher.generator.RandomAccessObject.RandomAccessByteArrayObject;
+import com.google.archivepatcher.generator.RandomAccessObject.RandomAccessFileObject;
+import com.google.archivepatcher.generator.RandomAccessObject.RandomAccessMmapObject;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -29,14 +28,12 @@ import java.io.RandomAccessFile;
  * (handles bigger inputs without consuming inordinate amounts of memory).
  */
 public interface RandomAccessObjectFactory {
-  public RandomAccessObject create(int size) throws IOException;
+  RandomAccessObject create(int size) throws IOException;
 
-  /**
-   * A factory that produces {@link RandomAccessFileObject} instances backed by temp files.
-   */
+  /** A factory that produces {@link RandomAccessFileObject} instances backed by temp files. */
   // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
-  public static final class RandomAccessFileObjectFactory implements RandomAccessObjectFactory {
+  final class RandomAccessFileObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
     private final String mMode;
 
@@ -64,23 +61,18 @@ public interface RandomAccessObjectFactory {
     }
   }
 
-  /**
-   * A factory that produces {@link RandomAccessByteArrayObject} instances backed by memory.
-   */
-  public static final class RandomAccessByteArrayObjectFactory
-      implements RandomAccessObjectFactory {
+  /** A factory that produces {@link RandomAccessByteArrayObject} instances backed by memory. */
+  final class RandomAccessByteArrayObjectFactory implements RandomAccessObjectFactory {
     @Override
     public RandomAccessObject create(int size) {
       return new RandomAccessObject.RandomAccessByteArrayObject(size);
     }
   }
 
-  /**
-   * A factory that produces {@link RandomAccessMmapObject} instances backed by temp files..
-   */
+  /** A factory that produces {@link RandomAccessMmapObject} instances backed by temp files.. */
   // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
-  public static final class RandomAccessMmapObjectFactory implements RandomAccessObjectFactory {
+  final class RandomAccessMmapObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
     private String mMode;
 

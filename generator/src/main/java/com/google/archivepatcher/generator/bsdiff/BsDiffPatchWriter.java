@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.RandomAccessObject;
+import com.google.archivepatcher.generator.RandomAccessObjectFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;

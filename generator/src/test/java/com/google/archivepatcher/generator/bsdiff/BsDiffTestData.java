@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.RandomAccessObject;
 import java.nio.charset.Charset;
 
 class BsDiffTestData {
