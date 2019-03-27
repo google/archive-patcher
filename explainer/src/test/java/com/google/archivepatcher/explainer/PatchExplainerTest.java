@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.explainer;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.MinimalZipArchive;
@@ -35,7 +37,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,7 +87,7 @@ public class PatchExplainerTest {
       while ((numRead = uncompressedIn.read(readBuffer)) >= 0) {
         actualInput.write(readBuffer, 0, numRead);
       }
-      Assert.assertArrayEquals(expectedInput, actualInput.toByteArray());
+      assertThat(actualInput.toByteArray()).isEqualTo(expectedInput);
       compressedOut.write(OUTPUT.getBytes("US-ASCII"));
     }
   }
@@ -119,7 +120,7 @@ public class PatchExplainerTest {
           DataInputStream dataIn = new DataInputStream(fileIn)) {
         dataIn.readFully(actual);
       }
-      Assert.assertArrayEquals(expected, actual);
+      assertThat(actual).isEqualTo(expected);
     }
   }
 
@@ -386,13 +387,13 @@ public class PatchExplainerTest {
    * @param expected the expected explanation
    */
   private void checkExplanation(List<EntryExplanation> explanations, EntryExplanation expected) {
-    Assert.assertEquals(1, explanations.size());
+    assertThat(explanations).hasSize(1);
     EntryExplanation actual = explanations.get(0);
-    Assert.assertEquals(expected.getPath(), actual.getPath());
-    Assert.assertEquals(expected.isNew(), actual.isNew());
-    Assert.assertEquals(
-        expected.getExplanationIncludedIfNotNew(), actual.getExplanationIncludedIfNotNew());
-    Assert.assertEquals(expected.getCompressedSizeInPatch(), actual.getCompressedSizeInPatch());
+    assertThat(actual.getPath()).isEqualTo(expected.getPath());
+    assertThat(actual.isNew()).isEqualTo(expected.isNew());
+    assertThat(actual.getExplanationIncludedIfNotNew())
+        .isEqualTo(expected.getExplanationIncludedIfNotNew());
+    assertThat(actual.getCompressedSizeInPatch()).isEqualTo(expected.getCompressedSizeInPatch());
   }
 
   /**

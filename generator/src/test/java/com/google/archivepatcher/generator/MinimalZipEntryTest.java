@@ -14,12 +14,13 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -166,7 +167,7 @@ public class MinimalZipEntryTest {
     String fileName = new String("\u2591\u2592\u2593AWESOME\u2593\u2592\u2591");
     byte[] utf8Bytes = fileName.getBytes("UTF8");
     byte[] cp437Bytes = fileName.getBytes("Cp437");
-    Assert.assertFalse(Arrays.equals(utf8Bytes, cp437Bytes)); // For test sanity
+    assertThat(cp437Bytes).isNotEqualTo(utf8Bytes); // For test sanity
 
     MinimalZipEntry utf8Entry =
         new MinimalZipEntry(
@@ -177,9 +178,9 @@ public class MinimalZipEntryTest {
             utf8Bytes,
             true /* utf8 */,
             FILE_OFFSET_OF_LOCAL_ENTRY);
-    Assert.assertArrayEquals(utf8Bytes, utf8Entry.getFileNameBytes());
+    assertThat(utf8Entry.getFileNameBytes()).isEqualTo(utf8Bytes);
     String fileNameFromUtf8Bytes = utf8Entry.getFileName();
-    Assert.assertEquals(fileName, fileNameFromUtf8Bytes);
+    assertThat(fileNameFromUtf8Bytes).isEqualTo(fileName);
 
     MinimalZipEntry cp437Entry =
         new MinimalZipEntry(
@@ -190,15 +191,15 @@ public class MinimalZipEntryTest {
             cp437Bytes,
             false /* cp437 */,
             FILE_OFFSET_OF_LOCAL_ENTRY);
-    Assert.assertArrayEquals(cp437Bytes, cp437Entry.getFileNameBytes());
+    assertThat(cp437Entry.getFileNameBytes()).isEqualTo(cp437Bytes);
     String fileNameFromCp437Bytes = cp437Entry.getFileName();
-    Assert.assertEquals(fileName, fileNameFromCp437Bytes);
+    assertThat(fileNameFromCp437Bytes).isEqualTo(fileName);
   }
 
   @Test
   public void testIsDeflateCompressed() {
     // Compression method == 8, and uncompressed size != compressed size
-    Assert.assertTrue(defaultEntry.isDeflateCompressed());
+    assertThat(defaultEntry.isDeflateCompressed()).isTrue();
     // Compression method == 8, but uncompressed size == compressed size (ie, STOR'ed entry)
     MinimalZipEntry stored =
         new MinimalZipEntry(
@@ -209,15 +210,15 @@ public class MinimalZipEntryTest {
             FILE_NAME_BYTES,
             GENERAL_PURPOSE_BIT_FLAG_11,
             FILE_OFFSET_OF_LOCAL_ENTRY);
-    Assert.assertFalse(stored.isDeflateCompressed());
+    assertThat(stored.isDeflateCompressed()).isFalse();
     // Compression method != 8 (obviously not deflate)
-    Assert.assertFalse(alteredCompressionMethod.isDeflateCompressed());
+    assertThat(alteredCompressionMethod.isDeflateCompressed()).isFalse();
   }
 
   @Test
-  @SuppressWarnings("EqualsIncompatibleType") // For ErrorProne
+  @SuppressWarnings({"EqualsIncompatibleType", "TruthSelfEquals"}) // For ErrorProne
   public void testEquals() {
-    Assert.assertEquals(defaultEntry, defaultEntry);
+    assertThat(defaultEntry).isEqualTo(defaultEntry);
     MinimalZipEntry clonedDefaultEntry =
         new MinimalZipEntry(
             COMPRESSION_METHOD,
@@ -227,12 +228,12 @@ public class MinimalZipEntryTest {
             FILE_NAME_BYTES,
             GENERAL_PURPOSE_BIT_FLAG_11,
             FILE_OFFSET_OF_LOCAL_ENTRY);
-    Assert.assertEquals(defaultEntry, clonedDefaultEntry);
+    assertThat(clonedDefaultEntry).isEqualTo(defaultEntry);
     for (MinimalZipEntry mutation : allMutations) {
-      Assert.assertNotEquals(defaultEntry, mutation);
+      assertThat(mutation).isNotEqualTo(defaultEntry);
     }
-    Assert.assertFalse(defaultEntry.equals(null));
-    Assert.assertFalse(defaultEntry.equals("foo"));
+    assertThat(defaultEntry).isNotEqualTo(null);
+    assertThat(defaultEntry).isNotEqualTo("foo");
   }
 
   @Test
@@ -240,25 +241,24 @@ public class MinimalZipEntryTest {
     Set<MinimalZipEntry> hashSet = new HashSet<>();
     hashSet.add(defaultEntry);
     hashSet.add(clonedDefaultEntry);
-    Assert.assertEquals(1, hashSet.size());
+    assertThat(hashSet).hasSize(1);
     hashSet.addAll(allMutations);
-    Assert.assertEquals(1 + allMutations.size(), hashSet.size());
+    assertThat(hashSet).hasSize(1 + allMutations.size());
   }
 
   @Test
   public void testGetters() {
-    Assert.assertEquals(COMPRESSED_SIZE, defaultEntry.getCompressedSize());
-    Assert.assertEquals(COMPRESSION_METHOD, defaultEntry.getCompressionMethod());
-    Assert.assertEquals(CRC32, defaultEntry.getCrc32OfUncompressedData());
-    Assert.assertArrayEquals(FILE_NAME_BYTES, defaultEntry.getFileNameBytes());
-    Assert.assertEquals(FILE_OFFSET_OF_LOCAL_ENTRY, defaultEntry.getFileOffsetOfLocalEntry());
-    Assert.assertEquals(GENERAL_PURPOSE_BIT_FLAG_11, defaultEntry.getGeneralPurposeFlagBit11());
-    Assert.assertEquals(UNCOMPRESSED_SIZE, defaultEntry.getUncompressedSize());
+    assertThat(defaultEntry.getCompressedSize()).isEqualTo(COMPRESSED_SIZE);
+    assertThat(defaultEntry.getCompressionMethod()).isEqualTo(COMPRESSION_METHOD);
+    assertThat(defaultEntry.getCrc32OfUncompressedData()).isEqualTo(CRC32);
+    assertThat(defaultEntry.getFileNameBytes()).isEqualTo(FILE_NAME_BYTES);
+    assertThat(defaultEntry.getFileOffsetOfLocalEntry()).isEqualTo(FILE_OFFSET_OF_LOCAL_ENTRY);
+    assertThat(defaultEntry.getGeneralPurposeFlagBit11()).isEqualTo(GENERAL_PURPOSE_BIT_FLAG_11);
+    assertThat(defaultEntry.getUncompressedSize()).isEqualTo(UNCOMPRESSED_SIZE);
 
     // Special one, only alteredFileOffsetOfCompressedData has this field set...
-    Assert.assertEquals(-1, defaultEntry.getFileOffsetOfCompressedData());
-    Assert.assertEquals(
-        FILE_OFFSET_OF_COMPRESSED_DATA,
-        alteredFileOffsetOfCompressedData.getFileOffsetOfCompressedData());
+    assertThat(defaultEntry.getFileOffsetOfCompressedData()).isEqualTo(-1);
+    assertThat(alteredFileOffsetOfCompressedData.getFileOffsetOfCompressedData())
+        .isEqualTo(FILE_OFFSET_OF_COMPRESSED_DATA);
   }
 }

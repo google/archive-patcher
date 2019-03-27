@@ -14,11 +14,8 @@
 
 package com.google.archivepatcher.shared;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,6 +24,10 @@ import java.util.Arrays;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link DeflateCompressor}.
@@ -84,11 +85,11 @@ public class DeflateCompressorTest {
   @Test
   public void testCompress() throws IOException {
     compressor.compress(rawContentIn, compressedContentOut);
-    Assert.assertTrue(compressedContentOut.size() > 0);
-    Assert.assertTrue(compressedContentOut.size() < CONTENT.length);
+    assertThat(compressedContentOut.size()).isGreaterThan(0);
+    assertThat(compressedContentOut.size()).isLessThan(CONTENT.length);
     byte[] uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
   }
 
   @Test
@@ -96,32 +97,32 @@ public class DeflateCompressorTest {
     // Sanity check to ensure that defaults are as we want them to be. Arguably crufty but nobody
     // should change these without some thought, particularly the wrapping choice should not be
     // changed in the compressor without also changing it in the *un*compressor.
-    Assert.assertTrue(compressor.isNowrap());
-    Assert.assertEquals(Deflater.DEFAULT_COMPRESSION, compressor.getCompressionLevel());
-    Assert.assertEquals(Deflater.DEFAULT_STRATEGY, compressor.getStrategy());
+    assertThat(compressor.isNowrap()).isTrue();
+    assertThat(compressor.getCompressionLevel()).isEqualTo(Deflater.DEFAULT_COMPRESSION);
+    assertThat(compressor.getStrategy()).isEqualTo(Deflater.DEFAULT_STRATEGY);
   }
 
   @Test
   public void testNowrap() throws IOException {
     // Start with nowrap 'on' (should be the default)
-    Assert.assertTrue(compressor.isNowrap());
+    assertThat(compressor.isNowrap()).isTrue();
     compressor.compress(rawContentIn, compressedContentOut);
     byte[] compressedWithNowrapOn = compressedContentOut.toByteArray();
     byte[] uncompressedWithNowrapOn =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedWithNowrapOn);
-    Assert.assertArrayEquals(CONTENT, uncompressedWithNowrapOn);
+    assertThat(uncompressedWithNowrapOn).isEqualTo(CONTENT);
 
     // Now twiddle nowrap to 'off' and do it again.
     compressor.setNowrap(false);
-    Assert.assertFalse(compressor.isNowrap());
+    assertThat(compressor.isNowrap()).isFalse();
     rawContentIn = new ByteArrayInputStream(CONTENT);
     compressedContentOut = new ByteArrayOutputStream();
     compressor.compress(rawContentIn, compressedContentOut);
     byte[] compressedWithNowrapOff = compressedContentOut.toByteArray();
-    Assert.assertFalse(compressedWithNowrapOn.length == compressedWithNowrapOff.length);
+    assertThat(compressedWithNowrapOn.length).isNotEqualTo(compressedWithNowrapOff.length);
     byte[] uncompressedWithNowrapOff =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedWithNowrapOff);
-    Assert.assertArrayEquals(CONTENT, uncompressedWithNowrapOff);
+    assertThat(uncompressedWithNowrapOff).isEqualTo(CONTENT);
   }
 
   @Test
@@ -135,22 +136,22 @@ public class DeflateCompressorTest {
       rawContentIn = new ByteArrayInputStream(CONTENT);
       compressedContentOut = new ByteArrayOutputStream();
       compressor.setStrategy(strategy);
-      Assert.assertEquals(strategy, compressor.getStrategy());
+      assertThat(compressor.getStrategy()).isEqualTo(strategy);
       compressor.compress(rawContentIn, compressedContentOut);
       content[strategy] = new Content();
       content[strategy].compressed = compressedContentOut.toByteArray();
       content[strategy].uncompressed =
           uncompressWithJavaInflater(compressor.isNowrap(), content[strategy].compressed);
-      Assert.assertArrayEquals(CONTENT, content[strategy].uncompressed);
+      assertThat(content[strategy].uncompressed).isEqualTo(CONTENT);
     }
 
     // No two outputs should be the same.
     for (int outer = 0; outer < content.length; outer++) {
       for (int inner = 0; inner < content.length; inner++) {
         if (inner != outer) {
-          Assert.assertFalse(
-              "strategy " + outer + " == " + inner,
-              Arrays.equals(content[outer].compressed, content[inner].compressed));
+          assertWithMessage("strategy " + outer + " == " + inner)
+              .that(Arrays.equals(content[outer].compressed, content[inner].compressed))
+              .isFalse();
         }
       }
     }
@@ -164,22 +165,22 @@ public class DeflateCompressorTest {
       rawContentIn = new ByteArrayInputStream(CONTENT);
       compressedContentOut = new ByteArrayOutputStream();
       compressor.setCompressionLevel(level);
-      Assert.assertEquals(level, compressor.getCompressionLevel());
+      assertThat(compressor.getCompressionLevel()).isEqualTo(level);
       compressor.compress(rawContentIn, compressedContentOut);
       content[level] = new Content();
       content[level].compressed = compressedContentOut.toByteArray();
       content[level].uncompressed =
           uncompressWithJavaInflater(compressor.isNowrap(), content[level].compressed);
-      Assert.assertArrayEquals(CONTENT, content[level].uncompressed);
+      assertThat(content[level].uncompressed).isEqualTo(CONTENT);
     }
 
     // No two outputs should be the same. Again note that level 0 (store) is unused, so start at 1.
     for (int outer = 1; outer < content.length; outer++) {
       for (int inner = 1; inner < content.length; inner++) {
         if (inner != outer) {
-          Assert.assertFalse(
-              "strategy " + outer + " == " + inner,
-              Arrays.equals(content[outer].compressed, content[inner].compressed));
+          assertWithMessage("strategy " + outer + " == " + inner)
+              .that(Arrays.equals(content[outer].compressed, content[inner].compressed))
+              .isFalse();
         }
       }
     }
@@ -187,24 +188,24 @@ public class DeflateCompressorTest {
 
   @Test
   public void testSetInputBufferSize() throws IOException {
-    Assert.assertNotEquals(17, compressor.getInputBufferSize()); // Ensure test is valid
+    assertThat(compressor.getInputBufferSize()).isNotEqualTo(17); // Ensure test is valid
     compressor.setInputBufferSize(17); // Arbitrary non-default value
-    Assert.assertEquals(17, compressor.getInputBufferSize());
+    assertThat(compressor.getInputBufferSize()).isEqualTo(17);
     compressor.compress(rawContentIn, compressedContentOut);
     byte[] uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
   }
 
   @Test
   public void testSetOutputBufferSize() throws IOException {
-    Assert.assertNotEquals(17, compressor.getOutputBufferSize()); // Ensure test is valid
+    assertThat(compressor.getOutputBufferSize()).isNotEqualTo(17); // Ensure test is valid
     compressor.setOutputBufferSize(17); // Arbitrary non-default value
-    Assert.assertEquals(17, compressor.getOutputBufferSize());
+    assertThat(compressor.getOutputBufferSize()).isEqualTo(17);
     compressor.compress(rawContentIn, compressedContentOut);
     byte[] uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
   }
 
   @Test
@@ -212,7 +213,7 @@ public class DeflateCompressorTest {
     compressor.setCaching(false);
     Deflater deflater1 = compressor.createOrResetDeflater();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    Assert.assertNotSame(deflater1, deflater2);
+    assertThat(deflater1).isNotSameAs(deflater2);
   }
 
   @Test
@@ -220,7 +221,7 @@ public class DeflateCompressorTest {
     compressor.setCaching(true);
     Deflater deflater1 = compressor.createOrResetDeflater();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    Assert.assertSame(deflater1, deflater2);
+    assertThat(deflater1).isSameAs(deflater2);
   }
 
   @Test
@@ -229,7 +230,7 @@ public class DeflateCompressorTest {
     Deflater deflater1 = compressor.createOrResetDeflater();
     compressor.release();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    Assert.assertNotSame(deflater1, deflater2);
+    assertThat(deflater1).isNotSameAs(deflater2);
   }
 
   @Test
@@ -240,7 +241,7 @@ public class DeflateCompressorTest {
     compressor.compress(rawContentIn, compressedContentOut);
     byte[] uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
 
     // Caching is on, try to reuse it without any changes.
     rawContentIn = new ByteArrayInputStream(CONTENT);
@@ -248,27 +249,27 @@ public class DeflateCompressorTest {
     compressor.compress(rawContentIn, compressedContentOut);
     uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
 
     // Caching is still on, tweak the compression level and try again.
-    Assert.assertNotEquals(7, compressor.getCompressionLevel()); // Ensure test is valid
+    assertThat(compressor.getCompressionLevel()).isNotEqualTo(7); // Ensure test is valid
     compressor.setCompressionLevel(7);
     rawContentIn = new ByteArrayInputStream(CONTENT);
     compressedContentOut = new ByteArrayOutputStream();
     compressor.compress(rawContentIn, compressedContentOut);
     uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
 
     // Caching is still on, tweak the strategy and try again.
-    Assert.assertNotEquals(1, compressor.getStrategy()); // Ensure test is valid
+    assertThat(compressor.getStrategy()).isNotEqualTo(1); // Ensure test is valid
     compressor.setStrategy(Deflater.FILTERED);
     rawContentIn = new ByteArrayInputStream(CONTENT);
     compressedContentOut = new ByteArrayOutputStream();
     compressor.compress(rawContentIn, compressedContentOut);
     uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
 
     // Caching is still on, reverse the wrapping style and try again. Changing the wrapping style
     // invalidates the cached compressor because the wrapping style cannot be changed, this is a
@@ -279,6 +280,6 @@ public class DeflateCompressorTest {
     compressor.compress(rawContentIn, compressedContentOut);
     uncompressed =
         uncompressWithJavaInflater(compressor.isNowrap(), compressedContentOut.toByteArray());
-    Assert.assertArrayEquals(CONTENT, uncompressed);
+    assertThat(uncompressed).isEqualTo(CONTENT);
   }
 }

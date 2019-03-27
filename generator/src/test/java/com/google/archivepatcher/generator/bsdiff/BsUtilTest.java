@@ -14,15 +14,15 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class BsUtilTest {
@@ -51,7 +51,7 @@ public class BsUtilTest {
       (byte) 0,
       (byte) 0
     };
-    Assert.assertArrayEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   @Test
@@ -76,8 +76,8 @@ public class BsUtilTest {
     };
     ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
 
-    Assert.assertEquals(0x12345678, BsUtil.readFormattedLong(inputStream));
-    Assert.assertEquals(0x0eadbeef, BsUtil.readFormattedLong(inputStream));
+    assertThat(BsUtil.readFormattedLong(inputStream)).isEqualTo(0x12345678);
+    assertThat(BsUtil.readFormattedLong(inputStream)).isEqualTo(0x0eadbeef);
   }
 
   private long writeThenReadFormattedLong(long value) throws IOException {
@@ -90,11 +90,11 @@ public class BsUtilTest {
 
   @Test
   public void writeThenReadFormattedLongTest() throws IOException {
-    Assert.assertEquals(-1, writeThenReadFormattedLong(-1));
-    Assert.assertEquals(0x7fffffff, writeThenReadFormattedLong(0x7fffffff));
-    Assert.assertEquals(0, writeThenReadFormattedLong(0));
-    Assert.assertEquals(Long.MAX_VALUE, writeThenReadFormattedLong(Long.MAX_VALUE));
-    Assert.assertEquals(Long.MIN_VALUE, writeThenReadFormattedLong(Long.MIN_VALUE));
+    assertThat(writeThenReadFormattedLong(-1)).isEqualTo(-1);
+    assertThat(writeThenReadFormattedLong(0x7fffffff)).isEqualTo(0x7fffffff);
+    assertThat(writeThenReadFormattedLong(0)).isEqualTo(0);
+    assertThat(writeThenReadFormattedLong(Long.MAX_VALUE)).isEqualTo(Long.MAX_VALUE);
+    assertThat(writeThenReadFormattedLong(Long.MIN_VALUE)).isEqualTo(Long.MIN_VALUE);
   }
 
   @Test
@@ -107,24 +107,24 @@ public class BsUtilTest {
     RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
 
     int r = BsUtil.lexicographicalCompare(s1ro, 0, s1b.length, s2ro, 0, s2b.length);
-    Assert.assertTrue(r > 0);
+    assertThat(r).isGreaterThan(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 5, s1b.length - 5, s2ro, 5, s2b.length - 5);
-    Assert.assertTrue(r < 0);
+    assertThat(r).isLessThan(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 7, s1b.length - 7, s2ro, 8, s2b.length - 7);
-    Assert.assertTrue(r < 0);
+    assertThat(r).isLessThan(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 7, s1b.length - 8, s2ro, 8, s2b.length - 8);
-    Assert.assertTrue(r < 0);
+    assertThat(r).isLessThan(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 0, 2, s2ro, 0, 2);
-    Assert.assertEquals(0, r);
+    assertThat(r).isEqualTo(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 0, 1, s2ro, 0, 2);
-    Assert.assertTrue(r < 0);
+    assertThat(r).isLessThan(0);
 
     r = BsUtil.lexicographicalCompare(s1ro, 0, 2, s2ro, 0, 1);
-    Assert.assertTrue(r > 0);
+    assertThat(r).isGreaterThan(0);
   }
 }

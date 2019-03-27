@@ -14,16 +14,11 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
-
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -31,6 +26,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.CRC32;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /**
  * Tests for {@link MinimalZipParser}.
@@ -48,7 +47,7 @@ public class MinimalZipParserTest {
   private void checkExpectedBytes(byte[] expectedData, int unitTestZipArchiveOffset) {
     for (int index = 0; index < 4; index++) {
       byte actualByte = unitTestZipArchive[unitTestZipArchiveOffset + index];
-      Assert.assertEquals(expectedData[index], actualByte);
+      assertThat(actualByte).isEqualTo(expectedData[index]);
     }
   }
 
@@ -61,7 +60,7 @@ public class MinimalZipParserTest {
   @Test
   public void testLocateStartOfEocd_WithArray_NoEocd() {
     int eocdOffset = MinimalZipParser.locateStartOfEocd(new byte[32768]);
-    Assert.assertEquals(-1, eocdOffset);
+    assertThat(eocdOffset).isEqualTo(-1);
   }
 
   @Test
@@ -90,7 +89,7 @@ public class MinimalZipParserTest {
     // Now expect to find the EOCD at the right place.
     try (RandomAccessFileInputStream in = new RandomAccessFileInputStream(tempFile)) {
       long eocdOffset = MinimalZipParser.locateStartOfEocd(in, 32768);
-      Assert.assertEquals(bytesBefore, eocdOffset);
+      assertThat(eocdOffset).isEqualTo(bytesBefore);
     }
   }
 
@@ -116,7 +115,7 @@ public class MinimalZipParserTest {
     // Now expect to find no EOCD.
     try (RandomAccessFileInputStream in = new RandomAccessFileInputStream(tempFile)) {
       long eocdOffset = MinimalZipParser.locateStartOfEocd(in, 4000);
-      Assert.assertEquals(-1, eocdOffset);
+      assertThat(eocdOffset).isEqualTo(-1);
     }
   }
 
@@ -124,9 +123,9 @@ public class MinimalZipParserTest {
   public void testParseEocd() throws IOException {
     int eocdOffset = MinimalZipParser.locateStartOfEocd(unitTestZipArchive);
     ByteArrayInputStream in = new ByteArrayInputStream(unitTestZipArchive);
-    Assert.assertEquals(eocdOffset, in.skip(eocdOffset));
+    assertThat(in.skip(eocdOffset)).isEqualTo(eocdOffset);
     MinimalCentralDirectoryMetadata centralDirectoryMetadata = MinimalZipParser.parseEocd(in);
-    Assert.assertNotNull(centralDirectoryMetadata);
+    assertThat(centralDirectoryMetadata).isNotNull();
 
     // Check that the central directory's first record is at the calculated offset
     //0x02014b50
@@ -138,9 +137,8 @@ public class MinimalZipParserTest {
         centralDirectoryMetadata.getOffsetOfCentralDirectory()
             + centralDirectoryMetadata.getLengthOfCentralDirectory();
     checkExpectedBytes(new byte[] {0x50, 0x4b, 0x05, 0x06}, (int) calculatedEndOfCentralDirectory);
-    Assert.assertEquals(
-        UnitTestZipArchive.allEntriesInFileOrder.size(),
-        centralDirectoryMetadata.getNumEntriesInCentralDirectory());
+    assertThat(centralDirectoryMetadata.getNumEntriesInCentralDirectory())
+        .isEqualTo(UnitTestZipArchive.allEntriesInFileOrder.size());
   }
 
   @Test
@@ -148,37 +146,37 @@ public class MinimalZipParserTest {
     ByteArrayInputStream in = new ByteArrayInputStream(unitTestZipArchive);
     in.mark(unitTestZipArchive.length);
     int eocdOffset = MinimalZipParser.locateStartOfEocd(unitTestZipArchive);
-    Assert.assertEquals(eocdOffset, in.skip(eocdOffset));
+    assertThat(in.skip(eocdOffset)).isEqualTo(eocdOffset);
     MinimalCentralDirectoryMetadata metadata = MinimalZipParser.parseEocd(in);
     in.reset();
-    Assert.assertEquals(
-        metadata.getOffsetOfCentralDirectory(), in.skip(metadata.getOffsetOfCentralDirectory()));
+    assertThat(in.skip(metadata.getOffsetOfCentralDirectory()))
+        .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
     // MinimalZipEntry.getFileOffsetOfCompressedData(), as that has yet to be computed.
     for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.allEntriesInFileOrder) {
       MinimalZipEntry parsed = MinimalZipParser.parseCentralDirectoryEntry(in);
-      Assert.assertEquals(expectedEntry.path, parsed.getFileName());
+      assertThat(parsed.getFileName()).isEqualTo(expectedEntry.path);
 
       // Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
         byte actualByte = unitTestZipArchive[((int) parsed.getFileOffsetOfLocalEntry()) + index];
-        Assert.assertEquals(expectedSignatureBlock[index], actualByte);
+        assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
       if (expectedEntry.level > 0) {
-        Assert.assertEquals(8 /* deflate */, parsed.getCompressionMethod());
+        assertThat(parsed.getCompressionMethod()).isEqualTo(8 /* deflate */);
       } else {
-        Assert.assertEquals(0 /* store */, parsed.getCompressionMethod());
+        assertThat(parsed.getCompressionMethod()).isEqualTo(0 /* store */);
       }
       byte[] uncompressedContent = expectedEntry.getUncompressedBinaryContent();
-      Assert.assertEquals(uncompressedContent.length, parsed.getUncompressedSize());
+      assertThat(parsed.getUncompressedSize()).isEqualTo(uncompressedContent.length);
       CRC32 crc32 = new CRC32();
       crc32.update(uncompressedContent);
-      Assert.assertEquals(crc32.getValue(), parsed.getCrc32OfUncompressedData());
+      assertThat(parsed.getCrc32OfUncompressedData()).isEqualTo(crc32.getValue());
       byte[] compressedContent = expectedEntry.getCompressedBinaryContent();
-      Assert.assertEquals(compressedContent.length, parsed.getCompressedSize());
+      assertThat(parsed.getCompressedSize()).isEqualTo(compressedContent.length);
     }
   }
 
@@ -187,11 +185,11 @@ public class MinimalZipParserTest {
     ByteArrayInputStream in = new ByteArrayInputStream(unitTestZipArchive);
     in.mark(unitTestZipArchive.length);
     int eocdOffset = MinimalZipParser.locateStartOfEocd(unitTestZipArchive);
-    Assert.assertEquals(eocdOffset, in.skip(eocdOffset));
+    assertThat(in.skip(eocdOffset)).isEqualTo(eocdOffset);
     MinimalCentralDirectoryMetadata metadata = MinimalZipParser.parseEocd(in);
     in.reset();
-    Assert.assertEquals(
-        metadata.getOffsetOfCentralDirectory(), in.skip(metadata.getOffsetOfCentralDirectory()));
+    assertThat(in.skip(metadata.getOffsetOfCentralDirectory()))
+        .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
     // MinimalZipEntry.getFileOffsetOfCompressedData(), as that has yet to be computed.
@@ -204,11 +202,10 @@ public class MinimalZipParserTest {
       UnitTestZipEntry expectedEntry = UnitTestZipArchive.allEntriesInFileOrder.get(x);
       MinimalZipEntry parsedEntry = parsedEntries.get(x);
       in.reset();
-      Assert.assertEquals(
-          parsedEntry.getFileOffsetOfLocalEntry(),
-          in.skip(parsedEntry.getFileOffsetOfLocalEntry()));
+      assertThat(in.skip(parsedEntry.getFileOffsetOfLocalEntry()))
+          .isEqualTo(parsedEntry.getFileOffsetOfLocalEntry());
       long relativeDataOffset = MinimalZipParser.parseLocalEntryAndGetCompressedDataOffset(in);
-      Assert.assertTrue(relativeDataOffset > 0);
+      assertThat(relativeDataOffset > 0).isTrue();
       checkExpectedBytes(
           expectedEntry.getCompressedBinaryContent(),
           (int) (parsedEntry.getFileOffsetOfLocalEntry() + relativeDataOffset));

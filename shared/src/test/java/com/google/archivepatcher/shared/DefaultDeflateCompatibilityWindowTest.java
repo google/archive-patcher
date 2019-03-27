@@ -14,9 +14,10 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -77,27 +78,27 @@ public class DefaultDeflateCompatibilityWindowTest {
   private void ensureHasAllKeys(Map<JreDeflateParameters, String> mappings) {
     for (int level = 1; level <= 9; level++) {
       for (int strategy = 0; strategy <= 1; strategy++) {
-        Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(level, strategy, true)));
-        Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(level, strategy, false)));
+        assertThat(mappings).containsKey(JreDeflateParameters.of(level, strategy, true));
+        assertThat(mappings).containsKey(JreDeflateParameters.of(level, strategy, false));
       }
     }
     // Manually scan for presence of the strategy-2 values, only set for compression level 1....
-    Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, true)));
-    Assert.assertTrue(mappings.containsKey(JreDeflateParameters.of(1, 2, false)));
-    Assert.assertEquals(38, mappings.size());
+    assertThat(mappings).containsKey(JreDeflateParameters.of(1, 2, true));
+    assertThat(mappings).containsKey(JreDeflateParameters.of(1, 2, false));
+    assertThat(mappings).hasSize(38);
   }
 
   @Test
   public void testGetCorpus() {
     // Basic sanity test: ensure it's a non-null, non-empty return.
     byte[] corpus1 = window.getCorpus();
-    Assert.assertNotNull(corpus1);
-    Assert.assertTrue(corpus1.length > 0);
+    assertThat(corpus1).isNotNull();
+    assertThat(corpus1.length).isGreaterThan(0);
     // Basic sanity test: ensure the corpus is distinct each time the method is called (i.e., the
     // mutable object returned is independent of the actual corpus).
     byte[] corpus2 = window.getCorpus();
-    Assert.assertArrayEquals(corpus1, corpus2);
-    Assert.assertNotSame(corpus1, corpus2);
+    assertThat(corpus1).isEqualTo(corpus2);
+    assertThat(corpus1).isNotSameAs(corpus2);
   }
 
   @Test
@@ -106,22 +107,22 @@ public class DefaultDeflateCompatibilityWindowTest {
     window.isCompatible();
     // Now do a call that is guaranteed to fail.
     BrokenCompatibilityWindow broken = new BrokenCompatibilityWindow();
-    Assert.assertFalse(broken.isCompatible());
+    assertThat(broken.isCompatible()).isFalse();
     // Now do a call that is guaranteed to succeed.
     InfallibleCompatibilityWindow infallible = new InfallibleCompatibilityWindow();
-    Assert.assertTrue(infallible.isCompatible());
+    assertThat(infallible.isCompatible()).isTrue();
   }
 
   @Test
   public void testGetIncompatibleValues() {
     // First do a coverage-only call, as it's not safe to assume compatibility in the unit test.
-    Assert.assertNotNull(window.getIncompatibleValues());
+    assertThat(window.getIncompatibleValues()).isNotNull();
     // Now do a call that is guaranteed to produce failure data.
     BrokenCompatibilityWindow brokenWindow = new BrokenCompatibilityWindow();
     Map<JreDeflateParameters, String> incompatible = brokenWindow.getIncompatibleValues();
-    Assert.assertTrue(incompatible.containsKey(brokenParameters));
+    assertThat(incompatible).containsKey(brokenParameters);
     // Now do a call that is guaranteed to produce no failure data.
     InfallibleCompatibilityWindow infallible = new InfallibleCompatibilityWindow();
-    Assert.assertTrue(infallible.getIncompatibleValues().isEmpty());
+    assertThat(infallible.getIncompatibleValues()).isEmpty();
   }
 }

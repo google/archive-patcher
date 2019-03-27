@@ -14,6 +14,9 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.TypedRange;
@@ -26,7 +29,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -112,39 +114,39 @@ public class PatchWriterTest {
 
     // Start by reading the signature and flags
     patchIn.readFully(eightBytes);
-    Assert.assertArrayEquals(PatchConstants.IDENTIFIER.getBytes("US-ASCII"), eightBytes);
-    Assert.assertEquals(0, patchIn.readInt()); // Flags, all reserved in v1
+    assertThat(eightBytes).isEqualTo(PatchConstants.IDENTIFIER.getBytes(US_ASCII));
+    assertThat(patchIn.readInt()).isEqualTo(0); // Flags, all reserved in v1
 
-    Assert.assertEquals(DELTA_FRIENDLY_OLD_FILE_SIZE, patchIn.readLong());
+    assertThat(patchIn.readLong()).isEqualTo(DELTA_FRIENDLY_OLD_FILE_SIZE);
 
     // Read the uncompression instructions
-    Assert.assertEquals(1, patchIn.readInt()); // Number of old archive uncompression instructions
-    Assert.assertEquals(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getOffset(), patchIn.readLong());
-    Assert.assertEquals(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getLength(), patchIn.readLong());
+    assertThat(patchIn.readInt()).isEqualTo(1); // Number of old archive uncompression instructions
+    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getOffset());
+    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getLength());
 
     // Read the recompression instructions
-    Assert.assertEquals(1, patchIn.readInt()); // Number of new archive recompression instructions
-    Assert.assertEquals(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getOffset(), patchIn.readLong());
-    Assert.assertEquals(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getLength(), patchIn.readLong());
+    assertThat(patchIn.readInt()).isEqualTo(1); // Number of new archive recompression instructions
+    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getOffset());
+    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getLength());
     // Now the JreDeflateParameters for the record
-    Assert.assertEquals(
-        PatchConstants.CompatibilityWindowId.DEFAULT_DEFLATE.patchValue, patchIn.read());
-    Assert.assertEquals(DEFLATE_PARAMS.level, patchIn.read());
-    Assert.assertEquals(DEFLATE_PARAMS.strategy, patchIn.read());
-    Assert.assertEquals(DEFLATE_PARAMS.nowrap ? 1 : 0, patchIn.read());
+    assertThat(patchIn.read())
+        .isEqualTo(PatchConstants.CompatibilityWindowId.DEFAULT_DEFLATE.patchValue);
+    assertThat(patchIn.read()).isEqualTo(DEFLATE_PARAMS.level);
+    assertThat(patchIn.read()).isEqualTo(DEFLATE_PARAMS.strategy);
+    assertThat(patchIn.read()).isEqualTo(DEFLATE_PARAMS.nowrap ? 1 : 0);
 
     // Delta section. V1 patches have exactly one delta entry and it is always mapped to the entire
     // file contents of the delta-friendly archives
-    Assert.assertEquals(1, patchIn.readInt()); // Number of difference records
-    Assert.assertEquals(PatchConstants.DeltaFormat.BSDIFF.patchValue, patchIn.read());
-    Assert.assertEquals(0, patchIn.readLong()); // Old delta-friendly range start
-    Assert.assertEquals(DELTA_FRIENDLY_OLD_FILE_SIZE, patchIn.readLong()); // old range length
-    Assert.assertEquals(0, patchIn.readLong()); // New delta-friendly range start
-    Assert.assertEquals(DELTA_FRIENDLY_NEW_FILE_SIZE, patchIn.readLong()); // new range length
+    assertThat(patchIn.readInt()).isEqualTo(1); // Number of difference records
+    assertThat(patchIn.read()).isEqualTo(PatchConstants.DeltaFormat.BSDIFF.patchValue);
+    assertThat(patchIn.readLong()).isEqualTo(0); // Old delta-friendly range start
+    assertThat(patchIn.readLong()).isEqualTo(DELTA_FRIENDLY_OLD_FILE_SIZE); // old range length
+    assertThat(patchIn.readLong()).isEqualTo(0); // New delta-friendly range start
+    assertThat(patchIn.readLong()).isEqualTo(DELTA_FRIENDLY_NEW_FILE_SIZE); // new range length
     byte[] expectedDeltaContent = DELTA_CONTENT.getBytes("US-ASCII");
-    Assert.assertEquals(expectedDeltaContent.length, patchIn.readLong());
+    assertThat(patchIn.readLong()).isEqualTo(expectedDeltaContent.length);
     byte[] actualDeltaContent = new byte[expectedDeltaContent.length];
     patchIn.readFully(actualDeltaContent);
-    Assert.assertArrayEquals(expectedDeltaContent, actualDeltaContent);
+    assertThat(actualDeltaContent).isEqualTo(expectedDeltaContent);
   }
 }

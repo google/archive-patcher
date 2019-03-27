@@ -14,11 +14,10 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.util.Random;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -46,7 +45,7 @@ public abstract class SuffixSorterTestBase {
     RandomAccessObject groupArray = getSuffixSorter().suffixSort(input);
 
     assertSorted(groupArray, input);
-    Assert.assertArrayEquals(expectedSuffixArray, randomAccessObjectToIntArray(groupArray));
+    assertThat(randomAccessObjectToIntArray(groupArray)).isEqualTo(expectedSuffixArray);
   }
 
   @Test
@@ -55,9 +54,8 @@ public abstract class SuffixSorterTestBase {
 
     assertSorted(groupArrayRO, BsDiffTestData.LONG_DATA_99_RO);
 
-    Assert.assertArrayEquals(
-        BsDiffTestData.QUICK_SUFFIX_SORT_TEST_GA_CONTROL,
-        randomAccessObjectToIntArray(groupArrayRO));
+    assertThat(randomAccessObjectToIntArray(groupArrayRO))
+        .isEqualTo(BsDiffTestData.QUICK_SUFFIX_SORT_TEST_GA_CONTROL);
   }
 
   @Test
@@ -67,9 +65,8 @@ public abstract class SuffixSorterTestBase {
 
     assertSorted(groupArray2RO, BsDiffTestData.LONGER_DATA_349_RO);
 
-    Assert.assertArrayEquals(
-        BsDiffTestData.QUICK_SUFFIX_SORT_TEST_IA_CONTROL,
-        randomAccessObjectToIntArray(groupArray2RO));
+    assertThat(randomAccessObjectToIntArray(groupArray2RO))
+        .isEqualTo(BsDiffTestData.QUICK_SUFFIX_SORT_TEST_IA_CONTROL);
   }
 
   @Test

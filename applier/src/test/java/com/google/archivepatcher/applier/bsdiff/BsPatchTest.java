@@ -14,6 +14,9 @@
 
 package com.google.archivepatcher.applier.bsdiff;
 
+import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
+
 import com.google.archivepatcher.applier.PatchFormatException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -24,7 +27,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.RandomAccessFile;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,7 +86,7 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     BsPatch.transformBytes(patchInput.length, patchInputStream, oldData, newData, buffer1, buffer2);
     byte[] actual = newData.toByteArray();
-    Assert.assertArrayEquals(expectedNewData, actual);
+    assertThat(actual).isEqualTo(expectedNewData);
   }
 
   @Test
@@ -96,7 +98,7 @@ public class BsPatchTest {
     RandomAccessFile oldData = new RandomAccessFile(oldFile, "r");
     try {
       BsPatch.transformBytes(2, patchIn, oldData, new ByteArrayOutputStream(), buffer1, buffer2);
-      Assert.fail("Read past EOF");
+      assertWithMessage("Read past EOF").fail();
     } catch (IOException expected) {
       // Pass
     }
@@ -112,7 +114,7 @@ public class BsPatchTest {
     try {
       BsPatch.transformBytes(
           patchInput.length, patchInputStream, oldData, newData, buffer1, buffer2);
-      Assert.fail("Should have thrown an IOException");
+      assertWithMessage("Should have thrown an IOException").fail();
     } catch (IOException expected) {
       // Pass
     }
@@ -131,7 +133,7 @@ public class BsPatchTest {
     try {
       BsPatch.transformBytes(
           patchInput.length + 1, patchInputStream, oldData, newData, buffer1, buffer2);
-      Assert.fail("Should have thrown an IOException");
+      assertWithMessage("Should have thrown an IOException").fail();
     } catch (IOException expected) {
       // Pass
     }
@@ -169,12 +171,12 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with bad signature");
+      assertWithMessage("Read patch with bad signature").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals(
-          "bad signature: found WOOOOOO/BSDIFF43 should've been ENDSLEY/BSDIFF43", actual);
+      assertThat(actual)
+          .isEqualTo("bad signature: found WOOOOOO/BSDIFF43 should've been ENDSLEY/BSDIFF43");
     }
   }
   
@@ -193,11 +195,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn, (long) 10 + 1);
-      Assert.fail("Read patch with mismatched newLength");
+      assertWithMessage("Read patch with mismatched newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("expectedNewSize != newSize", actual);
+      assertThat(actual).isEqualTo("expectedNewSize != newSize");
     }
   }
 
@@ -216,11 +218,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with negative newLength");
+      assertWithMessage("Read patch with negative newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad newSize", actual);
+      assertThat(actual).isEqualTo("bad newSize");
     }
   }
 
@@ -240,11 +242,11 @@ public class BsPatchTest {
     try {
       BsPatch.applyPatch(
           new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with excessive newLength");
+      assertWithMessage("Read patch with excessive newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad newSize", actual);
+      assertThat(actual).isEqualTo("bad newSize");
     }
   }
 
@@ -263,11 +265,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with negative diffSegmentLength");
+      assertWithMessage("Read patch with negative diffSegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad diffSegmentLength", actual);
+      assertThat(actual).isEqualTo("bad diffSegmentLength");
     }
   }
 
@@ -286,11 +288,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with excessive diffSegmentLength");
+      assertWithMessage("Read patch with excessive diffSegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad diffSegmentLength", actual);
+      assertThat(actual).isEqualTo("bad diffSegmentLength");
     }
   }
 
@@ -309,11 +311,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with negative copySegmentLength");
+      assertWithMessage("Read patch with negative copySegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad copySegmentLength", actual);
+      assertThat(actual).isEqualTo("bad copySegmentLength");
     }
   }
 
@@ -332,11 +334,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with excessive copySegmentLength");
+      assertWithMessage("Read patch with excessive copySegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("bad copySegmentLength", actual);
+      assertThat(actual).isEqualTo("bad copySegmentLength");
     }
   }
 
@@ -358,11 +360,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch that moves past EOF in new file");
+      assertWithMessage("Read patch that moves past EOF in new file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("expectedFinalNewDataBytesWritten too large", actual);
+      assertThat(actual).isEqualTo("expectedFinalNewDataBytesWritten too large");
     }
   }
 
@@ -382,11 +384,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with that moves to a negative offset in old file");
+      assertWithMessage("Read patch with that moves to a negative offset in old file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("expectedFinalOldDataOffset is negative", actual);
+      assertThat(actual).isEqualTo("expectedFinalOldDataOffset is negative");
     }
   }
 
@@ -406,11 +408,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with that moves past EOF in old file");
+      assertWithMessage("Read patch with that moves past EOF in old file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("expectedFinalOldDataOffset too large", actual);
+      assertThat(actual).isEqualTo("expectedFinalOldDataOffset too large");
     }
   }
 
@@ -421,11 +423,11 @@ public class BsPatchTest {
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
       BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
-      Assert.fail("Read patch with truncated signature");
+      assertWithMessage("Read patch with truncated signature").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
       String actual = expected.getMessage();
-      Assert.assertEquals("truncated signature", actual);
+      assertThat(actual).isEqualTo("truncated signature");
     }
   }
 
@@ -437,9 +439,9 @@ public class BsPatchTest {
     };
     ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
     long actual = BsPatch.readBsdiffLong(inputStream);
-    Assert.assertEquals(0x12345678, actual);
+    assertThat(actual).isEqualTo(0x12345678);
     actual = BsPatch.readBsdiffLong(inputStream);
-    Assert.assertEquals(0x0eadbeef, actual);
+    assertThat(actual).isEqualTo(0x0eadbeef);
   }
 
   @Test
@@ -452,7 +454,7 @@ public class BsPatchTest {
                   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
                 }));
-    Assert.assertEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   @Test
@@ -465,7 +467,7 @@ public class BsPatchTest {
                   (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x7f,
                   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00
                 }));
-    Assert.assertEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   @Test
@@ -478,7 +480,7 @@ public class BsPatchTest {
                   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80,
                   (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80
                 }));
-    Assert.assertEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   @Test
@@ -491,7 +493,7 @@ public class BsPatchTest {
                   (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
                   (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0x7f
                 }));
-    Assert.assertEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   // Can't read Long.MIN_VALUE because the signed-magnitude representation stops at
@@ -506,7 +508,7 @@ public class BsPatchTest {
                   (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
                   (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff
                 }));
-    Assert.assertEquals(expected, actual);
+    assertThat(actual).isEqualTo(expected);
   }
 
   // This is also Java's Long.MAX_VALUE.
@@ -519,7 +521,7 @@ public class BsPatchTest {
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
                 (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x80
               }));
-      Assert.fail("Tolerated negative zero");
+      assertWithMessage("Tolerated negative zero").fail();
     } catch (PatchFormatException expected) {
       // Pass
     }
@@ -533,23 +535,23 @@ public class BsPatchTest {
 
     try {
       BsPatch.readFully(inputStream, dst, 0, 50);
-      Assert.fail("Should've thrown an IOException");
+      assertWithMessage("Should've thrown an IOException").fail();
     } catch (IOException expected) {
       // Pass
     }
 
     inputStream.reset();
     BsPatch.readFully(inputStream, dst, 0, input.length);
-    Assert.assertTrue(regionEquals(dst, 0, input, 0, input.length));
+    assertThat(regionEquals(dst, 0, input, 0, input.length)).isTrue();
 
     inputStream.reset();
     BsPatch.readFully(inputStream, dst, 40, 10);
-    Assert.assertTrue(regionEquals(dst, 40, input, 0, 10));
+    assertThat(regionEquals(dst, 40, input, 0, 10)).isTrue();
 
     inputStream.reset();
     try {
       BsPatch.readFully(inputStream, dst, 45, 11);
-      Assert.fail("Should've thrown an IndexOutOfBoundsException");
+      assertWithMessage("Should've thrown an IndexOutOfBoundsException").fail();
     } catch (IndexOutOfBoundsException expected) {
       // Pass
     }
@@ -565,31 +567,31 @@ public class BsPatchTest {
 
     BsPatch.pipe(inputStream, outputStream, buffer, 0);
     int actualLength = outputStream.toByteArray().length;
-    Assert.assertEquals(0, actualLength);
+    assertThat(actualLength).isEqualTo(0);
 
     inputStream.reset();
     BsPatch.pipe(inputStream, outputStream, buffer, 1);
     actualLength = outputStream.toByteArray().length;
-    Assert.assertEquals(1, actualLength);
+    assertThat(actualLength).isEqualTo(1);
     byte actualByte = outputStream.toByteArray()[0];
-    Assert.assertEquals((byte) 't', actualByte);
+    assertThat(actualByte).isEqualTo((byte) 't');
 
     outputStream = new ByteArrayOutputStream();
     inputStream.reset();
     BsPatch.pipe(inputStream, outputStream, buffer, 5);
     actualLength = outputStream.toByteArray().length;
-    Assert.assertEquals(5, actualLength);
+    assertThat(actualLength).isEqualTo(5);
     String actualOutput = outputStream.toString();
     String expectedOutput = inputString.substring(0, 5);
-    Assert.assertEquals(expectedOutput, actualOutput);
+    assertThat(actualOutput).isEqualTo(expectedOutput);
 
     outputStream = new ByteArrayOutputStream();
     inputStream.reset();
     BsPatch.pipe(inputStream, outputStream, buffer, input.length);
     actualLength = outputStream.toByteArray().length;
-    Assert.assertEquals(input.length, actualLength);
+    assertThat(actualLength).isEqualTo(input.length);
     expectedOutput = outputStream.toString();
-    Assert.assertEquals(inputString, expectedOutput);
+    assertThat(expectedOutput).isEqualTo(inputString);
   }
 
   @Test
@@ -599,7 +601,7 @@ public class BsPatchTest {
     try {
       // Tell pipe to copy 1 more byte than is actually available
       BsPatch.pipe(in, new ByteArrayOutputStream(), new byte[dataLength], dataLength + 1);
-      Assert.fail("Should've thrown an IOException");
+      assertWithMessage("Should've thrown an IOException").fail();
     } catch (IOException expected) {
       // Pass
     }
@@ -612,7 +614,7 @@ public class BsPatchTest {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     BsPatch.pipe(in, out, new byte[100], dataLength);
     int actualLength = out.toByteArray().length;
-    Assert.assertEquals(0, actualLength);
+    assertThat(actualLength).isEqualTo(0);
   }
 
   /**
@@ -632,7 +634,7 @@ public class BsPatchTest {
     ByteArrayOutputStream actualNewData = new ByteArrayOutputStream();
     BsPatch.applyPatch(oldData, actualNewData, patchInputStream);
     byte[] actualNewDataBytes = actualNewData.toByteArray();
-    Assert.assertArrayEquals(expectedNewDataBytes, actualNewDataBytes);
+    assertThat(actualNewDataBytes).isEqualTo(expectedNewDataBytes);
   }
 
   /**
@@ -673,7 +675,7 @@ public class BsPatchTest {
   // (Copied from BsDiffTest)
   private byte[] readTestData(String testDataFileName) throws IOException {
     InputStream in = getClass().getResourceAsStream("testdata/" + testDataFileName);
-    Assert.assertNotNull("test data file doesn't exist: " + testDataFileName, in);
+    assertWithMessage("test data file doesn't exist: " + testDataFileName).that(in).isNotNull();
     ByteArrayOutputStream result = new ByteArrayOutputStream();
     byte[] buffer = new byte[32768];
     int numRead = 0;
@@ -690,7 +692,7 @@ public class BsPatchTest {
    */
   private void copyToOldFile(String testDataFileName) throws IOException {
     oldFile = File.createTempFile("archive_patcher", "temp");
-    Assert.assertNotNull("cant create file!", oldFile);
+    assertWithMessage("cant create file!").that(oldFile).isNotNull();
     byte[] buffer = readTestData(testDataFileName);
     FileOutputStream out = new FileOutputStream(oldFile);
     out.write(buffer);
