@@ -20,7 +20,7 @@ import java.io.InputStream;
 public class Closeables {
 
   /** Close input stream quietly after use. All exceptions are swallowed. */
-  static void closeQuitely(InputStream inputStream) {
+  public static void closeQuietly(InputStream inputStream) {
     if (inputStream == null) {
       return;
     }

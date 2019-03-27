@@ -121,7 +121,7 @@ public class DeltaFriendlyFile {
         filteredOut.pipe(oldFileRafis, PartiallyUncompressingPipe.Mode.COPY);
       }
     } finally {
-      Closeables.closeQuitely(oldFileRafis);
+      Closeables.closeQuietly(oldFileRafis);
     }
     return inverseRanges;
   }
