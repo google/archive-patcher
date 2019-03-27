@@ -37,11 +37,6 @@ public class BsPatch {
   private static final String SIGNATURE = "ENDSLEY/BSDIFF43";
 
   /**
-   * Default buffer size is 50 kibibytes, a reasonable tradeoff between size and speed.
-   */
-  private static final int PATCH_BUFFER_SIZE = 1024 * 50;
-
-  /**
    * Masks the upper bit of a long, used to determine if a long is positive or negative.
    */
   private static final long NEGATIVE_LONG_SIGN_MASK = 1L << 63;
@@ -57,6 +52,12 @@ public class BsPatch {
    * of data. A buffer greatly improves efficiency for these patches.
    */
   private static final int OUTPUT_STREAM_BUFFER_SIZE = 16 * 1024;
+
+  /**
+   * Default buffer size is 3 times the {@link #OUTPUT_STREAM_BUFFER_SIZE}, a reasonable trade-off
+   * between size and speed.
+   */
+  private static final int PATCH_BUFFER_SIZE = 3 * OUTPUT_STREAM_BUFFER_SIZE;
 
   /** An instance of Java logger for use with the {@code VERBOSE} mode. */
   private static final Logger logger = Logger.getLogger(BsPatch.class.getName());
