@@ -14,6 +14,10 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.RandomAccessByteArrayObject;
+import com.google.archivepatcher.generator.RandomAccessMmapObject;
+import com.google.archivepatcher.generator.RandomAccessObject;
+import com.google.archivepatcher.generator.RandomAccessObjectFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -287,10 +291,8 @@ public class BsDiffPatchWriter {
       final OutputStream outputStream,
       final int minimumMatchLength)
       throws IOException, InterruptedException {
-    try (RandomAccessObject oldDataRAO =
-            new RandomAccessObject.RandomAccessByteArrayObject(oldData);
-        RandomAccessObject newDataRAO =
-            new RandomAccessObject.RandomAccessByteArrayObject(newData); ) {
+    try (RandomAccessObject oldDataRAO = new RandomAccessByteArrayObject(oldData);
+        RandomAccessObject newDataRAO = new RandomAccessByteArrayObject(newData); ) {
       generatePatch(
           oldDataRAO,
           newDataRAO,
@@ -338,10 +340,8 @@ public class BsDiffPatchWriter {
       throws IOException, InterruptedException {
     try (RandomAccessFile oldDataRAF = new RandomAccessFile(oldData, "r");
         RandomAccessFile newDataRAF = new RandomAccessFile(newData, "r");
-        RandomAccessObject oldDataRAO =
-            new RandomAccessObject.RandomAccessMmapObject(oldDataRAF, "r");
-        RandomAccessObject newDataRAO =
-            new RandomAccessObject.RandomAccessMmapObject(newDataRAF, "r"); ) {
+        RandomAccessObject oldDataRAO = new RandomAccessMmapObject(oldDataRAF, "r");
+        RandomAccessObject newDataRAO = new RandomAccessMmapObject(newDataRAF, "r"); ) {
       generatePatch(
           oldDataRAO,
           newDataRAO,

@@ -12,31 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.generator.bsdiff;
-
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessByteArrayObject;
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessFileObject;
-import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessMmapObject;
+package com.google.archivepatcher.generator;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
 /**
- * A factory for creating instances of {@link RandomAccessObject}. BsDiff needs to store some
- * ancillary data of size proportional to the binary to be patched. This allows abstraction of the
- * allocation so that BsDiff can run either entirely in-memory (faster) or with file-backed swap
- * (handles bigger inputs without consuming inordinate amounts of memory).
+ * A factory for creating instances of {@link
+ * com.google.archivepatcher.generator.RandomAccessObject}. BsDiff needs to store some ancillary
+ * data of size proportional to the binary to be patched. This allows abstraction of the allocation
+ * so that BsDiff can run either entirely in-memory (faster) or with file-backed swap (handles
+ * bigger inputs without consuming inordinate amounts of memory).
  */
 public interface RandomAccessObjectFactory {
-  public RandomAccessObject create(int size) throws IOException;
+  RandomAccessObject create(int size) throws IOException;
 
   /**
-   * A factory that produces {@link RandomAccessFileObject} instances backed by temp files.
+   * A factory that produces {@link com.google.archivepatcher.generator.RandomAccessFileObject}
+   * instances backed by temp files.
    */
   // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
-  public static final class RandomAccessFileObjectFactory implements RandomAccessObjectFactory {
+  final class RandomAccessFileObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
     private final String mMode;
 
@@ -50,37 +48,38 @@ public interface RandomAccessObjectFactory {
     }
 
     /**
-     * Creates a temp file, and returns a {@link RandomAccessFile} wrapped in a
-     * {@link RandomAccessFileObject} representing the new temp file. The temp file does not need to
-     * explicitly be managed (deleted) by the caller, as long as the caller ensures
-     * {@link RandomAccessObject#close()} is called when the object is no longer needed.
+     * Creates a temp file, and returns a {@link RandomAccessFile} wrapped in a {@link
+     * com.google.archivepatcher.generator.RandomAccessFileObject} representing the new temp file.
+     * The temp file does not need to explicitly be managed (deleted) by the caller, as long as the
+     * caller ensures {@link com.google.archivepatcher.generator.RandomAccessObject#close()} is
+     * called when the object is no longer needed.
      */
     // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @Override
     public RandomAccessObject create(int size) throws IOException {
-      return new RandomAccessObject.RandomAccessFileObject(
-          File.createTempFile(FILE_NAME_PREFIX, "temp"), mMode, true);
+      return new RandomAccessFileObject(File.createTempFile(FILE_NAME_PREFIX, "temp"), mMode, true);
     }
   }
 
   /**
-   * A factory that produces {@link RandomAccessByteArrayObject} instances backed by memory.
+   * A factory that produces {@link com.google.archivepatcher.generator.RandomAccessByteArrayObject}
+   * instances backed by memory.
    */
-  public static final class RandomAccessByteArrayObjectFactory
-      implements RandomAccessObjectFactory {
+  final class RandomAccessByteArrayObjectFactory implements RandomAccessObjectFactory {
     @Override
     public RandomAccessObject create(int size) {
-      return new RandomAccessObject.RandomAccessByteArrayObject(size);
+      return new RandomAccessByteArrayObject(size);
     }
   }
 
   /**
-   * A factory that produces {@link RandomAccessMmapObject} instances backed by temp files..
+   * A factory that produces {@link com.google.archivepatcher.generator.RandomAccessMmapObject}
+   * instances backed by temp files..
    */
   // TODO: rethink the handling of these temp files. It's confusing and shouldn't
   // really be the responsibility of RandomAccessObject.
-  public static final class RandomAccessMmapObjectFactory implements RandomAccessObjectFactory {
+  final class RandomAccessMmapObjectFactory implements RandomAccessObjectFactory {
     private static final String FILE_NAME_PREFIX = "wavsprafof";
     private String mMode;
 
@@ -94,16 +93,17 @@ public interface RandomAccessObjectFactory {
     }
 
     /**
-     * Creates a temp file, and returns a {@link RandomAccessFile} wrapped in a
-     * {@link RandomAccessMmapObject} representing the new temp file. The temp file does not need to
-     * explicitly be managed (deleted) by the caller, as long as the caller ensures
-     * {@link RandomAccessObject#close()} is called when the object is no longer needed.
+     * Creates a temp file, and returns a {@link RandomAccessFile} wrapped in a {@link
+     * com.google.archivepatcher.generator.RandomAccessMmapObject} representing the new temp file.
+     * The temp file does not need to explicitly be managed (deleted) by the caller, as long as the
+     * caller ensures {@link com.google.archivepatcher.generator.RandomAccessObject#close()} is
+     * called when the object is no longer needed.
      */
     // TODO: rethink the handling of these temp files. It's confusing and shouldn't
     // really be the responsibility of RandomAccessObject.
     @Override
     public RandomAccessObject create(int size) throws IOException {
-      return new RandomAccessObject.RandomAccessMmapObject(FILE_NAME_PREFIX, mMode, size);
+      return new RandomAccessMmapObject(FILE_NAME_PREFIX, mMode, size);
     }
   }
 }

@@ -17,6 +17,8 @@ package com.google.archivepatcher.generator.bsdiff;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.archivepatcher.generator.RandomAccessByteArrayObject;
+import com.google.archivepatcher.generator.RandomAccessObject;
 import java.util.Random;
 import org.junit.Test;
 
@@ -41,7 +43,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   private void checkSuffixSort(int[] expectedSuffixArray, byte[] inputBytes) throws Exception {
-    RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(inputBytes);
+    RandomAccessObject input = new RandomAccessByteArrayObject(inputBytes);
     RandomAccessObject groupArray = getSuffixSorter().suffixSort(input);
 
     assertSorted(groupArray, input);
@@ -83,13 +85,12 @@ public abstract class SuffixSorterTestBase {
   private static RandomAccessObject generateRandom(Random rand, int length) {
     byte[] bytes = new byte[length];
     rand.nextBytes(bytes);
-    return new RandomAccessObject.RandomAccessByteArrayObject(bytes);
+    return new RandomAccessByteArrayObject(bytes);
   }
 
   protected static RandomAccessObject intArrayToRandomAccessObject(final int[] array)
       throws Exception {
-    RandomAccessObject ret =
-        new RandomAccessObject.RandomAccessByteArrayObject(new byte[array.length * 4]);
+    RandomAccessObject ret = new RandomAccessByteArrayObject(new byte[array.length * 4]);
     ret.seekToIntAligned(0);
 
     for (int element : array) {

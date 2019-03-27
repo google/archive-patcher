@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.RandomAccessByteArrayObject;
+import com.google.archivepatcher.generator.RandomAccessObject;
 import java.nio.charset.Charset;
 
 class BsDiffTestData {
@@ -188,9 +190,9 @@ class BsDiffTestData {
       LONGER_DATA_349_S.getBytes(Charset.forName("US-ASCII"));
 
   public static final RandomAccessObject LONG_DATA_99_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONG_DATA_99);
+      new RandomAccessByteArrayObject(LONG_DATA_99);
   public static final RandomAccessObject LONGER_DATA_349_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONGER_DATA_349);
+      new RandomAccessByteArrayObject(LONGER_DATA_349);
 
   public static final int[] QUICK_SUFFIX_SORT_INIT_TEST_GA_CONTROL =
       new int[] {
@@ -304,7 +306,7 @@ class BsDiffTestData {
       LONGER_DATA_354_NEW_S.getBytes(Charset.forName("US-ASCII"));
 
   public static final RandomAccessObject LONG_DATA_104_NEW_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONG_DATA_104_NEW);
+      new RandomAccessByteArrayObject(LONG_DATA_104_NEW);
   public static final RandomAccessObject LONGER_DATA_354_NEW_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONGER_DATA_354_NEW);
+      new RandomAccessByteArrayObject(LONGER_DATA_354_NEW);
 }

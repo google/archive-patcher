@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.generator.bsdiff;
+package com.google.archivepatcher.generator;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -38,7 +38,7 @@ public class RandomAccessObjectTest {
   public void fileLengthTest() throws IOException {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
+    try (RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "r")) {
       assertThat(obj.length()).isEqualTo(13);
     } finally {
       tmpFile.delete();
@@ -47,7 +47,7 @@ public class RandomAccessObjectTest {
 
   @Test
   public void byteArrayLengthTest() throws IOException {
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(BLOB)) {
+    try (RandomAccessObject obj = new RandomAccessByteArrayObject(BLOB)) {
       assertThat(obj.length()).isEqualTo(13);
     }
   }
@@ -57,7 +57,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
+        new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
       assertThat(obj.length()).isEqualTo(13);
     } finally {
       tmpFile.delete();
@@ -68,7 +68,7 @@ public class RandomAccessObjectTest {
   public void fileReadByteTest() throws IOException {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
+    try (RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "r")) {
       for (int x = 0; x < BLOB.length; x++) {
         assertThat(obj.readByte()).isEqualTo(x + 1);
       }
@@ -87,7 +87,7 @@ public class RandomAccessObjectTest {
   public void byteArrayReadByteTest() throws IOException {
     // Mix positives and negatives to test sign preservation in readByte()
     byte[] bytes = new byte[] {-128, -127, -126, -1, 0, 1, 125, 126, 127};
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(bytes)) {
+    try (RandomAccessObject obj = new RandomAccessByteArrayObject(bytes)) {
       for (int x = 0; x < bytes.length; x++) {
         assertThat(obj.readByte()).isEqualTo(bytes[x]);
       }
@@ -105,7 +105,7 @@ public class RandomAccessObjectTest {
     // Test values above 127 to test unsigned-ness of readUnsignedByte()
     int[] ints = new int[] {255, 254, 253};
     byte[] bytes = new byte[] {(byte) 0xff, (byte) 0xfe, (byte) 0xfd};
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(bytes)) {
+    try (RandomAccessObject obj = new RandomAccessByteArrayObject(bytes)) {
       for (int x = 0; x < bytes.length; x++) {
         assertThat(obj.readUnsignedByte()).isEqualTo(ints[x]);
       }
@@ -123,7 +123,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
+        new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {
       for (int x = 0; x < BLOB.length; x++) {
         assertThat(obj.readByte()).isEqualTo(x + 1);
       }
@@ -142,7 +142,7 @@ public class RandomAccessObjectTest {
   public void fileWriteByteTest() throws IOException {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
+    try (RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "rw")) {
       for (int x = 0; x < BLOB.length; x++) {
         obj.writeByte((byte) (5 - x));
       }
@@ -176,7 +176,7 @@ public class RandomAccessObjectTest {
   public void fileWriteByteToEmptyFileTest() throws IOException {
     File tmpFile = File.createTempFile("RandomAccessObjectTest", "temp");
 
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
+    try (RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "rw")) {
       for (int x = 0; x < BLOB.length; x++) {
         obj.writeByte((byte) (5 - x));
       }
@@ -195,8 +195,7 @@ public class RandomAccessObjectTest {
   @Test
   public void byteArrayWriteByteTest() throws IOException {
     final int len = 13;
-    try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessByteArrayObject(new byte[len])) {
+    try (RandomAccessObject obj = new RandomAccessByteArrayObject(new byte[len])) {
       for (int x = 0; x < len; x++) {
         obj.writeByte((byte) (5 - x));
       }
@@ -226,7 +225,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
+        new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
       for (int x = 0; x < BLOB.length; x++) {
         obj.writeByte((byte) (5 - x));
       }
@@ -260,7 +259,7 @@ public class RandomAccessObjectTest {
     File tmpFile = File.createTempFile("RandomAccessObjectTest", "temp");
 
     try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
+        new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
       for (int x = 0; x < BLOB.length; x++) {
         try {
           // Writing a byte past the end of an mmap is not ok.
@@ -295,7 +294,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw");
+      RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "rw");
       seekTest(obj);
 
       try {
@@ -315,7 +314,7 @@ public class RandomAccessObjectTest {
   public void byteArraySeekTest() throws IOException {
     byte[] data = new byte[BLOB.length];
     System.arraycopy(BLOB, 0, data, 0, BLOB.length);
-    RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(data);
+    RandomAccessObject obj = new RandomAccessByteArrayObject(data);
     seekTest(obj);
 
     try {
@@ -341,7 +340,7 @@ public class RandomAccessObjectTest {
 
     try {
       RandomAccessObject obj =
-          new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw");
+          new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw");
       seekTest(obj);
 
       try {
@@ -369,7 +368,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r");
+      RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "r");
       readIntTest(obj);
       try {
         obj.readInt();
@@ -383,7 +382,7 @@ public class RandomAccessObjectTest {
 
   @Test
   public void byteArrayReadIntTest() throws IOException {
-    RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(BLOB);
+    RandomAccessObject obj = new RandomAccessByteArrayObject(BLOB);
     readIntTest(obj);
     try {
       obj.readInt();
@@ -397,8 +396,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj =
-          new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r");
+      RandomAccessObject obj = new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r");
       readIntTest(obj);
 
       try {
@@ -415,7 +413,7 @@ public class RandomAccessObjectTest {
   public void fileWriteIntTest() throws IOException {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
-    try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
+    try (RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "rw")) {
       for (int x = 0; x < BLOB.length / 4; x++) {
         obj.writeInt(500 + x);
       }
@@ -432,8 +430,7 @@ public class RandomAccessObjectTest {
   @Test
   public void byteArrayWriteIntTest() throws IOException {
     final int len = 13;
-    try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessByteArrayObject(new byte[len])) {
+    try (RandomAccessObject obj = new RandomAccessByteArrayObject(new byte[len])) {
       for (int x = 0; x < len / 4; x++) {
         obj.writeInt(500 + x);
       }
@@ -450,7 +447,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
-        new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
+        new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw")) {
       for (int x = 0; x < BLOB.length / 4; x++) {
         obj.writeInt(500 + x);
       }
@@ -469,7 +466,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw");
+      RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "rw");
       seekToIntAlignedTest(obj);
     } finally {
       tmpFile.delete();
@@ -480,7 +477,7 @@ public class RandomAccessObjectTest {
   public void byteArraySeekToIntAlignedTest() throws IOException {
     byte[] data = new byte[BLOB.length];
     System.arraycopy(BLOB, 0, data, 0, BLOB.length);
-    RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(data);
+    RandomAccessObject obj = new RandomAccessByteArrayObject(data);
     seekToIntAlignedTest(obj);
   }
 
@@ -490,7 +487,7 @@ public class RandomAccessObjectTest {
 
     try {
       RandomAccessObject obj =
-          new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw");
+          new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "rw"), "rw");
       seekToIntAlignedTest(obj);
     } finally {
       tmpFile.delete();
@@ -502,7 +499,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r", true);
+      RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "r", true);
       obj.close();
       assertThat(tmpFile.exists()).isFalse();
       tmpFile = null;
@@ -515,7 +512,7 @@ public class RandomAccessObjectTest {
     tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r");
+      RandomAccessObject obj = new RandomAccessFileObject(tmpFile, "r");
       obj.close();
       assertThat(tmpFile.exists()).isTrue();
     } finally {
@@ -528,7 +525,7 @@ public class RandomAccessObjectTest {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
-      try (RandomAccessObject obj = new RandomAccessObject.RandomAccessMmapObject(tmpFile, "r")) {}
+      try (RandomAccessObject obj = new RandomAccessMmapObject(tmpFile, "r")) {}
       assertThat(tmpFile.exists()).isFalse();
       tmpFile = null;
     } finally {
@@ -541,7 +538,7 @@ public class RandomAccessObjectTest {
 
     try {
       try (RandomAccessObject obj =
-          new RandomAccessObject.RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {}
+          new RandomAccessMmapObject(new RandomAccessFile(tmpFile, "r"), "r")) {}
       assertThat(tmpFile.exists()).isTrue();
     } finally {
       tmpFile.delete();

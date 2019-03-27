@@ -16,7 +16,9 @@ package com.google.archivepatcher.generator.bsdiff;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.archivepatcher.generator.bsdiff.Matcher.NextMatch;
+import com.google.archivepatcher.generator.RandomAccessByteArrayObject;
+import com.google.archivepatcher.generator.RandomAccessObject;
+import com.google.archivepatcher.generator.RandomAccessObjectFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,8 +43,8 @@ public class BsDiffTest {
             + "then ends didlyiefferently";
     byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    RandomAccessObject s1ro = new RandomAccessByteArrayObject(s1b);
+    RandomAccessObject s2ro = new RandomAccessByteArrayObject(s2b);
 
     assertThat(BsDiff.lengthOfMatch(s1ro, 0, s2ro, 0)).isEqualTo(36);
     assertThat(BsDiff.lengthOfMatch(s1ro, 5, s2ro, 0)).isEqualTo(0);
@@ -59,8 +61,8 @@ public class BsDiffTest {
     final String s2 = "hkjl.9999.00vbn,``'=-this should match.9900-mmmnmn,,,.x??'";
     final byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     final byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    final RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    final RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    final RandomAccessObject s1ro = new RandomAccessByteArrayObject(s1b);
+    final RandomAccessObject s2ro = new RandomAccessByteArrayObject(s2b);
     final RandomAccessObject groupArrayRO =
         intArrayToRandomAccessObject(BsDiffTestData.SHORT_GROUP_ARRAY);
 
@@ -148,8 +150,8 @@ public class BsDiffTest {
     final String s2 = "hkjl.9999.00vbn,``'=-this should match.9900-mmmnmn,,,.x??'";
     final byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     final byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    final RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    final RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    final RandomAccessObject s1ro = new RandomAccessByteArrayObject(s1b);
+    final RandomAccessObject s2ro = new RandomAccessByteArrayObject(s2b);
     final RandomAccessObject groupArrayRO =
         intArrayToRandomAccessObject(BsDiffTestData.SHORT_GROUP_ARRAY);
 
@@ -212,7 +214,7 @@ public class BsDiffTest {
     for (String testCase : testCases) {
       int size = testCase.length();
       byte[] bytes = testCase.getBytes(StandardCharsets.US_ASCII);
-      RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(bytes);
+      RandomAccessObject input = new RandomAccessByteArrayObject(bytes);
       RandomAccessObject suffixArray =
           new DivSuffixSorter(new RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory())
               .suffixSort(input);
@@ -223,7 +225,7 @@ public class BsDiffTest {
           byte[] query = Arrays.copyOfRange(bytes, lo, hi);
           int querySize = query.length;
           assertThat(hi - lo).isEqualTo(querySize);
-          RandomAccessObject queryBuf = new RandomAccessObject.RandomAccessByteArrayObject(query);
+          RandomAccessObject queryBuf = new RandomAccessByteArrayObject(query);
 
           BsDiff.Match match = BsDiff.searchForMatch(suffixArray, input, queryBuf, 0, 0, size);
 
@@ -383,8 +385,7 @@ public class BsDiffTest {
   }
 
   private RandomAccessObject intArrayToRandomAccessObject(final int[] array) throws IOException {
-    RandomAccessObject ret =
-        new RandomAccessObject.RandomAccessByteArrayObject(new byte[array.length * 4]);
+    RandomAccessObject ret = new RandomAccessByteArrayObject(new byte[array.length * 4]);
     ret.seekToIntAligned(0);
 
     for (int element : array) {
@@ -501,8 +502,8 @@ public class BsDiffTest {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     byte[] oldBytes = oldData.getBytes(Charset.forName("US-ASCII"));
     byte[] newBytes = newData.getBytes(Charset.forName("US-ASCII"));
-    RandomAccessObject oldBytesRo = new RandomAccessObject.RandomAccessByteArrayObject(oldBytes);
-    RandomAccessObject newBytesRo = new RandomAccessObject.RandomAccessByteArrayObject(newBytes);
+    RandomAccessObject oldBytesRo = new RandomAccessByteArrayObject(oldBytes);
+    RandomAccessObject newBytesRo = new RandomAccessByteArrayObject(newBytes);
     BsDiffPatchWriter.generatePatchWithMatcher(
         oldBytesRo, newBytesRo, new NaiveMatcher(oldBytes, newBytes), outputStream);
 
