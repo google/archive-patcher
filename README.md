@@ -381,7 +381,7 @@ The File-by-File v1 patching process dramatically improves the spatial efficienc
 # Acknowledgements
 Major software contributions, in alphabetical order:
 
-* Andrew Hayden - design, implementation, documentation
+* [Andrew Hayden](mailto:andrew.hayden@gmail.com) - design, implementation, documentation
 * Anthony Morris - code reviews, cleanups, div suffix sort port, and invaluable suggestions
 * Glenn Hartmann - code reviews, initial bsdiff port and quick suffix sort port, bsdiff cleanups
 
