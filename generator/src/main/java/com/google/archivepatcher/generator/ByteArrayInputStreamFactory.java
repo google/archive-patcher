@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.shared;
+package com.google.archivepatcher.generator;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

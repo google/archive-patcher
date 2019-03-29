@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.shared;
+package com.google.archivepatcher.generator;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,9 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-/**
- * Tests for {@link RandomAccessFileInputStreamFactory}.
- */
+/** Tests for {@link com.google.archivepatcher.generator.RandomAccessFileInputStreamFactory}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class RandomAccessFileInputStreamFactoryTest {

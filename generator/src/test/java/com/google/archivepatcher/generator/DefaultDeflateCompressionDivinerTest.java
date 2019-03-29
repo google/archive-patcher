@@ -17,7 +17,6 @@ package com.google.archivepatcher.generator;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
-import com.google.archivepatcher.shared.ByteArrayInputStreamFactory;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.DeflateCompressor;
 import com.google.archivepatcher.shared.JreDeflateParameters;

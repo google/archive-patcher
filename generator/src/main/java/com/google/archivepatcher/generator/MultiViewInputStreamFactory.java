@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.archivepatcher.shared;
+package com.google.archivepatcher.generator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,5 +30,5 @@ public interface MultiViewInputStreamFactory {
    * @return the stream
    * @throws IOException if something goes wrong
    */
-  public InputStream newStream() throws IOException;
+  InputStream newStream() throws IOException;
 }

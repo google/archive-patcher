@@ -14,11 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
-import com.google.archivepatcher.shared.ByteArrayInputStreamFactory;
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
-import com.google.archivepatcher.shared.MultiViewInputStreamFactory;
-import com.google.archivepatcher.shared.RandomAccessFileInputStreamFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
