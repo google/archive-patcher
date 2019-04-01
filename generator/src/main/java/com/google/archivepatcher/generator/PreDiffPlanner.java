@@ -32,9 +32,10 @@ import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +48,7 @@ import java.util.Set;
  * Plans archive transformations to be made prior to differencing.
  */
 class PreDiffPlanner {
+
   /**
    * The old archive.
    */
@@ -357,26 +359,22 @@ class PreDiffPlanner {
       // Length is not the same, so content cannot match.
       return false;
     }
-    byte[] buffer = new byte[4096];
-    int numRead = 0;
-    try (RandomAccessFileInputStream newRafis =
-            new RandomAccessFileInputStream(
-                newFile, newEntry.getFileOffsetOfCompressedData(), newEntry.getCompressedSize());
-        MatchingOutputStream matcher =
-            new MatchingOutputStream(
-                new RandomAccessFileInputStream(
-                    oldFile,
-                    oldEntry.getFileOffsetOfCompressedData(),
-                    oldEntry.getCompressedSize()),
-                4096)) {
-      while ((numRead = newRafis.read(buffer)) >= 0) {
-        try {
-          matcher.write(buffer, 0, numRead);
-        } catch (MismatchException mismatched) {
+    try (FileInputStream oldFileInputStream = new FileInputStream(oldFile);
+        BufferedInputStream oldFileBufferedInputStream =
+            new BufferedInputStream(oldFileInputStream);
+        FileInputStream newFileInputStream = new FileInputStream(newFile);
+        BufferedInputStream newFileBufferedInputStream =
+            new BufferedInputStream(newFileInputStream)) {
+      oldFileBufferedInputStream.skip(oldEntry.getFileOffsetOfCompressedData());
+      newFileBufferedInputStream.skip(newEntry.getFileOffsetOfCompressedData());
+
+      for (int i = 0; i < oldEntry.getCompressedSize(); ++i) {
+        if (oldFileBufferedInputStream.read() != newFileBufferedInputStream.read()) {
           return false;
         }
       }
     }
+
     return true;
   }
 }
