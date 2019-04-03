@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 Google LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,10 @@
 
 package com.google.archivepatcher.generator.similarity;
 
+import com.google.archivepatcher.generator.MinimalZipEntry;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
-
-import com.google.archivepatcher.generator.MinimalZipEntry;
 
 /**
  * A class that analyzes an archive to find files similar to a specified file.

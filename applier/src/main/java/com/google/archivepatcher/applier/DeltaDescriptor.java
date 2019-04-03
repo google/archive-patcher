@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 Google LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
-
 import com.google.archivepatcher.shared.TypedRange;
 
 /**

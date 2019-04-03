@@ -1,4 +1,4 @@
-// Copyright 2016 Google Inc. All rights reserved.
+// Copyright 2016 Google LLC. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package com.google.archivepatcher.applier.bsdiff;
 
 import com.google.archivepatcher.applier.DeltaApplier;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
