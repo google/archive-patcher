@@ -46,6 +46,11 @@ public abstract class ByteSource implements Closeable {
     return new SlicedByteSource(this, offset, length);
   }
 
+  public ByteSource slice(long offset) throws IOException {
+    long length = Math.max(length() - offset, 0);
+    return new SlicedByteSource(this, offset, length);
+  }
+
   /** Returns an {@link InputStream} for reading from this {@link ByteSource}. */
   public InputStream openStream() throws IOException {
     return openStream(0, length());
