@@ -47,4 +47,9 @@ public class ByteArrayByteSource extends ByteSource {
   public void close() throws IOException {
     // Nothing needs to be done.
   }
+
+  @Override
+  public ByteSource copy() throws IOException {
+    return this;
+  }
 }

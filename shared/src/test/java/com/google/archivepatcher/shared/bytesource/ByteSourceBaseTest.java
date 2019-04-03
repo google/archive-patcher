@@ -125,6 +125,31 @@ public abstract class ByteSourceBaseTest {
     openStream_noMultipleStreams(slice);
   }
 
+  @Test
+  public void copy() throws Exception {
+    ByteSource original = byteSource;
+    ByteSource copy = byteSource.copy();
+
+    // Test that copy satisfies the same conditions.
+    runAllTessExceptCopy(copy, expectedData);
+
+    // Test that the original is unaffected when copy is open.
+    runAllTessExceptCopy(original, expectedData);
+
+    // Test that the original is unaffected when copy is closed.
+    copy.close();
+    runAllTessExceptCopy(original, expectedData);
+  }
+
+  private void runAllTessExceptCopy(ByteSource byteSource, byte[] expectedData) throws Exception {
+    length(byteSource, expectedData);
+    supportsMultipleStreams(byteSource);
+    openStream(byteSource, expectedData);
+    openStream_multipleStreams(byteSource);
+    openStream_noMultipleStreams(byteSource);
+    slice(byteSource, expectedData);
+  }
+
   private void testInputStreamData(InputStream in, byte[] expectedData) throws Exception {
     assertThat(in.available()).isEqualTo(expectedData.length);
     assertThat(in.read()).isEqualTo(expectedData[0]);

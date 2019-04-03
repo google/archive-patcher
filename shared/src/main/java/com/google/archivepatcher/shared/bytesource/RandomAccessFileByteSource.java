@@ -25,10 +25,12 @@ import java.io.InputStream;
  */
 public class RandomAccessFileByteSource extends ByteSource {
 
+  private final File file;
   private final RandomAccessFileInputStream rafis;
   private int openStreams = 0;
 
   public RandomAccessFileByteSource(File file) throws IOException {
+    this.file = file;
     this.rafis = new RandomAccessFileInputStream(file);
   }
 
@@ -51,6 +53,11 @@ public class RandomAccessFileByteSource extends ByteSource {
     rafis.setRange(offset, length);
     ++openStreams;
     return new ShadowInputStream(rafis, /* closeCallback= */ () -> --openStreams);
+  }
+
+  @Override
+  public ByteSource copy() throws IOException {
+    return new RandomAccessFileByteSource(file);
   }
 
   @Override

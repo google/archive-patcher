@@ -58,6 +58,11 @@ class SlicedByteSource extends ByteSource {
   }
 
   @Override
+  public ByteSource copy() throws IOException {
+    return new SlicedByteSource(byteSource.copy(), startOfSlice, endOfSlice - startOfSlice);
+  }
+
+  @Override
   public long length() {
     return endOfSlice - startOfSlice;
   }

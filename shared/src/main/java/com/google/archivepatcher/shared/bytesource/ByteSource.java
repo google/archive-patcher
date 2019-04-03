@@ -34,6 +34,9 @@ public abstract class ByteSource implements Closeable {
    */
   public abstract boolean supportsMultipleStreams();
 
+  /** Returns a copy of the current {@link ByteSource}. */
+  public abstract ByteSource copy() throws IOException;
+
   /**
    * Returns a slice of this {@link ByteSource} starting at byte {@code offset} with the given
    * {@code length}.
