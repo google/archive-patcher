@@ -47,7 +47,7 @@ class SlicedByteSource extends ByteSource {
   }
 
   @Override
-  public ByteSource slice(long offset, long length) throws IOException {
+  public ByteSource slice(long offset, long length) {
     // Here we create a fresh instance of SlicedByteSource instead of creating a chain of
     // SlidedByteSource (the case where we leave this method unimplemented for easier reasoning and
     // less memory usage (unused slices can be GC-ed faster).
@@ -58,18 +58,8 @@ class SlicedByteSource extends ByteSource {
   }
 
   @Override
-  public ByteSource copy() throws IOException {
-    return new SlicedByteSource(byteSource.copy(), startOfSlice, endOfSlice - startOfSlice);
-  }
-
-  @Override
   public long length() {
     return endOfSlice - startOfSlice;
-  }
-
-  @Override
-  public boolean supportsMultipleStreams() {
-    return byteSource.supportsMultipleStreams();
   }
 
   /**

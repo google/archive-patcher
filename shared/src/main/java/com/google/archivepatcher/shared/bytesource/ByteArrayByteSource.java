@@ -34,11 +34,6 @@ public class ByteArrayByteSource extends ByteSource {
   }
 
   @Override
-  public boolean supportsMultipleStreams() {
-    return true;
-  }
-
-  @Override
   protected InputStream openStream(long offset, long length) throws IOException {
     return new ByteArrayInputStream(buffer, (int) offset, (int) length);
   }
@@ -48,8 +43,4 @@ public class ByteArrayByteSource extends ByteSource {
     // Nothing needs to be done.
   }
 
-  @Override
-  public ByteSource copy() throws IOException {
-    return this;
-  }
 }

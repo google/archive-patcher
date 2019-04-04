@@ -14,10 +14,15 @@
 
 package com.google.archivepatcher.shared.bytesource;
 
+import com.google.archivepatcher.shared.Closeables;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 
 /**
  * A {@link ByteSource} backed by a {@link RandomAccessFileInputStream}. This implementation is
@@ -26,43 +31,41 @@ import java.io.InputStream;
 public class RandomAccessFileByteSource extends ByteSource {
 
   private final File file;
-  private final RandomAccessFileInputStream rafis;
-  private int openStreams = 0;
+  private final long length;
+  private final Queue<RandomAccessFileInputStream> unusedInputStreams = new ArrayDeque<>();
+  private final List<RandomAccessFileInputStream> allInputStreams = new ArrayList<>();
 
   public RandomAccessFileByteSource(File file) throws IOException {
     this.file = file;
-    this.rafis = new RandomAccessFileInputStream(file);
+    this.length = file.length();
   }
 
   @Override
   public long length() {
-    return rafis.length();
-  }
-
-  @Override
-  public boolean supportsMultipleStreams() {
-    return false;
+    return length;
   }
 
   @Override
   protected InputStream openStream(long offset, long length) throws IOException {
-    if (openStreams > 0) {
-      throw new IllegalStateException("Existing open stream found. Cannot open another stream.");
-    }
-
+    RandomAccessFileInputStream rafis = getUnusedStream();
     rafis.setRange(offset, length);
-    ++openStreams;
-    return new ShadowInputStream(rafis, /* closeCallback= */ () -> --openStreams);
+    return new ShadowInputStream(rafis, () -> unusedInputStreams.add(rafis));
   }
 
-  @Override
-  public ByteSource copy() throws IOException {
-    return new RandomAccessFileByteSource(file);
+  private RandomAccessFileInputStream getUnusedStream() throws IOException {
+    RandomAccessFileInputStream rafis = unusedInputStreams.poll();
+    if (rafis == null) {
+      rafis = new RandomAccessFileInputStream(file);
+      allInputStreams.add(rafis);
+    }
+    return rafis;
   }
 
   @Override
   public void close() throws IOException {
-    rafis.close();
+    for (RandomAccessFileInputStream inputStream : allInputStreams) {
+      Closeables.closeQuietly(inputStream);
+    }
   }
 
   @Override

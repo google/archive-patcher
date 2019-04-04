@@ -25,34 +25,21 @@ public abstract class ByteSource implements Closeable {
   public abstract long length();
 
   /**
-   * Returns whether the current implementation of {@link ByteSource} supports opening multiple
-   * {@link InputStream}s before closing any of them.
-   *
-   * <p>If {@code false}, any attempt at calling {@link #openStream()} before another {@link
-   * InputStream}, from this {@link ByteSource} or any {@link ByteSource} sliced from this {@link
-   * ByteSource}, is closed will result in an {@link IllegalStateException}.
-   */
-  public abstract boolean supportsMultipleStreams();
-
-  /** Returns a copy of the current {@link ByteSource}. */
-  public abstract ByteSource copy() throws IOException;
-
-  /**
    * Returns a slice of this {@link ByteSource} starting at byte {@code offset} with the given
    * {@code length}.
    */
-  public ByteSource slice(long offset, long length) throws IOException {
+  public ByteSource slice(long offset, long length) {
     length = Math.min(length, length());
     return new SlicedByteSource(this, offset, length);
   }
 
-  public ByteSource slice(long offset) throws IOException {
+  public ByteSource sliceFrom(long offset) {
     long length = Math.max(length() - offset, 0);
     return new SlicedByteSource(this, offset, length);
   }
 
   /** Returns an {@link InputStream} for reading from this {@link ByteSource}. */
-  public InputStream openStream() throws IOException {
+  public synchronized InputStream openStream() throws IOException {
     return openStream(0, length());
   }
 

@@ -14,10 +14,7 @@
 
 package com.google.archivepatcher.shared.bytesource;
 
-import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 import java.io.InputStream;
 import org.junit.After;
@@ -25,14 +22,8 @@ import org.junit.Test;
 
 public abstract class ByteSourceBaseTest {
 
-  private final boolean expectedSupportsMultipleStreams;
-
   protected byte[] expectedData = null;
   protected ByteSource byteSource = null;
-
-  public ByteSourceBaseTest(boolean supportsMultipleStreams) {
-    this.expectedSupportsMultipleStreams = supportsMultipleStreams;
-  }
 
   @After
   public void tearDown() throws Exception {
@@ -51,15 +42,6 @@ public abstract class ByteSourceBaseTest {
   }
 
   @Test
-  public void supportsMultipleStreams() throws Exception {
-    supportsMultipleStreams(byteSource);
-  }
-
-  private void supportsMultipleStreams(ByteSource byteSource) throws Exception {
-    assertThat(byteSource.supportsMultipleStreams()).isEqualTo(expectedSupportsMultipleStreams);
-  }
-
-  @Test
   public void openStream() throws Exception {
     openStream(byteSource, expectedData);
   }
@@ -74,27 +56,11 @@ public abstract class ByteSourceBaseTest {
   }
 
   @Test
-  public void openStream_noMultipleStreams() throws Exception {
-    openStream_noMultipleStreams(byteSource);
-  }
-
-  private void openStream_noMultipleStreams(ByteSource byteSource) throws Exception {
-    // This test only targets byte sources that do not support multiple streams.
-    assumeFalse(byteSource.supportsMultipleStreams());
-
-    byteSource.openStream();
-    assertThrows(IllegalStateException.class, () -> byteSource.openStream());
-  }
-
-  @Test
   public void openStream_multipleStreams() throws Exception {
     openStream_multipleStreams(byteSource);
   }
 
   private void openStream_multipleStreams(ByteSource byteSource) throws Exception {
-    // This test only targets byte sources that do support multiple streams.
-    assumeTrue(byteSource.supportsMultipleStreams());
-
     InputStream in1 = byteSource.openStream();
     InputStream in2 = byteSource.openStream();
     assertThat(in1.available()).isEqualTo(in2.available());
@@ -119,35 +85,8 @@ public abstract class ByteSourceBaseTest {
 
     // Here we just rerun the other tests to check they run successfully on the new byte source.
     length(slice, newExpectedData);
-    supportsMultipleStreams(slice);
     openStream(slice, newExpectedData);
     openStream_multipleStreams(slice);
-    openStream_noMultipleStreams(slice);
-  }
-
-  @Test
-  public void copy() throws Exception {
-    ByteSource original = byteSource;
-    ByteSource copy = byteSource.copy();
-
-    // Test that copy satisfies the same conditions.
-    runAllTessExceptCopy(copy, expectedData);
-
-    // Test that the original is unaffected when copy is open.
-    runAllTessExceptCopy(original, expectedData);
-
-    // Test that the original is unaffected when copy is closed.
-    copy.close();
-    runAllTessExceptCopy(original, expectedData);
-  }
-
-  private void runAllTessExceptCopy(ByteSource byteSource, byte[] expectedData) throws Exception {
-    length(byteSource, expectedData);
-    supportsMultipleStreams(byteSource);
-    openStream(byteSource, expectedData);
-    openStream_multipleStreams(byteSource);
-    openStream_noMultipleStreams(byteSource);
-    slice(byteSource, expectedData);
   }
 
   private void testInputStreamData(InputStream in, byte[] expectedData) throws Exception {

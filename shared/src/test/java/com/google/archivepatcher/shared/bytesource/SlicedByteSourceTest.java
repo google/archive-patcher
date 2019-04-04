@@ -38,10 +38,6 @@ public class SlicedByteSourceTest extends ByteSourceBaseTest {
   private static File tempFile = null;
   private static byte[] testData;
 
-  public SlicedByteSourceTest() {
-    super(/* supportsMultipleStreams= */ false);
-  }
-
   @BeforeClass
   public static void staticSetUp() throws Exception {
     testData = getSampleTestData();

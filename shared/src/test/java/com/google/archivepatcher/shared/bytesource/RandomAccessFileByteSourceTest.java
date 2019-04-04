@@ -39,10 +39,6 @@ public class RandomAccessFileByteSourceTest extends ByteSourceBaseTest {
   private static File tempFile = null;
   private static byte[] testData;
 
-  public RandomAccessFileByteSourceTest() {
-    super(/* supportsMultipleStreams= */ false);
-  }
-
   @BeforeClass
   public static void staticSetUp() throws Exception {
     testData = getSampleTestData();
