@@ -25,10 +25,10 @@ import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -96,7 +96,7 @@ public class PatchExplainerTest {
    * A "delta generator" that always outputs the same exact string regardless of the inputs and
    * asserts that the input is exactly as expected.
    */
-  private static class FakeDeltaGenerator implements DeltaGenerator {
+  private static class FakeDeltaGenerator extends DeltaGenerator {
     static final String OUTPUT = "fakedeltagenerator output";
     private final byte[] expectedOld;
     private final byte[] expectedNew;
@@ -107,17 +107,18 @@ public class PatchExplainerTest {
     }
 
     @Override
-    public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+    public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
         throws IOException {
-      assertFileEquals(oldBlob, expectedOld);
-      assertFileEquals(newBlob, expectedNew);
+      assertByteSourceEquals(oldBlob, expectedOld);
+      assertByteSourceEquals(newBlob, expectedNew);
       deltaOut.write(OUTPUT.getBytes("US-ASCII"));
     }
 
-    private final void assertFileEquals(File file, byte[] expected) throws IOException {
-      byte[] actual = new byte[(int) file.length()];
-      try (FileInputStream fileIn = new FileInputStream(file);
-          DataInputStream dataIn = new DataInputStream(fileIn)) {
+    private final void assertByteSourceEquals(ByteSource byteSource, byte[] expected)
+        throws IOException {
+      byte[] actual = new byte[(int) byteSource.length()];
+      try (InputStream in = byteSource.openStream();
+          DataInputStream dataIn = new DataInputStream(in)) {
         dataIn.readFully(actual);
       }
       assertThat(actual).isEqualTo(expected);

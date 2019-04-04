@@ -14,9 +14,10 @@
 
 package com.google.archivepatcher.generator;
 
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -51,38 +52,44 @@ public class MinimalZipArchive {
    * @throws IOException if anything goes wrong while reading
    */
   public static List<MinimalZipEntry> listEntries(File file) throws IOException {
-    try (RandomAccessFileInputStream in = new RandomAccessFileInputStream(file)) {
-      return listEntriesInternal(in);
+    try (ByteSource byteSource = ByteSource.fromFile(file)) {
+      return listEntries(byteSource);
     }
   }
 
   /**
-   * Internal implementation of {@link #listEntries(File)}.
-   * @param in the input stream to read from
-   * @return see {@link #listEntries(File)}
+   * Generate a listing of all of the files in a zip archive in file order and return it. Each entry
+   * is a {@link MinimalZipEntry}, which has just enough information to generate a patch.
+   *
+   * @param data the zip file to read
+   * @return such a listing
    * @throws IOException if anything goes wrong while reading
    */
-  private static List<MinimalZipEntry> listEntriesInternal(RandomAccessFileInputStream in)
-      throws IOException {
+  public static List<MinimalZipEntry> listEntries(ByteSource data) throws IOException {
     // Step 1: Locate the end-of-central-directory record header.
-    long offsetOfEocd = MinimalZipParser.locateStartOfEocd(in, 32768);
+    long offsetOfEocd = MinimalZipParser.locateStartOfEocd(data, 32768);
     if (offsetOfEocd == -1) {
       // Archive is weird, abort.
       throw new ZipException("EOCD record not found in last 32k of archive, giving up");
     }
 
     // Step 2: Parse the end-of-central-directory data to locate the central directory itself
-    in.setRange(offsetOfEocd, in.length() - offsetOfEocd);
-    MinimalCentralDirectoryMetadata centralDirectoryMetadata = MinimalZipParser.parseEocd(in);
+    MinimalCentralDirectoryMetadata centralDirectoryMetadata;
+    try (InputStream inputStream = data.sliceFrom(offsetOfEocd).openStream()) {
+      centralDirectoryMetadata = MinimalZipParser.parseEocd(inputStream);
+    }
 
     // Step 3: Extract a list of all central directory entries (contiguous data stream)
-    in.setRange(
-        centralDirectoryMetadata.getOffsetOfCentralDirectory(),
-        centralDirectoryMetadata.getLengthOfCentralDirectory());
     List<MinimalZipEntry> minimalZipEntries =
-        new ArrayList<MinimalZipEntry>(centralDirectoryMetadata.getNumEntriesInCentralDirectory());
-    for (int x = 0; x < centralDirectoryMetadata.getNumEntriesInCentralDirectory(); x++) {
-      minimalZipEntries.add(MinimalZipParser.parseCentralDirectoryEntry(in));
+        new ArrayList<>(centralDirectoryMetadata.getNumEntriesInCentralDirectory());
+    try (InputStream inputStream =
+        data.slice(
+                centralDirectoryMetadata.getOffsetOfCentralDirectory(),
+                centralDirectoryMetadata.getLengthOfCentralDirectory())
+            .openStream()) {
+      for (int x = 0; x < centralDirectoryMetadata.getNumEntriesInCentralDirectory(); x++) {
+        minimalZipEntries.add(MinimalZipParser.parseCentralDirectoryEntry(inputStream));
+      }
     }
 
     // Step 4: Sort the entries in file order, not central directory order.
@@ -100,9 +107,12 @@ public class MinimalZipArchive {
         offsetOfNextEntry = centralDirectoryMetadata.getOffsetOfCentralDirectory();
       }
       long rangeLength = offsetOfNextEntry - entry.getFileOffsetOfLocalEntry();
-      in.setRange(entry.getFileOffsetOfLocalEntry(), rangeLength);
-      long relativeDataOffset = MinimalZipParser.parseLocalEntryAndGetCompressedDataOffset(in);
-      entry.setFileOffsetOfCompressedData(entry.getFileOffsetOfLocalEntry() + relativeDataOffset);
+      try (InputStream inputStream =
+          data.slice(entry.getFileOffsetOfLocalEntry(), rangeLength).openStream()) {
+        long relativeDataOffset =
+            MinimalZipParser.parseLocalEntryAndGetCompressedDataOffset(inputStream);
+        entry.setFileOffsetOfCompressedData(entry.getFileOffsetOfLocalEntry() + relativeDataOffset);
+      }
     }
 
     // Done!

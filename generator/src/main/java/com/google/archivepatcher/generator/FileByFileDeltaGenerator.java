@@ -18,6 +18,7 @@ import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_
 
 import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,7 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 /** Generates file-by-file patches. */
-public class FileByFileDeltaGenerator implements DeltaGenerator {
+public class FileByFileDeltaGenerator extends DeltaGenerator {
 
   /** Modifiers for planning and patch generation. */
   private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
@@ -84,14 +85,14 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    * OutputStream} or in a post-processing step, prior to transmitting the patch to the patch
    * applier.
    *
-   * @param oldFile the original old file to read (will not be modified)
-   * @param newFile the original new file to read (will not be modified)
+   * @param oldBlob the original old file to read (will not be modified)
+   * @param newBlob the original new file to read (will not be modified)
    * @param patchOut the stream to write the patch to
    * @throws IOException if unable to complete the operation due to an I/O error
    * @throws InterruptedException if any thread has interrupted the current thread
    */
   @Override
-  public void generateDelta(File oldFile, File newFile, OutputStream patchOut)
+  public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream patchOut)
       throws IOException, InterruptedException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
@@ -100,7 +101,7 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
       PreDiffPlan preDiffPlan =
           generatePreDiffPlan(
-              oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
+              oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
           deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);
@@ -124,15 +125,17 @@ public class FileByFileDeltaGenerator implements DeltaGenerator {
    */
   public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile) throws IOException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
+        TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
+        ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
       return generatePreDiffPlan(
-          oldFile, newFile, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
+          oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
     }
   }
 
   private PreDiffPlan generatePreDiffPlan(
-      File oldFile,
-      File newFile,
+      ByteSource oldFile,
+      ByteSource newFile,
       TempFileHolder deltaFriendlyOldFile,
       TempFileHolder deltaFriendlyNewFile,
       Set<DeltaFormat> supportedDeltaFormats)

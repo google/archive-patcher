@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.ZipException;
@@ -224,25 +224,26 @@ class MinimalZipParser {
     // The extra field length can be different here versus in the central directory and is used for
     // things like zipaligning APKs. This single value is the critical part as it dictates where the
     // actual DATA for the entry begins.
-    return 4 + junkLength + 2 + 2 + fileNameLength + extrasLength;
+    return 4L + junkLength + 2 + 2 + fileNameLength + extrasLength;
   }
 
   /**
    * Find the end-of-central-directory record by scanning backwards from the end of a file looking
    * for the signature of the record.
+   *
    * @param in the file to read from
    * @param searchBufferLength the length of the search buffer, starting from the end of the file
    * @return the offset in the file at which the first byte of the EOCD signature is located, or -1
-   * if the signature is not found in the search buffer
+   *     if the signature is not found in the search buffer
    * @throws IOException if there is a problem reading
    */
-  public static long locateStartOfEocd(RandomAccessFileInputStream in, int searchBufferLength)
-      throws IOException {
+  public static long locateStartOfEocd(ByteSource in, int searchBufferLength) throws IOException {
     final int maxBufferSize = (int) Math.min(searchBufferLength, in.length());
     final byte[] buffer = new byte[maxBufferSize];
     final long rangeStart = in.length() - buffer.length;
-    in.setRange(rangeStart, buffer.length);
-    readOrDie(in, buffer, 0, buffer.length);
+    try (InputStream inputStream = in.slice(rangeStart, buffer.length).openStream()) {
+      readOrDie(inputStream, buffer, 0, buffer.length);
+    }
     int offset = locateStartOfEocd(buffer);
     if (offset == -1) {
       return -1;

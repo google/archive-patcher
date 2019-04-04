@@ -81,18 +81,33 @@ public class RandomAccessFileInputStream extends InputStream {
    */
   public RandomAccessFileInputStream(File file, long rangeOffset, long rangeLength)
       throws IOException {
-    raf = getRandomAccessFile(file);
+    this(getRandomAccessFile(file), rangeOffset, rangeLength);
+  }
+
+  /**
+   * Constructs a new stream for the given file, which will be opened in read-only mode for random
+   * access within a specific range.
+   *
+   * @param file the file to read
+   * @param rangeOffset the offset at which the valid range starts
+   * @param rangeLength the number of bytes in the range
+   * @throws IOException if unable to open the file for read
+   */
+  public RandomAccessFileInputStream(RandomAccessFile file, long rangeOffset, long rangeLength)
+      throws IOException {
+    raf = file;
     fileLength = file.length();
     setRange(rangeOffset, rangeLength);
   }
 
   /**
    * Given a {@link File}, get a read-only {@link RandomAccessFile} reference for it.
+   *
    * @param file the file
    * @return as described
    * @throws IOException if unable to open the file
    */
-  protected RandomAccessFile getRandomAccessFile(File file) throws IOException {
+  protected static RandomAccessFile getRandomAccessFile(File file) throws IOException {
     return new RandomAccessFile(file, "r");
   }
 

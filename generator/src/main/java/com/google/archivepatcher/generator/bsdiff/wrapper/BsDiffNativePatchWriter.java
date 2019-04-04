@@ -14,12 +14,34 @@
 
 package com.google.archivepatcher.generator.bsdiff.wrapper;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 /** Generates BsDiff patches using the native implementation, by using JNI. */
 public class BsDiffNativePatchWriter {
+  /**
+   * Generate a diff between the old file and the new, writing to the specified stream. Uses the
+   * default match length of 8.
+   *
+   * @param oldFile the old file
+   * @param newFile the new file
+   * @param deltaOut where output should be written
+   * @throws IOException if unable to read or write data
+   */
+  public static void generatePatch(File oldFile, File newFile, OutputStream deltaOut)
+      throws IOException {
+    byte[] patch = nativeGeneratePatchFile(oldFile.getPath(), newFile.getPath());
+
+    if (patch == null) {
+      throw new IllegalStateException("Unable to generate patch.");
+    }
+
+    deltaOut.write(patch);
+  }
+
   /**
    * Generate a diff between the old data and the new, writing to the specified stream. Uses the
    * default match length of 8.
@@ -29,9 +51,17 @@ public class BsDiffNativePatchWriter {
    * @param deltaOut where output should be written
    * @throws IOException if unable to read or write data
    */
-  public static void generatePatch(File oldBlob, File newBlob, OutputStream deltaOut)
+  public static void generatePatch(ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
       throws IOException {
-    byte[] patch = nativeGeneratePatchFile(oldBlob.getPath(), newBlob.getPath());
+    byte[] oldData = new byte[(int) oldBlob.length()];
+    byte[] newData = new byte[(int) newBlob.length()];
+    try (InputStream in = oldBlob.openStream()) {
+      in.read(oldData);
+    }
+    try (InputStream in = newBlob.openStream()) {
+      in.read(newData);
+    }
+    byte[] patch = nativeGeneratePatchData(oldData, newData);
 
     if (patch == null) {
       throw new IllegalStateException("Unable to generate patch.");
