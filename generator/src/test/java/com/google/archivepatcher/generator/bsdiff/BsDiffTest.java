@@ -17,13 +17,17 @@ package com.google.archivepatcher.generator.bsdiff;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.generator.bsdiff.Matcher.NextMatch;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -41,8 +45,8 @@ public class BsDiffTest {
             + "then ends didlyiefferently";
     byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    ByteSource s1ro = ByteSource.wrap(s1b);
+    ByteSource s2ro = ByteSource.wrap(s2b);
 
     assertThat(BsDiff.lengthOfMatch(s1ro, 0, s2ro, 0)).isEqualTo(36);
     assertThat(BsDiff.lengthOfMatch(s1ro, 5, s2ro, 0)).isEqualTo(0);
@@ -59,8 +63,8 @@ public class BsDiffTest {
     final String s2 = "hkjl.9999.00vbn,``'=-this should match.9900-mmmnmn,,,.x??'";
     final byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     final byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    final RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    final RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    ByteSource s1ro = ByteSource.wrap(s1b);
+    ByteSource s2ro = ByteSource.wrap(s2b);
     final RandomAccessObject groupArrayRO =
         intArrayToRandomAccessObject(BsDiffTestData.SHORT_GROUP_ARRAY);
 
@@ -148,8 +152,8 @@ public class BsDiffTest {
     final String s2 = "hkjl.9999.00vbn,``'=-this should match.9900-mmmnmn,,,.x??'";
     final byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     final byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    final RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    final RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    ByteSource s1ro = ByteSource.wrap(s1b);
+    ByteSource s2ro = ByteSource.wrap(s2b);
     final RandomAccessObject groupArrayRO =
         intArrayToRandomAccessObject(BsDiffTestData.SHORT_GROUP_ARRAY);
 
@@ -212,7 +216,7 @@ public class BsDiffTest {
     for (String testCase : testCases) {
       int size = testCase.length();
       byte[] bytes = testCase.getBytes(StandardCharsets.US_ASCII);
-      RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(bytes);
+      ByteSource input = ByteSource.wrap(bytes);
       RandomAccessObject suffixArray =
           new DivSuffixSorter(new RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory())
               .suffixSort(input);
@@ -223,7 +227,7 @@ public class BsDiffTest {
           byte[] query = Arrays.copyOfRange(bytes, lo, hi);
           int querySize = query.length;
           assertThat(hi - lo).isEqualTo(querySize);
-          RandomAccessObject queryBuf = new RandomAccessObject.RandomAccessByteArrayObject(query);
+          ByteSource queryBuf = ByteSource.wrap(query);
 
           BsDiff.Match match = BsDiff.searchForMatch(suffixArray, input, queryBuf, 0, 0, size);
 
@@ -273,35 +277,34 @@ public class BsDiffTest {
       // Test that all of the characters are diffed if two strings are identical even if there
       // is no "valid match" because the strings are too short.
       CtrlEntry[] expectedCtrlEntries = {new CtrlEntry(2, 0, 0)};
-      assertThat(generatePatchAndCheckCtrlEntries("aa", "aa", expectedCtrlEntries)).isTrue();
+      generatePatchAndCheckCtrlEntries("aa", "aa", expectedCtrlEntries);
     }
 
     {
       // Test that all of the characters are diffed if two strings are identical and are long
       // enough to be considered a "valid match".
       CtrlEntry[] expectedCtrlEntries = {new CtrlEntry(0, 0, 0), new CtrlEntry(3, 0, 0)};
-      assertThat(generatePatchAndCheckCtrlEntries("aaa", "aaa", expectedCtrlEntries)).isTrue();
+      generatePatchAndCheckCtrlEntries("aaa", "aaa", expectedCtrlEntries);
     }
 
     {
       // Test that none of the characters are diffed if the strings do not match.
       CtrlEntry[] expectedCtrlEntries = {new CtrlEntry(0, 2, 0)};
-      assertThat(generatePatchAndCheckCtrlEntries("aa", "bb", expectedCtrlEntries)).isTrue();
+      generatePatchAndCheckCtrlEntries("aa", "bb", expectedCtrlEntries);
     }
 
     {
       // Test that characters are diffed if the beginning of the strings match even if the match
       // is not long enough to be considered valid.
       CtrlEntry[] expectedCtrlEntries = {new CtrlEntry(2, 6, 3), new CtrlEntry(3, 0, 0)};
-      assertThat(generatePatchAndCheckCtrlEntries("aazzzbbb", "aaayyyyybbb", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries("aazzzbbb", "aaayyyyybbb", expectedCtrlEntries);
     }
 
     {
       // Test that none of the characters are diffed if the beginning of the strings do not
       // match and the available match is not long enough to be considered valid.
       CtrlEntry[] expectedCtrlEntries = {new CtrlEntry(0, 3, 0)};
-      assertThat(generatePatchAndCheckCtrlEntries("zzzbb", "abb", expectedCtrlEntries)).isTrue();
+      generatePatchAndCheckCtrlEntries("zzzbb", "abb", expectedCtrlEntries);
     }
 
     {
@@ -312,10 +315,8 @@ public class BsDiffTest {
         new CtrlEntry(6, 3, 1), // 012345         | %^&
         new CtrlEntry(13, 0, 0) // abcdefghijklm  | n/a
       };
-      assertThat(
-              generatePatchAndCheckCtrlEntries(
-                  "@@012345@ab@de@ghijklm", "#012$45%^&abcdefghijklm", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries(
+          "@@012345@ab@de@ghijklm", "#012$45%^&abcdefghijklm", expectedCtrlEntries);
     }
 
     {
@@ -326,10 +327,8 @@ public class BsDiffTest {
         new CtrlEntry(6, 3, -21), // 012345         | %^&
         new CtrlEntry(13, 0, 0) // abcdefghijklm  | n/a
       };
-      assertThat(
-              generatePatchAndCheckCtrlEntries(
-                  "@ab@de@ghijklm@@012345", "#012$45%^&abcdefghijklm", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries(
+          "@ab@de@ghijklm@@012345", "#012$45%^&abcdefghijklm", expectedCtrlEntries);
     }
 
     {
@@ -340,12 +339,8 @@ public class BsDiffTest {
       CtrlEntry[] expectedCtrlEntries = {
         new CtrlEntry(0, 0, 5), new CtrlEntry(4, 0, 17), new CtrlEntry(13, 0, 0),
       };
-      assertThat(
-              generatePatchAndCheckCtrlEntries(
-                  "012345678901234567890nexus9nexus5nexus6",
-                  "567@9n1x3s56exus6",
-                  expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries(
+          "012345678901234567890nexus9nexus5nexus6", "567@9n1x3s56exus6", expectedCtrlEntries);
     }
 
     {
@@ -354,10 +349,7 @@ public class BsDiffTest {
       CtrlEntry[] expectedCtrlEntries = {
         new CtrlEntry(0, 8, 0), new CtrlEntry(3, 0, 3), new CtrlEntry(3, 0, 0),
       };
-      assertThat(
-              generatePatchAndCheckCtrlEntries(
-                  "aaazzzbbbbbbbb", "bb@bb@bbaaabbb", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries("aaazzzbbbbbbbb", "bb@bb@bbaaabbb", expectedCtrlEntries);
     }
 
     {
@@ -366,10 +358,7 @@ public class BsDiffTest {
       CtrlEntry[] expectedCtrlEntries = {
         new CtrlEntry(0, 0, 0), new CtrlEntry(3, 0, 11), new CtrlEntry(3, 8, 0),
       };
-      assertThat(
-              generatePatchAndCheckCtrlEntries(
-                  "aaaaaaaaaaazzzbbb", "aaabbbaa@aa@aa", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries("aaaaaaaaaaazzzbbb", "aaabbbaa@aa@aa", expectedCtrlEntries);
     }
 
     {
@@ -377,8 +366,7 @@ public class BsDiffTest {
       CtrlEntry[] expectedCtrlEntries = {
         new CtrlEntry(0, 0, 0), new CtrlEntry(9, 0, 0),
       };
-      assertThat(generatePatchAndCheckCtrlEntries("abcdefghi", "ab@def@hi", expectedCtrlEntries))
-          .isTrue();
+      generatePatchAndCheckCtrlEntries("abcdefghi", "ab@def@hi", expectedCtrlEntries);
     }
   }
 
@@ -474,14 +462,35 @@ public class BsDiffTest {
   }
 
   private static class CtrlEntry {
-    public int diffLength;
-    public int extraLength;
-    public int oldOffset;
+    public long diffLength;
+    public long extraLength;
+    public long oldOffset;
 
-    public CtrlEntry(int diffLength, int extraLength, int oldOffset) {
+    public CtrlEntry(long diffLength, long extraLength, long oldOffset) {
       this.diffLength = diffLength;
       this.extraLength = extraLength;
       this.oldOffset = oldOffset;
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "CtrlEntry(diffLength = %d, extraLength = %d, oldOffset = %d",
+          diffLength, extraLength, oldOffset);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (!(obj instanceof CtrlEntry)) {
+        return false;
+      }
+      CtrlEntry o = (CtrlEntry) obj;
+      return o.diffLength == diffLength && o.extraLength == extraLength && o.oldOffset == oldOffset;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(diffLength, extraLength, oldOffset);
     }
   }
 
@@ -490,38 +499,32 @@ public class BsDiffTest {
    * patch's control data matches |expected|. For the sake of simplicity, assumes that chars are
    * always 1 byte.
    *
-   * @param oldData
-   * @param newData
    * @param expected The expected control entries in the generated patch
-   * @return returns whether the actual control entries in the generated patch match the expected
-   *     ones
    */
-  private boolean generatePatchAndCheckCtrlEntries(
+  private void generatePatchAndCheckCtrlEntries(
       String oldData, String newData, CtrlEntry[] expected) throws Exception {
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     byte[] oldBytes = oldData.getBytes(Charset.forName("US-ASCII"));
     byte[] newBytes = newData.getBytes(Charset.forName("US-ASCII"));
-    RandomAccessObject oldBytesRo = new RandomAccessObject.RandomAccessByteArrayObject(oldBytes);
-    RandomAccessObject newBytesRo = new RandomAccessObject.RandomAccessByteArrayObject(newBytes);
+    ByteSource oldBytesRo = ByteSource.wrap(oldBytes);
+    ByteSource newBytesRo = ByteSource.wrap(newBytes);
     BsDiffPatchWriter.generatePatchWithMatcher(
         oldBytesRo, newBytesRo, new NaiveMatcher(oldBytes, newBytes), outputStream);
 
     ByteArrayInputStream patchInputStream = new ByteArrayInputStream(outputStream.toByteArray());
-    for (CtrlEntry element : expected) {
-      if (patchInputStream.available() < 24
-          || BsUtil.readFormattedLong(patchInputStream) != element.diffLength
-          || BsUtil.readFormattedLong(patchInputStream) != element.extraLength
-          || BsUtil.readFormattedLong(patchInputStream) != element.oldOffset) {
-        return false;
-      }
 
-      patchInputStream.skip(element.diffLength + element.extraLength);
+    List<CtrlEntry> actualEntries = new ArrayList<>();
+    while (patchInputStream.available() >= 24) {
+      long diffLength = BsUtil.readFormattedLong(patchInputStream);
+      long extraLength = BsUtil.readFormattedLong(patchInputStream);
+      long oldOffset = BsUtil.readFormattedLong(patchInputStream);
+      CtrlEntry entry = new CtrlEntry(diffLength, extraLength, oldOffset);
+      actualEntries.add(entry);
+      patchInputStream.skip(diffLength + extraLength);
     }
 
-    if (patchInputStream.available() > 0) {
-      return false;
-    }
+    assertThat(actualEntries).containsExactlyElementsIn(expected).inOrder();
 
-    return true;
+    assertThat(patchInputStream.available()).isEqualTo(0);
   }
 }

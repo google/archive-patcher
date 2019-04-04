@@ -20,6 +20,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -126,12 +127,16 @@ public class PreDiffExecutorTest {
     byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_6));
     File oldFile = store(bytes);
     File newFile = store(bytes);
-    PreDiffExecutor executor =
-        new PreDiffExecutor.Builder()
-            .readingOriginalFiles(oldFile, newFile)
-            .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
-            .build();
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan;
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      PreDiffExecutor executor =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldBlob, newBlob)
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
+              .build();
+      plan = executor.prepareForDiffing();
+    }
     assertThat(plan).isNotNull();
     // The plan should be to leave everything alone because there is no change.
     assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
@@ -149,12 +154,16 @@ public class PreDiffExecutorTest {
     File oldFile = store(oldBytes);
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_9));
     File newFile = store(newBytes);
-    PreDiffExecutor executor =
-        new PreDiffExecutor.Builder()
-            .readingOriginalFiles(oldFile, newFile)
-            .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
-            .build();
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan;
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      PreDiffExecutor executor =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldBlob, newBlob)
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
+              .build();
+      plan = executor.prepareForDiffing();
+    }
     assertThat(plan).isNotNull();
     // The plan should be to uncompress the data in both the old and new files.
     assertThat(plan.getOldFileUncompressionPlan()).hasSize(1);
@@ -219,13 +228,17 @@ public class PreDiffExecutorTest {
     byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_9));
     File newFile = store(newBytes);
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(1); // 1 byte limitation
-    PreDiffExecutor executor =
-        new PreDiffExecutor.Builder()
-            .readingOriginalFiles(oldFile, newFile)
-            .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
-            .addPreDiffPlanEntryModifier(limiter)
-            .build();
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan;
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      PreDiffExecutor executor =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldBlob, newBlob)
+              .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
+              .addPreDiffPlanEntryModifier(limiter)
+              .build();
+      plan = executor.prepareForDiffing();
+    }
     assertThat(plan).isNotNull();
     // The plan should be to leave everything alone because of the limiter
     assertThat(plan.getOldFileUncompressionPlan()).isEmpty();

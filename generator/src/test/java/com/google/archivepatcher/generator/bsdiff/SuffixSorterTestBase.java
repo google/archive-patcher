@@ -17,6 +17,8 @@ package com.google.archivepatcher.generator.bsdiff;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.fail;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
+import java.io.InputStream;
 import java.util.Random;
 import org.junit.Test;
 
@@ -41,7 +43,7 @@ public abstract class SuffixSorterTestBase {
   }
 
   private void checkSuffixSort(int[] expectedSuffixArray, byte[] inputBytes) throws Exception {
-    RandomAccessObject input = new RandomAccessObject.RandomAccessByteArrayObject(inputBytes);
+    ByteSource input = ByteSource.wrap(inputBytes);
     RandomAccessObject groupArray = getSuffixSorter().suffixSort(input);
 
     assertSorted(groupArray, input);
@@ -73,17 +75,17 @@ public abstract class SuffixSorterTestBase {
   public void testRandom() throws Exception {
     Random rand = new Random(1123458);
     for (int i = 1; i <= 10; i++) {
-      RandomAccessObject input = generateRandom(rand, i * 10000);
+      ByteSource input = generateRandom(rand, i * 10000);
       RandomAccessObject suffixArray = getSuffixSorter().suffixSort(input);
 
       assertSorted(suffixArray, input);
     }
   }
 
-  private static RandomAccessObject generateRandom(Random rand, int length) {
+  private static ByteSource generateRandom(Random rand, int length) {
     byte[] bytes = new byte[length];
     rand.nextBytes(bytes);
-    return new RandomAccessObject.RandomAccessByteArrayObject(bytes);
+    return ByteSource.wrap(bytes);
   }
 
   protected static RandomAccessObject intArrayToRandomAccessObject(final int[] array)
@@ -124,16 +126,20 @@ public abstract class SuffixSorterTestBase {
     return ret;
   }
 
-  private static boolean checkSuffixLessThanOrEqual(
-      RandomAccessObject input, int index1, int index2) throws Exception {
+  private static boolean checkSuffixLessThanOrEqual(ByteSource input, int index1, int index2)
+      throws Exception {
     while (true) {
       if (index1 == input.length()) {
         return true;
       }
-      input.seek(index1);
-      int unsignedByte1 = input.readUnsignedByte();
-      input.seek(index2);
-      int unsignedByte2 = input.readUnsignedByte();
+      int unsignedByte1;
+      try (InputStream in = input.sliceFrom(index1).openStream()) {
+        unsignedByte1 = in.read();
+      }
+      int unsignedByte2;
+      try (InputStream in = input.sliceFrom(index2).openStream()) {
+        unsignedByte2 = in.read();
+      }
       if (unsignedByte1 < unsignedByte2) {
         return true;
       }
@@ -145,7 +151,7 @@ public abstract class SuffixSorterTestBase {
     }
   }
 
-  private static void assertSorted(RandomAccessObject suffixArray, RandomAccessObject input)
+  private static void assertSorted(RandomAccessObject suffixArray, ByteSource input)
       throws Exception {
     for (int i = 0; i < input.length(); i++) {
       suffixArray.seekToIntAligned(i);

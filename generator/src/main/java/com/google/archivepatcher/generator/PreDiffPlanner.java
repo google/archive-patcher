@@ -33,10 +33,10 @@ import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.TypedRange;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -49,15 +49,11 @@ import java.util.Set;
  */
 class PreDiffPlanner {
 
-  /**
-   * The old archive.
-   */
-  private final File oldFile;
+  /** The old archive. */
+  private final ByteSource oldFile;
 
-  /**
-   * The new archive.
-   */
-  private final File newFile;
+  /** The new archive. */
+  private final ByteSource newFile;
 
   /**
    * The entries in the old archive, with paths as keys.
@@ -94,9 +90,9 @@ class PreDiffPlanner {
    *     PreDiffPlan} is generated in {@link #generatePreDiffPlan()}.
    */
   PreDiffPlanner(
-      File oldFile,
+      ByteSource oldFile,
       Map<ByteArrayHolder, MinimalZipEntry> oldArchiveZipEntriesByPath,
-      File newFile,
+      ByteSource newFile,
       Map<ByteArrayHolder, MinimalZipEntry> newArchiveZipEntriesByPath,
       Map<ByteArrayHolder, JreDeflateParameters> newArchiveJreDeflateParametersByPath,
       List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
@@ -359,14 +355,14 @@ class PreDiffPlanner {
       // Length is not the same, so content cannot match.
       return false;
     }
-    try (FileInputStream oldFileInputStream = new FileInputStream(oldFile);
+    try (InputStream oldFileInputStream =
+            oldFile.sliceFrom(oldEntry.getFileOffsetOfCompressedData()).openStream();
         BufferedInputStream oldFileBufferedInputStream =
             new BufferedInputStream(oldFileInputStream);
-        FileInputStream newFileInputStream = new FileInputStream(newFile);
+        InputStream newFileInputStream =
+            newFile.sliceFrom(newEntry.getFileOffsetOfCompressedData()).openStream();
         BufferedInputStream newFileBufferedInputStream =
             new BufferedInputStream(newFileInputStream)) {
-      oldFileBufferedInputStream.skip(oldEntry.getFileOffsetOfCompressedData());
-      newFileBufferedInputStream.skip(newEntry.getFileOffsetOfCompressedData());
 
       for (int i = 0; i < oldEntry.getCompressedSize(); ++i) {
         if (oldFileBufferedInputStream.read() != newFileBufferedInputStream.read()) {

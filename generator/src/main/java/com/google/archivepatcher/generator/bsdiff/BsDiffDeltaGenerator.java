@@ -18,15 +18,15 @@ import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_
 
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.bsdiff.wrapper.BsDiffNativePatchWriter;
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * An implementation of {@link DeltaGenerator} that uses {@link BsDiffPatchWriter} to write a
- * bsdiff patch that represents the delta between given inputs.
+ * An implementation of {@link DeltaGenerator} that uses {@link BsDiffPatchWriter} to write a bsdiff
+ * patch that represents the delta between given inputs.
  */
-public class BsDiffDeltaGenerator implements DeltaGenerator {
+public class BsDiffDeltaGenerator extends DeltaGenerator {
   /**
    * The minimum match length to use for bsdiff.
    */
@@ -44,7 +44,7 @@ public class BsDiffDeltaGenerator implements DeltaGenerator {
   }
 
   @Override
-  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+  public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
       throws IOException, InterruptedException {
     if (useNativeBsDiff) {
       BsDiffNativePatchWriter.generatePatch(oldBlob, newBlob, deltaOut);

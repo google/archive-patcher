@@ -14,10 +14,12 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.generator.bsdiff.RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 
 // TODO clean up the various generatePatch(...) methods, there are too many.
@@ -49,8 +51,8 @@ public class BsDiffPatchWriter {
    * @throws IOException if unable to read or write data
    */
   private static void writeEntry(
-      RandomAccessObject newData,
-      RandomAccessObject oldData,
+      ByteSource newData,
+      ByteSource oldData,
       int newPosition,
       int oldPosition,
       int diffLength,
@@ -63,23 +65,26 @@ public class BsDiffPatchWriter {
     BsUtil.writeFormattedLong(extraLength, outputStream);
     BsUtil.writeFormattedLong(oldPositionOffsetForNextEntry, outputStream);
 
-    newData.seek(newPosition);
-    oldData.seek(oldPosition);
-    // Write diff data
-    for (int i = 0; i < diffLength; ++i) {
-      // TODO: test using a small buffer to insulate read() calls (and write() for that
-      // matter).
-      outputStream.write(newData.readUnsignedByte() - oldData.readUnsignedByte());
+    try (InputStream oldDataInputStream = oldData.sliceFrom(oldPosition).openStream();
+        InputStream newDataInputStream = newData.sliceFrom(newPosition).openStream()) {
+      // Write diff data
+      for (int i = 0; i < diffLength; ++i) {
+        // TODO: test using a small buffer to insulate read() calls (and write() for that
+        // matter).
+        outputStream.write(newDataInputStream.read() - oldDataInputStream.read());
+      }
     }
 
     if (extraLength > 0) {
       // This seek will throw an IOException sometimes, if we try to seek to the byte after
       // the end of the RandomAccessObject.
-      newData.seek(newPosition + diffLength);
+      try (InputStream newDataInputStream =
+          newData.sliceFrom(newPosition + diffLength).openStream()) {
       // Write extra data
       for (int i = 0; i < extraLength; ++i) {
-        // TODO: same as above - test buffering readByte().
-        outputStream.write(newData.readByte());
+          // TODO: same as above - test buffering readByte().
+          outputStream.write(newDataInputStream.read());
+        }
       }
     }
   }
@@ -96,10 +101,7 @@ public class BsDiffPatchWriter {
    */
   // Visible for testing only
   static void generatePatchWithMatcher(
-      RandomAccessObject oldData,
-      RandomAccessObject newData,
-      Matcher matcher,
-      OutputStream outputStream)
+      ByteSource oldData, ByteSource newData, Matcher matcher, OutputStream outputStream)
       throws IOException, InterruptedException {
     // Compute the differences, writing ctrl as we go
     int lastNewPosition = 0;
@@ -127,12 +129,13 @@ public class BsDiffPatchWriter {
         int score = 0;
         int bestScore = 0;
         for (int i = 1; newPosition - i >= lastNewPosition && oldPosition >= i; ++i) {
-          oldData.seek(oldPosition - i);
-          newData.seek(newPosition - i);
-          if (oldData.readByte() == newData.readByte()) {
-            ++score;
-          } else {
-            --score;
+          try (InputStream oldDataInputStream = oldData.sliceFrom(oldPosition - i).openStream();
+              InputStream newDataInputStream = newData.sliceFrom(newPosition - i).openStream()) {
+            if (oldDataInputStream.read() == newDataInputStream.read()) {
+              ++score;
+            } else {
+              --score;
+            }
           }
 
           if (score > bestScore) {
@@ -149,19 +152,20 @@ public class BsDiffPatchWriter {
       {
         int score = 0;
         int bestScore = 0;
-        oldData.seek(lastOldPosition);
-        newData.seek(lastNewPosition);
-        for (int i = 0;
-            lastNewPosition + i < newPosition && lastOldPosition + i < oldData.length();
-            ++i) {
-          if (oldData.readByte() == newData.readByte()) {
-            ++score;
-          } else {
-            --score;
-          }
-          if (score > bestScore) {
-            bestScore = score;
-            forwardExtension = i + 1;
+        try (InputStream oldDataInputStream = oldData.sliceFrom(lastOldPosition).openStream();
+            InputStream newDataInputStream = newData.sliceFrom(lastNewPosition).openStream()) {
+          for (int i = 0;
+              lastNewPosition + i < newPosition && lastOldPosition + i < oldData.length();
+              ++i) {
+            if (oldDataInputStream.read() == newDataInputStream.read()) {
+              ++score;
+            } else {
+              --score;
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              forwardExtension = i + 1;
+            }
           }
         }
       }
@@ -174,16 +178,24 @@ public class BsDiffPatchWriter {
         int bestScore = 0;
         int backwardExtensionDecrement = 0;
         for (int i = 0; i < overlap; ++i) {
-          newData.seek(lastNewPosition + forwardExtension - overlap + i);
-          oldData.seek(lastOldPosition + forwardExtension - overlap + i);
-          if (newData.readByte() == oldData.readByte()) {
-            ++score;
+          try (InputStream oldDataInputStream =
+                  oldData.sliceFrom(lastOldPosition + forwardExtension - overlap + i).openStream();
+              InputStream newDataInputStream =
+                  newData
+                      .sliceFrom(lastNewPosition + forwardExtension - overlap + i)
+                      .openStream()) {
+            if (newDataInputStream.read() == oldDataInputStream.read()) {
+              ++score;
+            }
           }
 
-          newData.seek(newPosition - backwardExtension + i);
-          oldData.seek(oldPosition - backwardExtension + i);
-          if (newData.readByte() == oldData.readByte()) {
-            --score;
+          try (InputStream oldDataInputStream =
+                  oldData.sliceFrom(oldPosition - backwardExtension + i).openStream();
+              InputStream newDataInputStream =
+                  newData.sliceFrom(newPosition - backwardExtension + i).openStream()) {
+            if (newDataInputStream.read() == oldDataInputStream.read()) {
+              --score;
+            }
           }
           if (score > bestScore) {
             bestScore = score;
@@ -231,27 +243,6 @@ public class BsDiffPatchWriter {
   }
 
   /**
-   * Generate a diff between the old data and the new, writing to the specified stream. Uses {@link
-   * #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
-   *
-   * @param oldData the old data
-   * @param newData the new data
-   * @param outputStream where output should be written
-   * @param randomAccessObjectFactory factory to create auxiliary storage during BsDiff
-   * @throws IOException if unable to read or write data
-   * @throws InterruptedException if any thread interrupts this thread
-   */
-  public static void generatePatch(
-      final RandomAccessObject oldData,
-      final RandomAccessObject newData,
-      final OutputStream outputStream,
-      final RandomAccessObjectFactory randomAccessObjectFactory)
-      throws IOException, InterruptedException {
-    generatePatch(
-        oldData, newData, outputStream, randomAccessObjectFactory, DEFAULT_MINIMUM_MATCH_LENGTH);
-  }
-
-  /**
    * Generate a diff between the old data and the new, writing to the specified stream. Uses
    * in-memory byte array storage for ancillary allocations and {@link
    * #DEFAULT_MINIMUM_MATCH_LENGTH} as the match length.
@@ -287,15 +278,13 @@ public class BsDiffPatchWriter {
       final OutputStream outputStream,
       final int minimumMatchLength)
       throws IOException, InterruptedException {
-    try (RandomAccessObject oldDataRAO =
-            new RandomAccessObject.RandomAccessByteArrayObject(oldData);
-        RandomAccessObject newDataRAO =
-            new RandomAccessObject.RandomAccessByteArrayObject(newData); ) {
+    try (ByteSource oldByteSource = ByteSource.wrap(oldData);
+        ByteSource newByteSource = ByteSource.wrap(newData)) {
       generatePatch(
-          oldDataRAO,
-          newDataRAO,
+          oldByteSource,
+          newByteSource,
           outputStream,
-          new RandomAccessObjectFactory.RandomAccessByteArrayObjectFactory(),
+          new RandomAccessByteArrayObjectFactory(),
           minimumMatchLength);
     }
   }
@@ -305,16 +294,19 @@ public class BsDiffPatchWriter {
    * file-based storage for ancillary operations and {@link #DEFAULT_MINIMUM_MATCH_LENGTH} as the
    * match length.
    *
-   * @param oldData a file containing the old data
-   * @param newData a file containing the new data
+   * @param oldFile a file containing the old data
+   * @param newFile a file containing the new data
    * @param outputStream where output should be written
    * @throws IOException if unable to read or write data
    * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
-      final File oldData, final File newData, final OutputStream outputStream)
+      final File oldFile, final File newFile, final OutputStream outputStream)
       throws IOException, InterruptedException {
-    generatePatch(oldData, newData, outputStream, DEFAULT_MINIMUM_MATCH_LENGTH);
+    try (ByteSource oldData = ByteSource.fromFile(oldFile);
+        ByteSource newData = ByteSource.fromFile(newFile)) {
+      generatePatch(oldData, newData, outputStream, DEFAULT_MINIMUM_MATCH_LENGTH);
+    }
   }
 
   /**
@@ -331,30 +323,17 @@ public class BsDiffPatchWriter {
    * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
-      final File oldData,
-      final File newData,
+      final ByteSource oldData,
+      final ByteSource newData,
       final OutputStream outputStream,
       final int minimumMatchLength)
       throws IOException, InterruptedException {
-    try (RandomAccessFile oldDataRAF = new RandomAccessFile(oldData, "r");
-        RandomAccessFile newDataRAF = new RandomAccessFile(newData, "r");
-        RandomAccessObject oldDataRAO =
-            new RandomAccessObject.RandomAccessMmapObject(oldDataRAF, "r");
-        RandomAccessObject newDataRAO =
-            new RandomAccessObject.RandomAccessMmapObject(newDataRAF, "r"); ) {
-      generatePatch(
-          oldDataRAO,
-          newDataRAO,
-          outputStream,
-          new RandomAccessObjectFactory.RandomAccessMmapObjectFactory("rw"),
-          minimumMatchLength);
-    }
-
-    // Due to a bug in the JVM (http://bugs.java.com/view_bug.do?bug_id=6417205), we need to call
-    // gc() and runFinalization() explicitly to get rid of any MappedByteBuffers we may have used
-    // during patch generation.
-    System.gc();
-    System.runFinalization();
+    generatePatch(
+        oldData,
+        newData,
+        outputStream,
+        new RandomAccessObjectFactory.RandomAccessMmapObjectFactory("rw"),
+        minimumMatchLength);
   }
 
   /**
@@ -371,8 +350,8 @@ public class BsDiffPatchWriter {
    * @throws InterruptedException if any thread interrupts this thread
    */
   public static void generatePatch(
-      final RandomAccessObject oldData,
-      final RandomAccessObject newData,
+      final ByteSource oldData,
+      final ByteSource newData,
       final OutputStream outputStream,
       final RandomAccessObjectFactory randomAccessObjectFactory,
       final int minimumMatchLength)

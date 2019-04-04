@@ -24,7 +24,7 @@ import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.supp
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,8 +39,8 @@ import org.junit.runners.JUnit4;
 @SuppressWarnings("javadoc")
 public class TotalRecompressionLimiterTest {
 
-  private static final File OLD_FILE = null;
-  private static final File NEW_FILE = null;
+  private static final ByteSource OLD_FILE = null;
+  private static final ByteSource NEW_FILE = null;
 
   private static final MinimalZipEntry UNIMPORTANT = makeFakeEntry("/unimportant", 1337);
   private static final MinimalZipEntry ENTRY_A_100K = makeFakeEntry("/a/100k", 100 * 1024);

@@ -14,7 +14,9 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * A Java implementation of the "bsdiff" algorithm based on the BSD-2 licensed source code available
@@ -39,24 +41,22 @@ class BsDiff {
    * @param newData the new data to scan
    * @param newStart the position in the new data at which to start the scan
    * @return the number of matching bytes in the two arrays starting at the specified indices; zero
-   * if the first byte fails to match
+   *     if the first byte fails to match
    */
   // Visible for testing only
   static int lengthOfMatch(
-      final RandomAccessObject oldData,
-      final int oldStart,
-      final RandomAccessObject newData,
-      final int newStart)
+      final ByteSource oldData, final int oldStart, final ByteSource newData, final int newStart)
       throws IOException {
     final int max = Math.min((int) oldData.length() - oldStart, (int) newData.length() - newStart);
     if (max > 0) {
       // If max is 0, it's sometimes possible for this seek to seek to length + 1 and throw an
       // exception unnecessarily.
-      oldData.seek(oldStart);
-      newData.seek(newStart);
-      for (int offset = 0; offset < max; offset++) {
-        if (oldData.readByte() != newData.readByte()) {
-          return offset;
+      try (InputStream oldDataInputStream = oldData.sliceFrom(oldStart).openStream();
+          InputStream newDataInputStream = newData.sliceFrom(newStart).openStream()) {
+        for (int offset = 0; offset < max; offset++) {
+          if (oldDataInputStream.read() != newDataInputStream.read()) {
+            return offset;
+          }
         }
       }
     }
@@ -67,8 +67,8 @@ class BsDiff {
   // Visible for testing only
   static Match searchForMatchBaseCase(
       final RandomAccessObject groupArray,
-      final RandomAccessObject oldData,
-      final RandomAccessObject newData,
+      final ByteSource oldData,
+      final ByteSource newData,
       final int newStart,
       final int oldDataRangeStartA,
       final int oldDataRangeStartB)
@@ -92,8 +92,9 @@ class BsDiff {
   }
 
   /**
-   * Locates the run of bytes in |oldData| which matches the longest prefix of
-   * newData[newStart ... newData.length - 1].
+   * Locates the run of bytes in |oldData| which matches the longest prefix of newData[newStart ...
+   * newData.length - 1].
+   *
    * @param groupArray
    * @param oldData the old data to scan
    * @param newData the new data to scan
@@ -101,13 +102,13 @@ class BsDiff {
    * @param oldDataRangeStartA
    * @param oldDataRangeStartB
    * @return a Match containing the length of the matching range, and the position at which the
-   * matching range begins.
+   *     matching range begins.
    */
   // Visible for testing only
   static Match searchForMatch(
       final RandomAccessObject groupArray,
-      final RandomAccessObject oldData,
-      final RandomAccessObject newData,
+      final ByteSource oldData,
+      final ByteSource newData,
       final int newStart,
       final int oldDataRangeStartA,
       final int oldDataRangeStartB)

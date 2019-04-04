@@ -217,17 +217,15 @@ public class RandomAccessFileInputStreamTest {
   @Test
   public void testMark_IOExceptionInRaf() throws IOException {
     stream =
-        new RandomAccessFileInputStream(tempFile, 0, testData.length) {
-          @Override
-          protected RandomAccessFile getRandomAccessFile(File file) throws IOException {
-            return new RandomAccessFile(file, "r") {
+        new RandomAccessFileInputStream(
+            new RandomAccessFile(tempFile, "r") {
               @Override
               public long getFilePointer() throws IOException {
                 throw new IOException("Blah314159");
               }
-            };
-          }
-        };
+            },
+            0,
+            testData.length);
     try {
       stream.mark(0);
       assertWithMessage("Executed code that should have failed.").fail();

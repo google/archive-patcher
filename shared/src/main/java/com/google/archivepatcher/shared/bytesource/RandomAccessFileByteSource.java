@@ -68,6 +68,14 @@ public class RandomAccessFileByteSource extends ByteSource {
     }
   }
 
+  /**
+   * Getter for the underlying file for cases where we absolutely needs it, e.g., passing file name
+   * to native API.
+   */
+  public File getFile() {
+    return file;
+  }
+
   @Override
   protected void finalize() throws Throwable {
     close();
