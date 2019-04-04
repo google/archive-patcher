@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.nio.charset.Charset;
 
 class BsDiffTestData {
@@ -187,10 +188,8 @@ class BsDiffTestData {
   public static final byte[] LONGER_DATA_349 =
       LONGER_DATA_349_S.getBytes(Charset.forName("US-ASCII"));
 
-  public static final RandomAccessObject LONG_DATA_99_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONG_DATA_99);
-  public static final RandomAccessObject LONGER_DATA_349_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONGER_DATA_349);
+  public static final ByteSource LONG_DATA_99_RO = ByteSource.wrap(LONG_DATA_99);
+  public static final ByteSource LONGER_DATA_349_RO = ByteSource.wrap(LONGER_DATA_349);
 
   public static final int[] QUICK_SUFFIX_SORT_INIT_TEST_GA_CONTROL =
       new int[] {
@@ -303,8 +302,6 @@ class BsDiffTestData {
   public static final byte[] LONGER_DATA_354_NEW =
       LONGER_DATA_354_NEW_S.getBytes(Charset.forName("US-ASCII"));
 
-  public static final RandomAccessObject LONG_DATA_104_NEW_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONG_DATA_104_NEW);
-  public static final RandomAccessObject LONGER_DATA_354_NEW_RO =
-      new RandomAccessObject.RandomAccessByteArrayObject(LONGER_DATA_354_NEW);
+  public static final ByteSource LONG_DATA_104_NEW_RO = ByteSource.wrap(LONG_DATA_104_NEW);
+  public static final ByteSource LONGER_DATA_354_NEW_RO = ByteSource.wrap(LONGER_DATA_354_NEW);
 }

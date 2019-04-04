@@ -14,12 +14,14 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.readFully;
+
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +80,7 @@ public class DefaultDeflateCompressionDiviner {
   /**
    * Load the specified archive and attempt to divine deflate parameters for all entries within.
    *
-   * @param archiveFile the archive file to work on
+   * @param archiveBlob the archive blob to work on
    * @return a list of results for each entry in the archive, in file order (not central directory
    *     order). There is exactly one result per entry, regardless of whether or not that entry is
    *     compressed. Callers can filter results by checking {@link
@@ -87,10 +89,28 @@ public class DefaultDeflateCompressionDiviner {
    * @throws IOException if unable to read or parse the file
    * @see DivinationResult
    */
-  public static List<DivinationResult> divineDeflateParameters(File archiveFile)
+  public static List<DivinationResult> divineDeflateParameters(File archiveBlob)
       throws IOException {
-    RandomAccessFile randomAccessArchiveFile = new RandomAccessFile(archiveFile, "r");
-    List<MinimalZipEntry> zipEntries = MinimalZipArchive.listEntries(archiveFile);
+    try (ByteSource archiveData = ByteSource.fromFile(archiveBlob)) {
+      return divineDeflateParameters(archiveData);
+    }
+  }
+
+  /**
+   * Load the specified archive and attempt to divine deflate parameters for all entries within.
+   *
+   * @param archiveBlob the archive blob to work on
+   * @return a list of results for each entry in the archive, in file order (not central directory
+   *     order). There is exactly one result per entry, regardless of whether or not that entry is
+   *     compressed. Callers can filter results by checking {@link
+   *     MinimalZipEntry#getCompressionMethod()} to see if the result is or is not compressed, and
+   *     by checking whether a non-null {@link JreDeflateParameters} was obtained.
+   * @throws IOException if unable to read or parse the file
+   * @see DivinationResult
+   */
+  public static List<DivinationResult> divineDeflateParameters(ByteSource archiveBlob)
+      throws IOException {
+    List<MinimalZipEntry> zipEntries = MinimalZipArchive.listEntries(archiveBlob);
     List<DivinationResult> results = new ArrayList<>(zipEntries.size());
     for (MinimalZipEntry minimalZipEntry : zipEntries) {
       JreDeflateParameters divinedParameters = null;
@@ -99,28 +119,26 @@ public class DefaultDeflateCompressionDiviner {
         if (minimalZipEntry.getCompressedSize() < (100 * 1024)) {
           try {
             byte[] compressedBytes = new byte[(int) minimalZipEntry.getCompressedSize()];
-            randomAccessArchiveFile.seek(minimalZipEntry.getFileOffsetOfCompressedData());
-            randomAccessArchiveFile.readFully(compressedBytes);
-            divinedParameters =
-                divineDeflateParameters(new ByteArrayInputStreamFactory(compressedBytes));
+            try (InputStream in =
+                archiveBlob
+                    .slice(minimalZipEntry.getFileOffsetOfCompressedData(), compressedBytes.length)
+                    .openStream()) {
+              readFully(in, compressedBytes);
+            }
+            divinedParameters = divineDeflateParametersForEntry(ByteSource.wrap(compressedBytes));
           } catch (Exception ignore) {
             divinedParameters = null;
           }
         } else {
-          divinedParameters =
-              divineDeflateParameters(
-                  new RandomAccessFileInputStreamFactory(
-                      archiveFile,
-                      minimalZipEntry.getFileOffsetOfCompressedData(),
-                      minimalZipEntry.getCompressedSize()));
+          try (ByteSource slice =
+              archiveBlob.slice(
+                  minimalZipEntry.getFileOffsetOfCompressedData(),
+                  minimalZipEntry.getCompressedSize())) {
+            divinedParameters = divineDeflateParametersForEntry(slice);
+          }
         }
       }
       results.add(new DivinationResult(minimalZipEntry, divinedParameters));
-    }
-    try {
-      randomAccessArchiveFile.close();
-    } catch (Exception ignore) {
-      // Ignore
     }
     return results;
   }
@@ -129,8 +147,8 @@ public class DefaultDeflateCompressionDiviner {
    * Determines the original {@link JreDeflateParameters} that were used to compress a given piece
    * of deflated delivery.
    *
-   * @param compressedDataInputStreamFactory a {@link MultiViewInputStreamFactory} that can provide
-   *     multiple independent {@link InputStream} instances for the compressed delivery.
+   * @param entry a {@link MultiViewInputStreamFactory} that can provide multiple independent {@link
+   *     InputStream} instances for the compressed delivery.
    * @return the parameters that can be used to replicate the compressed delivery in the {@link
    *     DefaultDeflateCompatibilityWindow}, if any; otherwise <code>null</code>. Note that <code>
    *     null</code> is also returned in the case of <em>corrupt</em> zip delivery since, by
@@ -138,8 +156,8 @@ public class DefaultDeflateCompressionDiviner {
    * @throws IOException if there is a problem reading the delivery, i.e. if the file contents are
    *     changed while reading
    */
-  public static JreDeflateParameters divineDeflateParameters(
-      MultiViewInputStreamFactory compressedDataInputStreamFactory) throws IOException {
+  public static JreDeflateParameters divineDeflateParametersForEntry(ByteSource entry)
+      throws IOException {
     byte[] copyBuffer = new byte[32 * 1024];
     // Iterate over all relevant combinations of nowrap, strategy and level.
     for (boolean nowrap : new boolean[] {true, false}) {
@@ -154,7 +172,7 @@ public class DefaultDeflateCompressionDiviner {
           inflater.reset();
           deflater.reset();
           try {
-            if (matches(inflater, deflater, compressedDataInputStreamFactory, copyBuffer)) {
+            if (matches(inflater, deflater, entry, copyBuffer)) {
               end(inflater, deflater);
               return JreDeflateParameters.of(level, strategy, nowrap);
             }
@@ -214,6 +232,7 @@ public class DefaultDeflateCompressionDiviner {
    *
    * @param inflater the inflater for uncompressing the stream
    * @param deflater the deflater for recompressing the output of the inflater
+   * @param compressedData {@link ByteSource} containing the compressed data.
    * @param copyBuffer buffer to use for copying bytes between the inflater and the deflater
    * @return true if the specified deflater reproduces the bytes in compressedDataIn, otherwise
    *     false
@@ -221,18 +240,13 @@ public class DefaultDeflateCompressionDiviner {
    *     there is a problem parsing compressedDataIn
    */
   private static boolean matches(
-      Inflater inflater,
-      Deflater deflater,
-      MultiViewInputStreamFactory compressedDataInputStreamFactory,
-      byte[] copyBuffer)
+      Inflater inflater, Deflater deflater, ByteSource compressedData, byte[] copyBuffer)
       throws IOException {
 
     try (MatchingOutputStream matcher =
-            new MatchingOutputStream(
-                compressedDataInputStreamFactory.newStream(), copyBuffer.length);
+            new MatchingOutputStream(compressedData.openStream(), copyBuffer.length);
         InflaterInputStream inflaterIn =
-            new InflaterInputStream(
-                compressedDataInputStreamFactory.newStream(), inflater, copyBuffer.length);
+            new InflaterInputStream(compressedData.openStream(), inflater, copyBuffer.length);
         DeflaterOutputStream out = new DeflaterOutputStream(matcher, deflater, copyBuffer.length)) {
       int numRead;
       while ((numRead = inflaterIn.read(copyBuffer)) >= 0) {

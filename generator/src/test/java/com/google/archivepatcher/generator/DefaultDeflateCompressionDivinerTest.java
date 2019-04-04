@@ -22,6 +22,7 @@ import com.google.archivepatcher.shared.DeflateCompressor;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -68,10 +69,9 @@ public class DefaultDeflateCompressionDivinerTest {
   @Test
   public void testDivineDeflateParameters_JunkData() throws IOException {
     final byte[] junk = new byte[] {0, 1, 2, 3, 4};
-    assertThat(
-            DefaultDeflateCompressionDiviner.divineDeflateParameters(
-                new ByteArrayInputStreamFactory(junk)))
-        .isNull();
+    try (ByteSource entry = ByteSource.wrap(junk)) {
+      assertThat(DefaultDeflateCompressionDiviner.divineDeflateParametersForEntry(entry)).isNull();
+    }
   }
 
   @Test
@@ -81,9 +81,11 @@ public class DefaultDeflateCompressionDivinerTest {
         for (int level : new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9}) {
           JreDeflateParameters trueParameters = JreDeflateParameters.of(level, strategy, nowrap);
           final byte[] buffer = deflate(trueParameters);
-          JreDeflateParameters divinedParameters =
-              DefaultDeflateCompressionDiviner.divineDeflateParameters(
-                  new ByteArrayInputStreamFactory(buffer));
+          JreDeflateParameters divinedParameters;
+          try (ByteSource byteSource = ByteSource.wrap(buffer)) {
+            divinedParameters =
+                DefaultDeflateCompressionDiviner.divineDeflateParametersForEntry(byteSource);
+          }
           assertThat(divinedParameters).isNotNull();
           // TODO make *CERTAIN 100%( that strategy doesn't matter for level < 4.
           if (strategy == 1 && level <= 3) {
@@ -106,10 +108,11 @@ public class DefaultDeflateCompressionDivinerTest {
   public void testDivineDeflateParameters_File() throws IOException {
     File tempFile = File.createTempFile("ddcdt", "tmp");
     tempFile.deleteOnExit();
-    try {
-      UnitTestZipArchive.saveTestZip(tempFile);
+    UnitTestZipArchive.saveTestZip(tempFile);
+
+    try (ByteSource tempBlob = ByteSource.fromFile(tempFile)) {
       List<DivinationResult> results =
-          DefaultDeflateCompressionDiviner.divineDeflateParameters(tempFile);
+          DefaultDeflateCompressionDiviner.divineDeflateParameters(tempBlob);
       assertThat(results).hasSize(UnitTestZipArchive.allEntriesInFileOrder.size());
       for (int x = 0; x < results.size(); x++) {
         UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);

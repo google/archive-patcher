@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -77,27 +78,28 @@ class BsUtil {
    * @return result of lexicographical compare: negative if the first difference has a lower value
    *     in the first array, positive if the first difference has a lower value in the second array.
    *     If both arrays compare equal until one of them ends, the shorter sequence is
-   *     lexicographically less than the longer one (i.e., it returns len(first array) -
-   *     len(second array)).
+   *     lexicographically less than the longer one (i.e., it returns len(first array) - len(second
+   *     array)).
    */
   static int lexicographicalCompare(
-      final RandomAccessObject data1,
+      final ByteSource data1,
       final int start1,
       final int length1,
-      final RandomAccessObject data2,
+      final ByteSource data2,
       final int start2,
       final int length2)
       throws IOException {
     int bytesLeft = Math.min(length1, length2);
 
-    data1.seek(start1);
-    data2.seek(start2);
-    while (bytesLeft-- > 0) {
-      final int i1 = data1.readUnsignedByte();
-      final int i2 = data2.readUnsignedByte();
+    try (InputStream data1InputStream = data1.sliceFrom(start1).openStream();
+        InputStream data2InputStream = data2.sliceFrom(start2).openStream()) {
+      while (bytesLeft-- > 0) {
+        final int i1 = data1InputStream.read();
+        final int i2 = data2InputStream.read();
 
-      if (i1 != i2) {
-        return i1 - i2;
+        if (i1 != i2) {
+          return i1 - i2;
+        }
       }
     }
 
