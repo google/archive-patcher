@@ -16,9 +16,9 @@ package com.google.archivepatcher.generator;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -87,7 +87,7 @@ public class MinimalZipParserTest {
     }
 
     // Now expect to find the EOCD at the right place.
-    try (RandomAccessFileInputStream in = new RandomAccessFileInputStream(tempFile)) {
+    try (ByteSource in = ByteSource.fromFile(tempFile)) {
       long eocdOffset = MinimalZipParser.locateStartOfEocd(in, 32768);
       assertThat(eocdOffset).isEqualTo(bytesBefore);
     }
@@ -113,7 +113,7 @@ public class MinimalZipParserTest {
     }
 
     // Now expect to find no EOCD.
-    try (RandomAccessFileInputStream in = new RandomAccessFileInputStream(tempFile)) {
+    try (ByteSource in = ByteSource.fromFile(tempFile)) {
       long eocdOffset = MinimalZipParser.locateStartOfEocd(in, 4000);
       assertThat(eocdOffset).isEqualTo(-1);
     }

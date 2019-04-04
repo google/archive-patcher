@@ -28,13 +28,14 @@ import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.Divi
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -224,21 +225,35 @@ public class PreDiffPlannerTest {
   private void corruptCompressionMethod(File tempFile, UnitTestZipEntry unitTestEntry)
       throws IOException {
     long centralDirectoryRecordOffset = -1;
-    try (RandomAccessFileInputStream rafis = new RandomAccessFileInputStream(tempFile)) {
-      long startOfEocd = MinimalZipParser.locateStartOfEocd(rafis, 32768);
-      rafis.setRange(startOfEocd, tempFile.length() - startOfEocd);
-      MinimalCentralDirectoryMetadata centralDirectoryMetadata = MinimalZipParser.parseEocd(rafis);
-      int numEntries = centralDirectoryMetadata.getNumEntriesInCentralDirectory();
-      rafis.setRange(
-          centralDirectoryMetadata.getOffsetOfCentralDirectory(),
-          centralDirectoryMetadata.getLengthOfCentralDirectory());
-      for (int x = 0; x < numEntries; x++) {
-        long recordStartOffset = rafis.getPosition();
-        MinimalZipEntry candidate = MinimalZipParser.parseCentralDirectoryEntry(rafis);
-        if (candidate.getFileName().equals(unitTestEntry.path)) {
-          // Located! Track offset and bail out.
-          centralDirectoryRecordOffset = recordStartOffset;
-          x = numEntries;
+    try (ByteSource byteSource = ByteSource.fromFile(tempFile)) {
+      long startOfEocd = MinimalZipParser.locateStartOfEocd(byteSource, 32768);
+      MinimalCentralDirectoryMetadata centralDirectoryMetadata;
+      int numEntries;
+      try (InputStream sliceIn = byteSource.sliceFrom(startOfEocd).openStream()) {
+        centralDirectoryMetadata = MinimalZipParser.parseEocd(sliceIn);
+        numEntries = centralDirectoryMetadata.getNumEntriesInCentralDirectory();
+      }
+
+      try (InputStream sliceIn =
+          byteSource
+              .slice(
+                  centralDirectoryMetadata.getOffsetOfCentralDirectory(),
+                  centralDirectoryMetadata.getLengthOfCentralDirectory())
+              .openStream()) {
+        for (int x = 0; x < numEntries; x++) {
+          // Here we compute the offset to the start of the file by computing offset to start of
+          // sliceFrom (i.e. start of central directory) and adding it to the central directory
+          // offset.
+          long offsetToStartOfCentralDir =
+              centralDirectoryMetadata.getLengthOfCentralDirectory() - sliceIn.available();
+          long offsetToStartOfFile =
+              centralDirectoryMetadata.getOffsetOfCentralDirectory() + offsetToStartOfCentralDir;
+          MinimalZipEntry candidate = MinimalZipParser.parseCentralDirectoryEntry(sliceIn);
+          if (candidate.getFileName().equals(unitTestEntry.path)) {
+            // Located! Track offset and bail out.
+            centralDirectoryRecordOffset = offsetToStartOfFile;
+            x = numEntries;
+          }
         }
       }
     }
@@ -270,23 +285,27 @@ public class PreDiffPlannerTest {
       originalOldArchiveZipEntriesByPath.put(key, zipEntry);
     }
 
-    for (DivinationResult divinationResult :
-        DefaultDeflateCompressionDiviner.divineDeflateParameters(newFile)) {
-      ByteArrayHolder key = new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      for (DivinationResult divinationResult :
+          DefaultDeflateCompressionDiviner.divineDeflateParameters(newBlob)) {
+        ByteArrayHolder key =
+            new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
       originalNewArchiveZipEntriesByPath.put(key, divinationResult.minimalZipEntry);
       originalNewArchiveJreDeflateParametersByPath.put(key, divinationResult.divinedParameters);
     }
 
-    PreDiffPlanner preDiffPlanner =
-        new PreDiffPlanner(
-            oldFile,
-            originalOldArchiveZipEntriesByPath,
-            newFile,
-            originalNewArchiveZipEntriesByPath,
-            originalNewArchiveJreDeflateParametersByPath,
-            preDiffPlanEntryModifiers,
-            supportedDeltaFormats);
+      PreDiffPlanner preDiffPlanner =
+          new PreDiffPlanner(
+              oldBlob,
+              originalOldArchiveZipEntriesByPath,
+              newBlob,
+              originalNewArchiveZipEntriesByPath,
+              originalNewArchiveJreDeflateParametersByPath,
+              preDiffPlanEntryModifiers,
+              supportedDeltaFormats);
     return preDiffPlanner.generatePreDiffPlan();
+  }
   }
 
   private void checkPreDiffPlanEntry(PreDiffPlan plan, PreDiffPlanEntry... expected) {

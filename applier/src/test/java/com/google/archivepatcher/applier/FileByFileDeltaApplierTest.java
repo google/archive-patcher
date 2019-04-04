@@ -20,12 +20,12 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -210,10 +210,10 @@ public class FileByFileDeltaApplierTest {
     return buffer.toByteArray();
   }
 
-  private class FakeDeltaApplier implements DeltaApplier {
-  @SuppressWarnings("resource")
-  @Override
-    public void applyDelta(File oldBlob, InputStream deltaIn, OutputStream newBlobOut)
+  private class FakeDeltaApplier extends DeltaApplier {
+    @SuppressWarnings("resource")
+    @Override
+    public void applyDelta(ByteSource oldBlob, InputStream deltaIn, OutputStream newBlobOut)
         throws IOException {
       // Check the patch is as expected
       DataInputStream deltaData = new DataInputStream(deltaIn);
@@ -224,9 +224,10 @@ public class FileByFileDeltaApplierTest {
       // Check that the old data is as expected
       int oldSize = (int) oldBlob.length();
       byte[] oldData = new byte[oldSize];
-      FileInputStream oldBlobIn = new FileInputStream(oldBlob);
-      DataInputStream oldBlobDataIn = new DataInputStream(oldBlobIn);
-      oldBlobDataIn.readFully(oldData);
+      try (InputStream oldBlobIn = oldBlob.openStream();
+          DataInputStream oldBlobDataIn = new DataInputStream(oldBlobIn)) {
+        oldBlobDataIn.readFully(oldData);
+      }
       assertThat(oldData).isEqualTo(expectedDeltaFriendlyOldFileBytes);
 
       // "Convert" the old blob to the new blow as if this were a real patching algorithm.

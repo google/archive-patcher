@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.util.List;
 
 /**
@@ -35,5 +35,5 @@ public interface PreDiffPlanEntryModifier {
    * @return the updated list of {@link PreDiffPlanEntry}
    */
   List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
-      File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries);
+      ByteSource oldFile, ByteSource newFile, List<PreDiffPlanEntry> originalEntries);
 }

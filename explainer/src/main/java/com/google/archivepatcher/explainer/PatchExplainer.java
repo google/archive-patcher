@@ -29,6 +29,7 @@ import com.google.archivepatcher.shared.CountingOutputStream;
 import com.google.archivepatcher.shared.DeflateUncompressor;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.Uncompressor;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -119,12 +120,16 @@ public class PatchExplainer {
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
-    PreDiffExecutor executor =
-        new PreDiffExecutor.Builder()
-            .readingOriginalFiles(oldFile, newFile)
-            .addPreDiffPlanEntryModifiers(Arrays.asList(preDiffPlanEntryModifiers))
-            .build();
-    PreDiffPlan plan = executor.prepareForDiffing();
+    PreDiffPlan plan;
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      PreDiffExecutor executor =
+          new PreDiffExecutor.Builder()
+              .readingOriginalFiles(oldBlob, newBlob)
+              .addPreDiffPlanEntryModifiers(Arrays.asList(preDiffPlanEntryModifiers))
+              .build();
+      plan = executor.prepareForDiffing();
+    }
     try (TempFileHolder oldTemp = new TempFileHolder();
         TempFileHolder newTemp = new TempFileHolder();
         TempFileHolder deltaTemp = new TempFileHolder()) {

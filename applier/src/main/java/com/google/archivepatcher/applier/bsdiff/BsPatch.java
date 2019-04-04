@@ -14,13 +14,16 @@
 
 package com.google.archivepatcher.applier.bsdiff;
 
+import static com.google.archivepatcher.shared.bytesource.IOUtils.readFully;
+
 import com.google.archivepatcher.applier.PatchFormatException;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -71,8 +74,38 @@ public class BsPatch {
    * @throws PatchFormatException if the patch stream is invalid
    * @throws IOException if unable to read or write any of the data
    */
+  public static void applyPatch(File oldData, OutputStream newData, InputStream patchData)
+      throws PatchFormatException, IOException {
+    applyPatch(oldData, newData, patchData, /* expectedNewSize= */ null);
+  }
+
+  /**
+   * Applies a patch from |patchData| to the data in |oldData|, writing the result to |newData|.
+   *
+   * @param oldData data to which the patch should be applied
+   * @param newData stream to write the new artifact to
+   * @param patchData stream to read patch instructions from
+   * @throws PatchFormatException if the patch stream is invalid
+   * @throws IOException if unable to read or write any of the data
+   */
   public static void applyPatch(
-      RandomAccessFile oldData, OutputStream newData, InputStream patchData)
+      File oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
+      throws PatchFormatException, IOException {
+    try (ByteSource oldByteSource = ByteSource.fromFile(oldData)) {
+      applyPatch(oldByteSource, newData, patchData, expectedNewSize);
+    }
+  }
+
+  /**
+   * Applies a patch from |patchData| to the data in |oldData|, writing the result to |newData|.
+   *
+   * @param oldData data to which the patch should be applied
+   * @param newData stream to write the new artifact to
+   * @param patchData stream to read patch instructions from
+   * @throws PatchFormatException if the patch stream is invalid
+   * @throws IOException if unable to read or write any of the data
+   */
+  public static void applyPatch(ByteSource oldData, OutputStream newData, InputStream patchData)
       throws PatchFormatException, IOException {
     applyPatch(oldData, newData, patchData, null);
   }
@@ -90,7 +123,7 @@ public class BsPatch {
    * @throws IOException if unable to read or write any of the data
    */
   public static void applyPatch(
-      RandomAccessFile oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
+      ByteSource oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
       throws PatchFormatException, IOException {
     patchData = new BufferedInputStream(patchData, PATCH_STREAM_BUFFER_SIZE);
     newData = new BufferedOutputStream(newData, OUTPUT_STREAM_BUFFER_SIZE);
@@ -103,7 +136,7 @@ public class BsPatch {
 
   /** Does the work of the public applyPatch method. */
   private static void applyPatchInternal(
-      final RandomAccessFile oldData,
+      final ByteSource oldData,
       final OutputStream newData,
       final InputStream patchData,
       final Long expectedNewSize)
@@ -205,9 +238,10 @@ public class BsPatch {
       }
 
       // At this point everything is known to be sane, and the operations should all succeed.
-      oldData.seek(oldDataOffset);
-      if (diffSegmentLength > 0) {
-        transformBytes((int) diffSegmentLength, patchData, oldData, newData, buffer1, buffer2);
+      try (InputStream remaining = oldData.sliceFrom(oldDataOffset).openStream()) {
+        if (diffSegmentLength > 0) {
+          transformBytes((int) diffSegmentLength, patchData, remaining, newData, buffer1, buffer2);
+        }
       }
       if (copySegmentLength > 0) {
         pipe(patchData, newData, buffer1, (int) copySegmentLength);
@@ -219,30 +253,29 @@ public class BsPatch {
 
   /**
    * Transforms bytes from |oldData| into |newData| by applying byte-for-byte addends from
-   * |patchData|. The number of bytes consumed from |oldData| and |patchData|, as well as the
-   * number of bytes written to |newData|, is |diffLength|. The contents of the buffers are
-   * ignored and overwritten, and no guarantee is made as to their contents when this method
-   * returns. This is the core of the bsdiff patching algorithm. |buffer1.length| must equal
-   * |buffer2.length|, and |buffer1| and |buffer2| must be distinct objects.
+   * |patchData|. The number of bytes consumed from |oldData| and |patchData|, as well as the number
+   * of bytes written to |newData|, is |diffLength|. The contents of the buffers are ignored and
+   * overwritten, and no guarantee is made as to their contents when this method returns. This is
+   * the core of the bsdiff patching algorithm. |buffer1.length| must equal |buffer2.length|, and
+   * |buffer1| and |buffer2| must be distinct objects.
    *
    * @param diffLength the length of the BsDiff entry (how many bytes to read and apply).
-   * @param patchData the input stream from the BsDiff patch containing diff bytes. This stream
-   *                  must be positioned so that the first byte read is the first addend to be
-   *                  applied to the first byte of data to be read from |oldData|.
+   * @param patchData the input stream from the BsDiff patch containing diff bytes. This stream must
+   *     be positioned so that the first byte read is the first addend to be applied to the first
+   *     byte of data to be read from |oldData|.
    * @param oldData the old file, for the diff bytes to be applied to. This input source must be
-   *                positioned so that the first byte read is the first byte of data to which the
-   *                first byte of addends from |patchData| should be applied.
+   *     positioned so that the first byte read is the first byte of data to which the first byte of
+   *     addends from |patchData| should be applied.
    * @param newData the stream to write the resulting data to.
    * @param buffer1 temporary buffer to use for data transformation; contents are ignored, may be
-   *                overwritten, and are undefined when this method returns.
+   *     overwritten, and are undefined when this method returns.
    * @param buffer2 temporary buffer to use for data transformation; contents are ignored, may be
-   *                overwritten, and are undefined when this method returns.
    */
   // Visible for testing only
   static void transformBytes(
       final int diffLength,
       final InputStream patchData,
-      final RandomAccessFile oldData,
+      final InputStream oldData,
       final OutputStream newData,
       final byte[] buffer1,
       final byte[] buffer2)
@@ -250,7 +283,7 @@ public class BsPatch {
     int numBytesLeft = diffLength;
     while (numBytesLeft > 0) {
       final int numBytesThisRound = Math.min(numBytesLeft, buffer1.length);
-      oldData.readFully(buffer1, 0, numBytesThisRound);
+      readFully(oldData, buffer1, 0, numBytesThisRound);
       readFully(patchData, buffer2, 0, numBytesThisRound);
       for (int i = 0; i < numBytesThisRound; i++) {
         buffer1[i] += buffer2[i];
@@ -287,29 +320,6 @@ public class BsPatch {
     }
 
     return result;
-  }
-
-  /**
-   * Read exactly the specified number of bytes into the specified buffer.
-   *
-   * @param in the input stream to read from
-   * @param destination where to write the bytes to
-   * @param startAt the offset at which to start writing bytes in the destination buffer
-   * @param numBytes the number of bytes to read
-   * @throws IOException if reading from the stream fails
-   */
-  // Visible for testing only
-  static void readFully(
-      final InputStream in, final byte[] destination, final int startAt, final int numBytes)
-      throws IOException {
-    int numRead = 0;
-    while (numRead < numBytes) {
-      int readNow = in.read(destination, startAt + numRead, numBytes - numRead);
-      if (readNow == -1) {
-        throw new IOException("truncated input stream");
-      }
-      numRead += readNow;
-    }
   }
 
   /**

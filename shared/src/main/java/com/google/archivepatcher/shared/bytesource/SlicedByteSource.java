@@ -17,7 +17,7 @@ package com.google.archivepatcher.shared.bytesource;
 import java.io.IOException;
 import java.io.InputStream;
 
-/** A {@link ByteSource} derived from a slice of another {@link ByteSource}. */
+/** A {@link ByteSource} derived from a sliceFrom of another {@link ByteSource}. */
 class SlicedByteSource extends ByteSource {
 
   private final ByteSource byteSource;

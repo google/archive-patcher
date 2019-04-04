@@ -14,14 +14,13 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 
-/**
- * An interface to be implemented by delta generators.
- */
-public interface DeltaGenerator {
+/** An interface to be implemented by delta generators. */
+public abstract class DeltaGenerator {
   /**
    * Generates a delta in deltaOut that can be applied to oldBlob to produce newBlob.
    *
@@ -32,6 +31,24 @@ public interface DeltaGenerator {
    *     delta output stream
    * @throws InterruptedException if any thread has interrupted the current thread
    */
-  void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+  public void generateDelta(File oldBlob, File newBlob, OutputStream deltaOut)
+      throws IOException, InterruptedException {
+    try (ByteSource oldByteSource = ByteSource.fromFile(oldBlob);
+        ByteSource newByteSource = ByteSource.fromFile(newBlob)) {
+      generateDelta(oldByteSource, newByteSource, deltaOut);
+    }
+  }
+
+  /**
+   * Generates a delta in deltaOut that can be applied to oldBlob to produce newBlob.
+   *
+   * @param oldBlob the old blob
+   * @param newBlob the new blob
+   * @param deltaOut the stream to write the delta to
+   * @throws IOException in the event of an I/O error reading the input files or writing to the
+   *     delta output stream
+   * @throws InterruptedException if any thread has interrupted the current thread
+   */
+  public abstract void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
       throws IOException, InterruptedException;
 }

@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -65,7 +65,7 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
 
   @Override
   public List<PreDiffPlanEntry> getModifiedPreDiffPlanEntries(
-      File oldFile, File newFile, List<PreDiffPlanEntry> originalEntries) {
+      ByteSource oldFile, ByteSource newFile, List<PreDiffPlanEntry> originalEntries) {
 
     List<PreDiffPlanEntry> sorted = sortPreDiffPlanEntries(originalEntries);
 

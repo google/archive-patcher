@@ -16,6 +16,7 @@ package com.google.archivepatcher.generator.bsdiff;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -103,8 +104,8 @@ public class BsUtilTest {
     String s2 = "that was a string";
     byte[] s1b = s1.getBytes(Charset.forName("US-ASCII"));
     byte[] s2b = s2.getBytes(Charset.forName("US-ASCII"));
-    RandomAccessObject s1ro = new RandomAccessObject.RandomAccessByteArrayObject(s1b);
-    RandomAccessObject s2ro = new RandomAccessObject.RandomAccessByteArrayObject(s2b);
+    ByteSource s1ro = ByteSource.wrap(s1b);
+    ByteSource s2ro = ByteSource.wrap(s2b);
 
     int r = BsUtil.lexicographicalCompare(s1ro, 0, s1b.length, s2ro, 0, s2b.length);
     assertThat(r).isGreaterThan(0);

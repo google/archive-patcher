@@ -15,30 +15,17 @@
 package com.google.archivepatcher.applier.bsdiff;
 
 import com.google.archivepatcher.applier.DeltaApplier;
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 
-/**
- * An implementation of {@link DeltaApplier} that uses {@link BsPatch} to apply a bsdiff patch.
- */
-public class BsDiffDeltaApplier implements DeltaApplier {
+/** An implementation of {@link DeltaApplier} that uses {@link BsPatch} to apply a bsdiff patch. */
+public class BsDiffDeltaApplier extends DeltaApplier {
 
   @Override
-  public void applyDelta(File oldBlob, InputStream deltaIn, OutputStream newBlobOut)
+  public void applyDelta(ByteSource oldBlob, InputStream deltaIn, OutputStream newBlobOut)
       throws IOException {
-    RandomAccessFile oldBlobRaf = null;
-    try {
-      oldBlobRaf = new RandomAccessFile(oldBlob, "r");
-      BsPatch.applyPatch(oldBlobRaf, newBlobOut, deltaIn);
-    } finally {
-      try {
-        oldBlobRaf.close();
-      } catch (Exception ignored) {
-        // Close read-only file quietly.
-      }
-    }
+    BsPatch.applyPatch(oldBlob, newBlobOut, deltaIn);
   }
 }

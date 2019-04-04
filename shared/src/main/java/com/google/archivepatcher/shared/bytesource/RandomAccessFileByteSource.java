@@ -18,6 +18,7 @@ import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 
 /**
  * A {@link ByteSource} backed by a {@link RandomAccessFileInputStream}. This implementation is
@@ -25,13 +26,17 @@ import java.io.InputStream;
  */
 public class RandomAccessFileByteSource extends ByteSource {
 
-  private final File file;
+  private final RandomAccessFile file;
   private final RandomAccessFileInputStream rafis;
   private int openStreams = 0;
 
   public RandomAccessFileByteSource(File file) throws IOException {
+    this(new RandomAccessFile(file, "r"));
+  }
+
+  public RandomAccessFileByteSource(RandomAccessFile file) throws IOException {
     this.file = file;
-    this.rafis = new RandomAccessFileInputStream(file);
+    this.rafis = new RandomAccessFileInputStream(file, 0, file.length());
   }
 
   @Override

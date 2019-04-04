@@ -15,6 +15,7 @@
 package com.google.archivepatcher.shared.bytesource;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -38,7 +39,7 @@ public abstract class ByteSource implements Closeable {
   public abstract ByteSource copy() throws IOException;
 
   /**
-   * Returns a slice of this {@link ByteSource} starting at byte {@code offset} with the given
+   * Returns a sliceFrom of this {@link ByteSource} starting at byte {@code offset} with the given
    * {@code length}.
    */
   public ByteSource slice(long offset, long length) throws IOException {
@@ -46,7 +47,7 @@ public abstract class ByteSource implements Closeable {
     return new SlicedByteSource(this, offset, length);
   }
 
-  public ByteSource slice(long offset) throws IOException {
+  public ByteSource sliceFrom(long offset) throws IOException {
     long length = Math.max(length() - offset, 0);
     return new SlicedByteSource(this, offset, length);
   }
@@ -61,4 +62,14 @@ public abstract class ByteSource implements Closeable {
    * in this {@link ByteSource}.
    */
   protected abstract InputStream openStream(long offset, long length) throws IOException;
+
+  /** Convenience method to obtain a {@link ByteSource} from a {@link File}. */
+  public static ByteSource fromFile(File file) throws IOException {
+    return new RandomAccessFileByteSource(file);
+  }
+
+  /** Convenience method to obtain a {@link ByteSource} from a byte array. */
+  public static ByteSource wrap(byte[] buffer) {
+    return new ByteArrayByteSource(buffer);
+  }
 }

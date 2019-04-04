@@ -16,7 +16,9 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Taken from
@@ -78,14 +80,14 @@ public final class DivSuffixSorter implements SuffixSorter {
   private final RandomAccessObjectFactory randomAccessObjectFactory;
 
   private RandomAccessObject suffixArray;
-  private RandomAccessObject input;
+  private ByteSource input;
 
   public DivSuffixSorter(RandomAccessObjectFactory randomAccessObjectFactory) {
     this.randomAccessObjectFactory = randomAccessObjectFactory;
   }
 
   @Override
-  public RandomAccessObject suffixSort(RandomAccessObject input) throws IOException, InterruptedException {
+  public RandomAccessObject suffixSort(ByteSource input) throws IOException, InterruptedException {
     if (4 * (input.length() + 1) >= Integer.MAX_VALUE) {
       throw new IllegalArgumentException("Input too large (" + input.length() + " bytes)");
     }
@@ -2059,8 +2061,9 @@ public final class DivSuffixSorter implements SuffixSorter {
   }
 
   private int readInput(long pos) throws IOException {
-    input.seek(pos);
-    return input.readUnsignedByte();
+    try (InputStream in = input.sliceFrom(pos).openStream()) {
+      return in.read();
+    }
   }
 
   private int readSuffixArray(long pos) throws IOException {
