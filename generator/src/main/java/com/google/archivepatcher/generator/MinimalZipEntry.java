@@ -14,16 +14,15 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
 import com.google.auto.value.AutoValue;
 import java.io.UnsupportedEncodingException;
 
 /** A class that contains <em>just enough data</em> to generate a patch. */
 @AutoValue
 public abstract class MinimalZipEntry {
-  private static final int DEFLATE_COMPRESSION_METHOD = 8;
-
   /** The compression method that was used, typically 8 (for deflate) or 0 (for stored). */
-  public abstract int compressionMethod();
+  public abstract CompressionMethod compressionMethod();
 
   /** The CRC32 of the <em>uncompressed</em> data. */
   public abstract long crc32OfUncompressedData();
@@ -70,7 +69,7 @@ public abstract class MinimalZipEntry {
   @AutoValue.Builder
   public abstract static class Builder {
     /** @see #compressionMethod() */
-    abstract Builder compressionMethod(int compressionMethod);
+    abstract Builder compressionMethod(CompressionMethod compressionMethod);
 
     /** @see #crc32OfUncompressedData() */
     abstract Builder crc32OfUncompressedData(long crc32OfUncompressedData);
@@ -127,21 +126,5 @@ public abstract class MinimalZipEntry {
       // ship in every distribution; it is conceivable that those systems might have problems here.
       throw new RuntimeException("System doesn't support " + charsetName, e);
     }
-  }
-
-  /**
-   * Convenience methods that returns true if and only if the entry is compressed with deflate.
-   *
-   * @return as described
-   */
-  public boolean isDeflateCompressed() {
-    // 8 is deflate according to the zip spec.
-    if (compressionMethod() != 8) {
-      return false;
-    }
-    // Some tools may list compression method deflate but set level to zero (store), so they will
-    // have a compressed size equal to the uncompresesd size. Don't consider such things to be
-    // compressed, even if they are "deflated".
-    return compressedSize() != uncompressedSize();
   }
 }

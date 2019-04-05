@@ -101,4 +101,48 @@ public class PatchConstants {
       }
     }
   }
+
+  /** All available compression method in a zip archive. */
+  public enum CompressionMethod {
+    /** The entry is compressed with DEFLATE. */
+    DEFLATE,
+
+    /** The entry is not compressed. */
+    STORED,
+    /** The entry's compression method cannot be determined. */
+    UNKNOWN;
+
+    private static final int DEFLATE_VALUE = 8;
+    private static final int STORED_VALUE = 0;
+
+    /**
+     * Obtain the corresponding {@link CompressionMethod} for the byte representation in ZIP spec.
+     */
+    public static CompressionMethod fromValue(int value) {
+      switch (value) {
+        case DEFLATE_VALUE:
+          return DEFLATE;
+        case STORED_VALUE:
+          return STORED;
+        default:
+          return UNKNOWN;
+      }
+    }
+
+    /**
+     * Obtain the value of the current compression method as specified in the ZIP format.
+     *
+     * @throws IllegalArgumentException if the
+     */
+    public int value() {
+      switch (this) {
+        case DEFLATE:
+          return DEFLATE_VALUE;
+        case STORED:
+          return STORED_VALUE;
+        default:
+          throw new IllegalArgumentException("Unknown compression method");
+      }
+    }
+  }
 }

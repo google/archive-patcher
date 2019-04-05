@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.InputStream;
@@ -170,7 +171,7 @@ class MinimalZipParser {
     }
     skipOrDie(in, 2 + 2); // Skip version stuff
     int generalPurposeFlags = read16BitUnsigned(in);
-    int compressionMethod = read16BitUnsigned(in);
+    CompressionMethod compressionMethod = CompressionMethod.fromValue(read16BitUnsigned(in));
     skipOrDie(in, 2 + 2); // Skip MSDOS junk
     long crc32OfUncompressedData = read32BitUnsigned(in);
     long compressedSize = read32BitUnsigned(in);
@@ -185,6 +186,14 @@ class MinimalZipParser {
     skipOrDie(in, extrasLength + commentLength);
     // General purpose flag bit 11 is an important hint for the character set used for file names.
     boolean generalPurposeFlagBit11 = (generalPurposeFlags & (0x1 << 10)) != 0;
+
+    // Some tools may list compression method deflate but set level to zero (store), so they will
+    // have a compressed size equal to the uncompresesd size. Don't consider such things to be
+    // compressed, even if they are "deflated".
+    if (compressionMethod == CompressionMethod.DEFLATE && compressedSize == uncompressedSize) {
+      compressionMethod = CompressionMethod.STORED;
+    }
+
     return MinimalZipEntry.builder()
         .compressionMethod(compressionMethod)
         .crc32OfUncompressedData(crc32OfUncompressedData)

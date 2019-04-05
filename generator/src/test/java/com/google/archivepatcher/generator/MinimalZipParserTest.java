@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.DEFLATE;
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.STORED;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.shared.UnitTestZipArchive;
@@ -167,9 +169,9 @@ public class MinimalZipParserTest {
       }
 
       if (expectedEntry.level > 0) {
-        assertThat(parsed.compressionMethod()).isEqualTo(8 /* deflate */);
+        assertThat(parsed.compressionMethod()).isEqualTo(DEFLATE);
       } else {
-        assertThat(parsed.compressionMethod()).isEqualTo(0 /* store */);
+        assertThat(parsed.compressionMethod()).isEqualTo(STORED);
       }
       byte[] uncompressedContent = expectedEntry.getUncompressedBinaryContent();
       assertThat(parsed.uncompressedSize()).isEqualTo(uncompressedContent.length);

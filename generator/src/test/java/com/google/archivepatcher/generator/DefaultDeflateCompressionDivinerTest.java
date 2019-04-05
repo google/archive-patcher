@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.DEFLATE;
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.STORED;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.DivinationResult;
@@ -121,14 +123,14 @@ public class DefaultDeflateCompressionDivinerTest {
         int expectedLevel = expected.level;
         if (expectedLevel > 0) {
           // Compressed entry
-          assertThat(actual.minimalZipEntry.isDeflateCompressed()).isTrue();
+          assertThat(actual.minimalZipEntry.compressionMethod()).isEqualTo(DEFLATE);
           assertThat(actual.divinedParameters).isNotNull();
           assertThat(actual.divinedParameters.level).isEqualTo(expectedLevel);
           assertThat(actual.divinedParameters.strategy).isEqualTo(0);
           assertThat(actual.divinedParameters.nowrap).isTrue();
         } else {
           // Uncompressed entry
-          assertThat(actual.minimalZipEntry.isDeflateCompressed()).isFalse();
+          assertThat(actual.minimalZipEntry.compressionMethod()).isEqualTo(STORED);
           assertThat(actual.divinedParameters).isNull();
         }
       }

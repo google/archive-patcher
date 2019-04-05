@@ -26,6 +26,9 @@ import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UN
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEITHER;
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_NEW;
 import static com.google.archivepatcher.generator.ZipEntryUncompressionOption.UNCOMPRESS_OLD;
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.DEFLATE;
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.STORED;
+import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.UNKNOWN;
 import static com.google.archivepatcher.shared.PatchConstants.DeltaFormat.BSDIFF;
 
 import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
@@ -282,13 +285,9 @@ class PreDiffPlanner {
    * @return true if unsuitable
    */
   private boolean unsuitable(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    if (oldEntry.compressionMethod() != 0 && !oldEntry.isDeflateCompressed()) {
+    if (oldEntry.compressionMethod() == UNKNOWN || newEntry.compressionMethod() == UNKNOWN) {
       // The old entry is compressed in a way that is not supported. It cannot be uncompressed, so
       // no uncompressed diff is possible; leave both old and new alone.
-      return true;
-    }
-    if (newEntry.compressionMethod() != 0 && !newEntry.isDeflateCompressed()) {
-      // The new entry is compressed in a way that is not supported. Same result as above.
       return true;
     }
     return false;
@@ -305,7 +304,7 @@ class PreDiffPlanner {
   private boolean unsuitableDeflate(MinimalZipEntry newEntry) {
     JreDeflateParameters newJreDeflateParameters =
         newArchiveJreDeflateParametersByPath.get(new ByteArrayHolder(newEntry.fileNameBytes()));
-    if (newEntry.isDeflateCompressed() && newJreDeflateParameters == null) {
+    if (newEntry.compressionMethod() == DEFLATE && newJreDeflateParameters == null) {
       // The new entry is compressed via deflate, but the parameters were undivinable. Therefore the
       // new entry cannot be recompressed, so leave both old and new alone.
       return true;
@@ -323,7 +322,7 @@ class PreDiffPlanner {
    * @return as described
    */
   private boolean bothEntriesUncompressed(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return oldEntry.compressionMethod() == 0 && newEntry.compressionMethod() == 0;
+    return oldEntry.compressionMethod() == STORED && newEntry.compressionMethod() == STORED;
   }
 
   /**
@@ -336,7 +335,7 @@ class PreDiffPlanner {
    */
   private boolean uncompressedChangedToCompressed(
       MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return oldEntry.compressionMethod() == 0 && newEntry.compressionMethod() != 0;
+    return oldEntry.compressionMethod() == STORED && newEntry.compressionMethod() != STORED;
   }
 
   /**
@@ -351,7 +350,7 @@ class PreDiffPlanner {
    */
   private boolean compressedChangedToUncompressed(
       MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return newEntry.compressionMethod() == 0 && oldEntry.compressionMethod() != 0;
+    return newEntry.compressionMethod() == STORED && oldEntry.compressionMethod() != STORED;
   }
 
   /**

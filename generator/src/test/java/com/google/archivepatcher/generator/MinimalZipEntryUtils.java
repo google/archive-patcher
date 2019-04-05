@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
+
 /** Utility class for testing with {@link MinimalZipEntry}. */
 public class MinimalZipEntryUtils {
 
@@ -26,7 +28,7 @@ public class MinimalZipEntryUtils {
    */
   public static MinimalZipEntry.Builder getFakeBuilder() {
     return MinimalZipEntry.builder()
-        .compressionMethod(0)
+        .compressionMethod(CompressionMethod.UNKNOWN)
         .crc32OfUncompressedData(0)
         .compressedSize(0)
         .uncompressedSize(0)

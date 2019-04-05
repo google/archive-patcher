@@ -18,6 +18,7 @@ import static com.google.archivepatcher.shared.bytesource.ByteStreams.readFully;
 
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
@@ -114,7 +115,7 @@ public class DefaultDeflateCompressionDiviner {
     List<DivinationResult> results = new ArrayList<>(zipEntries.size());
     for (MinimalZipEntry minimalZipEntry : zipEntries) {
       JreDeflateParameters divinedParameters = null;
-      if (minimalZipEntry.isDeflateCompressed()) {
+      if (minimalZipEntry.compressionMethod() == CompressionMethod.DEFLATE) {
         // Keep small entries in memory to avoid unnecessary file I/O.
         if (minimalZipEntry.compressedSize() < (100 * 1024)) {
           try {
