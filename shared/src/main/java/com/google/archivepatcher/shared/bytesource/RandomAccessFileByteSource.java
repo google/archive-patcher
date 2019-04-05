@@ -28,21 +28,13 @@ import java.util.Queue;
  * A {@link ByteSource} backed by a {@link RandomAccessFileInputStream}. This implementation is
  * created mainly for backwards compatibility.
  */
-public class RandomAccessFileByteSource extends ByteSource {
+public class RandomAccessFileByteSource extends FileByteSource {
 
-  private final File file;
-  private final long length;
   private final Queue<RandomAccessFileInputStream> unusedInputStreams = new ArrayDeque<>();
   private final List<RandomAccessFileInputStream> allInputStreams = new ArrayList<>();
 
   public RandomAccessFileByteSource(File file) throws IOException {
-    this.file = file;
-    this.length = file.length();
-  }
-
-  @Override
-  public long length() {
-    return length;
+    super(file);
   }
 
   @Override
@@ -55,7 +47,7 @@ public class RandomAccessFileByteSource extends ByteSource {
   private RandomAccessFileInputStream getUnusedStream() throws IOException {
     RandomAccessFileInputStream rafis = unusedInputStreams.poll();
     if (rafis == null) {
-      rafis = new RandomAccessFileInputStream(file);
+      rafis = new RandomAccessFileInputStream(getFile());
       allInputStreams.add(rafis);
     }
     return rafis;
@@ -66,14 +58,6 @@ public class RandomAccessFileByteSource extends ByteSource {
     for (RandomAccessFileInputStream inputStream : allInputStreams) {
       Closeables.closeQuietly(inputStream);
     }
-  }
-
-  /**
-   * Getter for the underlying file for cases where we absolutely needs it, e.g., passing file name
-   * to native API.
-   */
-  public File getFile() {
-    return file;
   }
 
   @Override

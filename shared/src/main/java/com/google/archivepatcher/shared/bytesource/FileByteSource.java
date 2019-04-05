@@ -14,32 +14,29 @@
 
 package com.google.archivepatcher.shared.bytesource;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
+import java.io.File;
 
-/** A {@link ByteSource} backed by a byte array. */
-public class ByteArrayByteSource extends ByteSource {
+/** A {@link ByteSource} backed by a {@link File}. */
+public abstract class FileByteSource extends ByteSource {
 
-  private final byte[] buffer;
+  private final File file;
+  private final long length;
 
-  public ByteArrayByteSource(byte[] buffer) {
-    this.buffer = Arrays.copyOf(buffer, buffer.length);
+  FileByteSource(File file) {
+    this.file = file;
+    this.length = file.length();
   }
 
   @Override
   public long length() {
-    return buffer.length;
+    return length;
   }
 
-  @Override
-  protected InputStream openStream(long offset, long length) throws IOException {
-    return new ByteArrayInputStream(buffer, (int) offset, (int) length);
-  }
-
-  @Override
-  public void close() throws IOException {
-    // Nothing needs to be done.
+  /**
+   * Getter for the underlying file for cases where we absolutely needs it, e.g., passing file name
+   * to native API.
+   */
+  public File getFile() {
+    return file;
   }
 }

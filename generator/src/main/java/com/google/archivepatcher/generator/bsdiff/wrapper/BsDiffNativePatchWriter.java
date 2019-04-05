@@ -15,7 +15,7 @@
 package com.google.archivepatcher.generator.bsdiff.wrapper;
 
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import com.google.archivepatcher.shared.bytesource.RandomAccessFileByteSource;
+import com.google.archivepatcher.shared.bytesource.FileByteSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,12 +54,9 @@ public class BsDiffNativePatchWriter {
    */
   public static void generatePatch(ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
       throws IOException {
-    if (oldBlob instanceof RandomAccessFileByteSource
-        && newBlob instanceof RandomAccessFileByteSource) {
+    if (oldBlob instanceof FileByteSource && newBlob instanceof FileByteSource) {
       generatePatch(
-          ((RandomAccessFileByteSource) oldBlob).getFile(),
-          ((RandomAccessFileByteSource) newBlob).getFile(),
-          deltaOut);
+          ((FileByteSource) oldBlob).getFile(), ((FileByteSource) newBlob).getFile(), deltaOut);
     } else {
       byte[] oldData = new byte[(int) oldBlob.length()];
       byte[] newData = new byte[(int) newBlob.length()];
