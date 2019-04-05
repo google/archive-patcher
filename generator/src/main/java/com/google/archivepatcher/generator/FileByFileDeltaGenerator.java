@@ -100,7 +100,7 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
         FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
         BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
       PreDiffPlan preDiffPlan =
-          generatePreDiffPlan(
+          generatePreDiffPlanAndPrepareBlobs(
               oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
       DeltaGenerator deltaGenerator = getDeltaGenerator();
       deltaGenerator.generateDelta(
@@ -123,17 +123,18 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
    * @param newFile the original new file to read (will not be modified)
    * @throws IOException if unable to complete the operation due to an I/O error
    */
-  public PreDiffPlan generatePreDiffPlan(File oldFile, File newFile) throws IOException {
+  public PreDiffPlan generatePreDiffPlanAndPrepareBlobs(File oldFile, File newFile)
+      throws IOException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
         TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
         ByteSource oldBlob = ByteSource.fromFile(oldFile);
         ByteSource newBlob = ByteSource.fromFile(newFile)) {
-      return generatePreDiffPlan(
+      return generatePreDiffPlanAndPrepareBlobs(
           oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
     }
   }
 
-  private PreDiffPlan generatePreDiffPlan(
+  private PreDiffPlan generatePreDiffPlanAndPrepareBlobs(
       ByteSource oldFile,
       ByteSource newFile,
       TempFileHolder deltaFriendlyOldFile,
