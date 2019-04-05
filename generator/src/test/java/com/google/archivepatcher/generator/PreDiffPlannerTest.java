@@ -37,7 +37,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -143,7 +143,7 @@ public class PreDiffPlannerTest {
     out.close();
     Map<ByteArrayHolder, MinimalZipEntry> entriesByPath = new HashMap<>();
     for (MinimalZipEntry zipEntry : MinimalZipArchive.listEntries(file)) {
-      ByteArrayHolder key = new ByteArrayHolder(zipEntry.getFileNameBytes());
+      ByteArrayHolder key = new ByteArrayHolder(zipEntry.fileNameBytes());
       entriesByPath.put(key, zipEntry);
     }
     entriesByPathByTempFile.put(file, entriesByPath);
@@ -160,11 +160,7 @@ public class PreDiffPlannerTest {
     Map<ByteArrayHolder, MinimalZipEntry> subMap = entriesByPathByTempFile.get(tempFile);
     assertWithMessage("temp file not mapped").that(subMap).isNotNull();
     ByteArrayHolder key;
-    try {
-      key = new ByteArrayHolder(unitTestEntry.path.getBytes("UTF8"));
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    key = new ByteArrayHolder(unitTestEntry.path.getBytes(StandardCharsets.UTF_8));
     return subMap.get(key);
   }
 
@@ -178,8 +174,7 @@ public class PreDiffPlannerTest {
   private TypedRange<Void> findRangeWithoutParams(File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return new TypedRange<Void>(
-        found.getFileOffsetOfCompressedData(), found.getCompressedSize(), null);
+    return new TypedRange<>(found.fileOffsetOfCompressedData(), found.compressedSize(), null);
   }
 
   /**
@@ -193,9 +188,9 @@ public class PreDiffPlannerTest {
       File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return new TypedRange<JreDeflateParameters>(
-        found.getFileOffsetOfCompressedData(),
-        found.getCompressedSize(),
+    return new TypedRange<>(
+        found.fileOffsetOfCompressedData(),
+        found.compressedSize(),
         JreDeflateParameters.of(unitTestEntry.level, 0, true));
   }
 
@@ -212,7 +207,7 @@ public class PreDiffPlannerTest {
         .isTrue();
     try (RandomAccessFile raf = new RandomAccessFile(tempFile, "rw")) {
       raf.seek(range.getOffset());
-      raf.write("junk".getBytes("UTF8"));
+      raf.write("junk".getBytes(StandardCharsets.UTF_8));
     }
   }
 
@@ -248,7 +243,10 @@ public class PreDiffPlannerTest {
               centralDirectoryMetadata.getLengthOfCentralDirectory() - sliceIn.available();
           long offsetToStartOfFile =
               centralDirectoryMetadata.getOffsetOfCentralDirectory() + offsetToStartOfCentralDir;
-          MinimalZipEntry candidate = MinimalZipParser.parseCentralDirectoryEntry(sliceIn);
+          MinimalZipEntry candidate =
+              MinimalZipParser.parseCentralDirectoryEntry(sliceIn)
+                  .fileOffsetOfCompressedData(-1)
+                  .build();
           if (candidate.getFileName().equals(unitTestEntry.path)) {
             // Located! Track offset and bail out.
             centralDirectoryRecordOffset = offsetToStartOfFile;
@@ -274,14 +272,14 @@ public class PreDiffPlannerTest {
       Set<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     Map<ByteArrayHolder, MinimalZipEntry> originalOldArchiveZipEntriesByPath =
-        new LinkedHashMap<ByteArrayHolder, MinimalZipEntry>();
+        new LinkedHashMap<>();
     Map<ByteArrayHolder, MinimalZipEntry> originalNewArchiveZipEntriesByPath =
-        new LinkedHashMap<ByteArrayHolder, MinimalZipEntry>();
+        new LinkedHashMap<>();
     Map<ByteArrayHolder, JreDeflateParameters> originalNewArchiveJreDeflateParametersByPath =
-        new LinkedHashMap<ByteArrayHolder, JreDeflateParameters>();
+        new LinkedHashMap<>();
 
     for (MinimalZipEntry zipEntry : MinimalZipArchive.listEntries(oldFile)) {
-      ByteArrayHolder key = new ByteArrayHolder(zipEntry.getFileNameBytes());
+      ByteArrayHolder key = new ByteArrayHolder(zipEntry.fileNameBytes());
       originalOldArchiveZipEntriesByPath.put(key, zipEntry);
     }
 
@@ -289,8 +287,7 @@ public class PreDiffPlannerTest {
         ByteSource newBlob = ByteSource.fromFile(newFile)) {
       for (DivinationResult divinationResult :
           DefaultDeflateCompressionDiviner.divineDeflateParameters(newBlob)) {
-        ByteArrayHolder key =
-            new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
+        ByteArrayHolder key = new ByteArrayHolder(divinationResult.minimalZipEntry.fileNameBytes());
       originalNewArchiveZipEntriesByPath.put(key, divinationResult.minimalZipEntry);
       originalNewArchiveJreDeflateParametersByPath.put(key, divinationResult.divinedParameters);
     }

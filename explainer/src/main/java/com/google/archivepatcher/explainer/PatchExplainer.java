@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /** Explains where the data in a patch would come from. */
 // TODO: Add explicit logic for renames
@@ -112,11 +113,11 @@ public class PatchExplainer {
     completelyNewEntries.keySet().removeAll(allOldEntries.keySet());
 
     // Now calculate the costs for the new files and track them in the explanations returned.
-    for (Map.Entry<ByteArrayHolder, MinimalZipEntry> entry : completelyNewEntries.entrySet()) {
+    for (Entry<ByteArrayHolder, MinimalZipEntry> entry : completelyNewEntries.entrySet()) {
       long compressedSize = getCompressedSize(newFile, entry.getValue(), compressor);
       result.add(
           EntryExplanation.forNew(
-              new ByteArrayHolder(entry.getValue().getFileNameBytes()), compressedSize));
+              new ByteArrayHolder(entry.getValue().fileNameBytes()), compressedSize));
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
@@ -141,21 +142,21 @@ public class PatchExplainer {
           // Patch size should be effectively zero.
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().fileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
                   preDiffPlanEntry.getUncompressionOptionExplanation()));
           continue;
         }
 
-        if (preDiffPlanEntry.getOldEntry().getCrc32OfUncompressedData()
-                == preDiffPlanEntry.getNewEntry().getCrc32OfUncompressedData()
-            && preDiffPlanEntry.getOldEntry().getUncompressedSize()
-                == preDiffPlanEntry.getNewEntry().getUncompressedSize()) {
+        if (preDiffPlanEntry.getOldEntry().crc32OfUncompressedData()
+                == preDiffPlanEntry.getNewEntry().crc32OfUncompressedData()
+            && preDiffPlanEntry.getOldEntry().uncompressedSize()
+                == preDiffPlanEntry.getNewEntry().uncompressedSize()) {
           // If the path, size and CRC32 are the same assume it's a match. Patch size should be
           // effectively zero.
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().fileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
                   preDiffPlanEntry.getUncompressionOptionExplanation()));
           continue;
@@ -170,8 +171,8 @@ public class PatchExplainer {
         // category.
 
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
-        long oldOffset = preDiffPlanEntry.getOldEntry().getFileOffsetOfCompressedData();
-        long oldLength = preDiffPlanEntry.getOldEntry().getCompressedSize();
+        long oldOffset = preDiffPlanEntry.getOldEntry().fileOffsetOfCompressedData();
+        long oldLength = preDiffPlanEntry.getOldEntry().compressedSize();
         if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressOldEntry) {
           uncompress(oldFile, oldOffset, oldLength, uncompressor, oldTemp.file);
         } else {
@@ -179,8 +180,8 @@ public class PatchExplainer {
         }
 
         // Get the inputs ready for running a delta: uncompress/copy the *new* content as necessary.
-        long newOffset = preDiffPlanEntry.getNewEntry().getFileOffsetOfCompressedData();
-        long newLength = preDiffPlanEntry.getNewEntry().getCompressedSize();
+        long newOffset = preDiffPlanEntry.getNewEntry().fileOffsetOfCompressedData();
+        long newLength = preDiffPlanEntry.getNewEntry().compressedSize();
         if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressNewEntry) {
           uncompress(newFile, newOffset, newLength, uncompressor, newTemp.file);
         } else {
@@ -197,7 +198,7 @@ public class PatchExplainer {
               getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getOldEntry().getFileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.getOldEntry().fileNameBytes()),
                   compressedDeltaSize,
                   preDiffPlanEntry.getUncompressionOptionExplanation()));
         }
@@ -218,7 +219,7 @@ public class PatchExplainer {
   private long getCompressedSize(File file, MinimalZipEntry entry, Compressor compressor)
       throws IOException {
     return getCompressedSize(
-        file, entry.getFileOffsetOfCompressedData(), entry.getCompressedSize(), compressor);
+        file, entry.fileOffsetOfCompressedData(), entry.compressedSize(), compressor);
   }
 
   /**
@@ -294,7 +295,7 @@ public class PatchExplainer {
     List<MinimalZipEntry> allEntries = MinimalZipArchive.listEntries(file);
     Map<ByteArrayHolder, MinimalZipEntry> result = new HashMap<>(allEntries.size());
     for (MinimalZipEntry entry : allEntries) {
-      result.put(new ByteArrayHolder(entry.getFileNameBytes()), entry);
+      result.put(new ByteArrayHolder(entry.fileNameBytes()), entry);
     }
     return result;
   }

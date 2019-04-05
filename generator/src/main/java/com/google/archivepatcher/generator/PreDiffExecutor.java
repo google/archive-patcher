@@ -237,7 +237,7 @@ public class PreDiffExecutor {
     Map<ByteArrayHolder, MinimalZipEntry> originalOldArchiveZipEntriesByPath =
         new HashMap<ByteArrayHolder, MinimalZipEntry>(originalOldArchiveZipEntries.size());
     for (MinimalZipEntry zipEntry : originalOldArchiveZipEntries) {
-      ByteArrayHolder key = new ByteArrayHolder(zipEntry.getFileNameBytes());
+      ByteArrayHolder key = new ByteArrayHolder(zipEntry.fileNameBytes());
       originalOldArchiveZipEntriesByPath.put(key, zipEntry);
     }
 
@@ -248,8 +248,7 @@ public class PreDiffExecutor {
     Map<ByteArrayHolder, JreDeflateParameters> originalNewArchiveJreDeflateParametersByPath =
         new HashMap<ByteArrayHolder, JreDeflateParameters>(divinationResults.size());
     for (DivinationResult divinationResult : divinationResults) {
-      ByteArrayHolder key =
-          new ByteArrayHolder(divinationResult.minimalZipEntry.getFileNameBytes());
+      ByteArrayHolder key = new ByteArrayHolder(divinationResult.minimalZipEntry.fileNameBytes());
       originalNewArchiveZipEntriesByPath.put(key, divinationResult.minimalZipEntry);
       originalNewArchiveJreDeflateParametersByPath.put(key, divinationResult.divinedParameters);
     }

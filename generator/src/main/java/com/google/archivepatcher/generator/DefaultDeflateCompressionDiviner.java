@@ -84,8 +84,8 @@ public class DefaultDeflateCompressionDiviner {
    * @return a list of results for each entry in the archive, in file order (not central directory
    *     order). There is exactly one result per entry, regardless of whether or not that entry is
    *     compressed. Callers can filter results by checking {@link
-   *     MinimalZipEntry#getCompressionMethod()} to see if the result is or is not compressed, and
-   *     by checking whether a non-null {@link JreDeflateParameters} was obtained.
+   *     MinimalZipEntry#compressionMethod()} to see if the result is or is not compressed, and by
+   *     checking whether a non-null {@link JreDeflateParameters} was obtained.
    * @throws IOException if unable to read or parse the file
    * @see DivinationResult
    */
@@ -103,8 +103,8 @@ public class DefaultDeflateCompressionDiviner {
    * @return a list of results for each entry in the archive, in file order (not central directory
    *     order). There is exactly one result per entry, regardless of whether or not that entry is
    *     compressed. Callers can filter results by checking {@link
-   *     MinimalZipEntry#getCompressionMethod()} to see if the result is or is not compressed, and
-   *     by checking whether a non-null {@link JreDeflateParameters} was obtained.
+   *     MinimalZipEntry#compressionMethod()} to see if the result is or is not compressed, and by
+   *     checking whether a non-null {@link JreDeflateParameters} was obtained.
    * @throws IOException if unable to read or parse the file
    * @see DivinationResult
    */
@@ -116,12 +116,12 @@ public class DefaultDeflateCompressionDiviner {
       JreDeflateParameters divinedParameters = null;
       if (minimalZipEntry.isDeflateCompressed()) {
         // Keep small entries in memory to avoid unnecessary file I/O.
-        if (minimalZipEntry.getCompressedSize() < (100 * 1024)) {
+        if (minimalZipEntry.compressedSize() < (100 * 1024)) {
           try {
-            byte[] compressedBytes = new byte[(int) minimalZipEntry.getCompressedSize()];
+            byte[] compressedBytes = new byte[(int) minimalZipEntry.compressedSize()];
             try (InputStream in =
                 archiveBlob
-                    .slice(minimalZipEntry.getFileOffsetOfCompressedData(), compressedBytes.length)
+                    .slice(minimalZipEntry.fileOffsetOfCompressedData(), compressedBytes.length)
                     .openStream()) {
               readFully(in, compressedBytes);
             }
@@ -132,8 +132,7 @@ public class DefaultDeflateCompressionDiviner {
         } else {
           try (ByteSource slice =
               archiveBlob.slice(
-                  minimalZipEntry.getFileOffsetOfCompressedData(),
-                  minimalZipEntry.getCompressedSize())) {
+                  minimalZipEntry.fileOffsetOfCompressedData(), minimalZipEntry.compressedSize())) {
             divinedParameters = divineDeflateParametersForEntry(slice);
           }
         }

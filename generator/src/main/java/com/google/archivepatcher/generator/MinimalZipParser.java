@@ -137,11 +137,14 @@ class MinimalZipParser {
 
   /**
    * Parse one central directory entry, starting at the current file position.
+   *
    * @param in the input stream to read from, assumed to start at the first byte of the entry
-   * @return the entry that was parsed
+   * @return the builder of the entry that was parsed since some data has to be populated after all
+   *     entries are collected.
    * @throws IOException if unable to complete the parsing
    */
-  public static MinimalZipEntry parseCentralDirectoryEntry(InputStream in) throws IOException {
+  public static MinimalZipEntry.Builder parseCentralDirectoryEntry(InputStream in)
+      throws IOException {
     // *** 4 bytes encode the CENTRAL_DIRECTORY_ENTRY_SIGNATURE, verify for sanity
     // 2 bytes encode the version-made-by, ignore
     // 2 bytes encode the version-needed-to-extract, ignore
@@ -182,14 +185,14 @@ class MinimalZipParser {
     skipOrDie(in, extrasLength + commentLength);
     // General purpose flag bit 11 is an important hint for the character set used for file names.
     boolean generalPurposeFlagBit11 = (generalPurposeFlags & (0x1 << 10)) != 0;
-    return new MinimalZipEntry(
-        compressionMethod,
-        crc32OfUncompressedData,
-        compressedSize,
-        uncompressedSize,
-        fileNameBuffer,
-        generalPurposeFlagBit11,
-        fileOffsetOfLocalEntry);
+    return MinimalZipEntry.builder()
+        .compressionMethod(compressionMethod)
+        .crc32OfUncompressedData(crc32OfUncompressedData)
+        .compressedSize(compressedSize)
+        .uncompressedSize(uncompressedSize)
+        .fileNameBytes(fileNameBuffer)
+        .generalPurposeFlagBit11(generalPurposeFlagBit11)
+        .fileOffsetOfLocalEntry(fileOffsetOfLocalEntry);
   }
 
   /**

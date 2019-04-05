@@ -33,16 +33,11 @@ import java.util.zip.ZipException;
 public class MinimalZipArchive {
 
   /**
-   * Sorts {@link MinimalZipEntry} objects by {@link MinimalZipEntry#getFileOffsetOfLocalEntry()} in
+   * Sorts {@link MinimalZipEntry} objects by {@link MinimalZipEntry#fileOffsetOfLocalEntry()} in
    * ascending order.
    */
-  private static final Comparator<MinimalZipEntry> LOCAL_ENTRY_OFFSET_COMAPRATOR =
-      new Comparator<MinimalZipEntry>() {
-        @Override
-        public int compare(MinimalZipEntry o1, MinimalZipEntry o2) {
-          return Long.compare(o1.getFileOffsetOfLocalEntry(), o2.getFileOffsetOfLocalEntry());
-        }
-      };
+  private static final Comparator<MinimalZipEntry.Builder> LOCAL_ENTRY_OFFSET_COMAPRATOR =
+      (o1, o2) -> Long.compare(o1.fileOffsetOfLocalEntry(), o2.fileOffsetOfLocalEntry());
 
   /**
    * Generate a listing of all of the files in a zip archive in file order and return it. Each entry
@@ -80,7 +75,7 @@ public class MinimalZipArchive {
     }
 
     // Step 3: Extract a list of all central directory entries (contiguous data stream)
-    List<MinimalZipEntry> minimalZipEntries =
+    List<MinimalZipEntry.Builder> partialMinimalZipEntries =
         new ArrayList<>(centralDirectoryMetadata.getNumEntriesInCentralDirectory());
     try (InputStream inputStream =
         data.slice(
@@ -88,31 +83,34 @@ public class MinimalZipArchive {
                 centralDirectoryMetadata.getLengthOfCentralDirectory())
             .openStream()) {
       for (int x = 0; x < centralDirectoryMetadata.getNumEntriesInCentralDirectory(); x++) {
-        minimalZipEntries.add(MinimalZipParser.parseCentralDirectoryEntry(inputStream));
+        partialMinimalZipEntries.add(MinimalZipParser.parseCentralDirectoryEntry(inputStream));
       }
     }
 
     // Step 4: Sort the entries in file order, not central directory order.
-    Collections.sort(minimalZipEntries, LOCAL_ENTRY_OFFSET_COMAPRATOR);
+    Collections.sort(partialMinimalZipEntries, LOCAL_ENTRY_OFFSET_COMAPRATOR);
 
     // Step 5: Seek out each local entry and calculate the offset of the compressed data within
-    for (int x = 0; x < minimalZipEntries.size(); x++) {
-      MinimalZipEntry entry = minimalZipEntries.get(x);
+    List<MinimalZipEntry> minimalZipEntries = new ArrayList<>(partialMinimalZipEntries.size());
+    for (int x = 0; x < partialMinimalZipEntries.size(); x++) {
+      MinimalZipEntry.Builder entryBuilder = partialMinimalZipEntries.get(x);
       long offsetOfNextEntry;
-      if (x < minimalZipEntries.size() - 1) {
+      if (x < partialMinimalZipEntries.size() - 1) {
         // Don't allow reading past the start of the next entry, for sanity.
-        offsetOfNextEntry = minimalZipEntries.get(x + 1).getFileOffsetOfLocalEntry();
+        offsetOfNextEntry = partialMinimalZipEntries.get(x + 1).fileOffsetOfLocalEntry();
       } else {
         // Last entry. Don't allow reading into the central directory, for sanity.
         offsetOfNextEntry = centralDirectoryMetadata.getOffsetOfCentralDirectory();
       }
-      long rangeLength = offsetOfNextEntry - entry.getFileOffsetOfLocalEntry();
+      long rangeLength = offsetOfNextEntry - entryBuilder.fileOffsetOfLocalEntry();
       try (InputStream inputStream =
-          data.slice(entry.getFileOffsetOfLocalEntry(), rangeLength).openStream()) {
+          data.slice(entryBuilder.fileOffsetOfLocalEntry(), rangeLength).openStream()) {
         long relativeDataOffset =
             MinimalZipParser.parseLocalEntryAndGetCompressedDataOffset(inputStream);
-        entry.setFileOffsetOfCompressedData(entry.getFileOffsetOfLocalEntry() + relativeDataOffset);
+        entryBuilder.fileOffsetOfCompressedData(
+            entryBuilder.fileOffsetOfLocalEntry() + relativeDataOffset);
       }
+      minimalZipEntries.add(entryBuilder.build());
     }
 
     // Done!

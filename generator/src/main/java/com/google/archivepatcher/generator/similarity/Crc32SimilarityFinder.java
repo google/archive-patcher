@@ -44,7 +44,7 @@ public class Crc32SimilarityFinder extends SimilarityFinder {
   public Crc32SimilarityFinder(ByteSource baseArchive, Collection<MinimalZipEntry> baseEntries) {
     super(baseArchive, baseEntries);
     for (MinimalZipEntry oldEntry : baseEntries) {
-      long crc32 = oldEntry.getCrc32OfUncompressedData();
+      long crc32 = oldEntry.crc32OfUncompressedData();
       List<MinimalZipEntry> entriesForCrc32 = baseEntriesByCrc32.get(crc32);
       if (entriesForCrc32 == null) {
         entriesForCrc32 = new ArrayList<>();
@@ -57,7 +57,7 @@ public class Crc32SimilarityFinder extends SimilarityFinder {
   @Override
   public List<MinimalZipEntry> findSimilarFiles(ByteSource newArchive, MinimalZipEntry newEntry) {
     List<MinimalZipEntry> matchedEntries =
-        baseEntriesByCrc32.get(newEntry.getCrc32OfUncompressedData());
+        baseEntriesByCrc32.get(newEntry.crc32OfUncompressedData());
     if (matchedEntries == null) {
       return Collections.emptyList();
     }

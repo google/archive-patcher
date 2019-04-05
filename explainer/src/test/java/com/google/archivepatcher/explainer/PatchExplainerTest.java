@@ -342,15 +342,15 @@ public class PatchExplainerTest {
 
     // Corrupt the data in newFile and re-save. This will make the entry un-divinable.
     MinimalZipEntry newEntry = MinimalZipArchive.listEntries(newFile).get(0);
-    newBytes[(int) newEntry.getFileOffsetOfCompressedData()] = (byte) 0xff;
+    newBytes[(int) newEntry.fileOffsetOfCompressedData()] = (byte) 0xff;
     save(newBytes, newFile);
-    byte[] justNewData = new byte[(int) newEntry.getCompressedSize()];
+    byte[] justNewData = new byte[(int) newEntry.compressedSize()];
     System.arraycopy(
         newBytes,
-        (int) newEntry.getFileOffsetOfCompressedData(),
+        (int) newEntry.fileOffsetOfCompressedData(),
         justNewData,
         0,
-        (int) newEntry.getCompressedSize());
+        (int) newEntry.compressedSize());
 
     FakeDeltaGenerator fakeDeltaGenerator =
         new FakeDeltaGenerator(ENTRY_A1_STORED.getUncompressedBinaryContent(), justNewData);

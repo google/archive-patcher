@@ -153,30 +153,31 @@ public class MinimalZipParserTest {
         .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
-    // MinimalZipEntry.getFileOffsetOfCompressedData(), as that has yet to be computed.
+    // MinimalZipEntry.fileOffsetOfCompressedData(), as that has yet to be computed.
     for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.allEntriesInFileOrder) {
-      MinimalZipEntry parsed = MinimalZipParser.parseCentralDirectoryEntry(in);
+      MinimalZipEntry parsed =
+          MinimalZipParser.parseCentralDirectoryEntry(in).fileOffsetOfCompressedData(-1).build();
       assertThat(parsed.getFileName()).isEqualTo(expectedEntry.path);
 
       // Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
-        byte actualByte = unitTestZipArchive[((int) parsed.getFileOffsetOfLocalEntry()) + index];
+        byte actualByte = unitTestZipArchive[((int) parsed.fileOffsetOfLocalEntry()) + index];
         assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
       if (expectedEntry.level > 0) {
-        assertThat(parsed.getCompressionMethod()).isEqualTo(8 /* deflate */);
+        assertThat(parsed.compressionMethod()).isEqualTo(8 /* deflate */);
       } else {
-        assertThat(parsed.getCompressionMethod()).isEqualTo(0 /* store */);
+        assertThat(parsed.compressionMethod()).isEqualTo(0 /* store */);
       }
       byte[] uncompressedContent = expectedEntry.getUncompressedBinaryContent();
-      assertThat(parsed.getUncompressedSize()).isEqualTo(uncompressedContent.length);
+      assertThat(parsed.uncompressedSize()).isEqualTo(uncompressedContent.length);
       CRC32 crc32 = new CRC32();
       crc32.update(uncompressedContent);
-      assertThat(parsed.getCrc32OfUncompressedData()).isEqualTo(crc32.getValue());
+      assertThat(parsed.crc32OfUncompressedData()).isEqualTo(crc32.getValue());
       byte[] compressedContent = expectedEntry.getCompressedBinaryContent();
-      assertThat(parsed.getCompressedSize()).isEqualTo(compressedContent.length);
+      assertThat(parsed.compressedSize()).isEqualTo(compressedContent.length);
     }
   }
 
@@ -192,23 +193,23 @@ public class MinimalZipParserTest {
         .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
-    // MinimalZipEntry.getFileOffsetOfCompressedData(), as that has yet to be computed.
-    List<MinimalZipEntry> parsedEntries = new ArrayList<MinimalZipEntry>();
+    // MinimalZipEntry.fileOffsetOfCompressedData(), as that has yet to be computed.
+    List<MinimalZipEntry.Builder> parsedEntryBuilders = new ArrayList<>();
     for (int x = 0; x < UnitTestZipArchive.allEntriesInFileOrder.size(); x++) {
-      parsedEntries.add(MinimalZipParser.parseCentralDirectoryEntry(in));
+      parsedEntryBuilders.add(MinimalZipParser.parseCentralDirectoryEntry(in));
     }
 
     for (int x = 0; x < UnitTestZipArchive.allEntriesInFileOrder.size(); x++) {
       UnitTestZipEntry expectedEntry = UnitTestZipArchive.allEntriesInFileOrder.get(x);
-      MinimalZipEntry parsedEntry = parsedEntries.get(x);
+      MinimalZipEntry.Builder parsedEntryBuilder = parsedEntryBuilders.get(x);
       in.reset();
-      assertThat(in.skip(parsedEntry.getFileOffsetOfLocalEntry()))
-          .isEqualTo(parsedEntry.getFileOffsetOfLocalEntry());
+      assertThat(in.skip(parsedEntryBuilder.fileOffsetOfLocalEntry()))
+          .isEqualTo(parsedEntryBuilder.fileOffsetOfLocalEntry());
       long relativeDataOffset = MinimalZipParser.parseLocalEntryAndGetCompressedDataOffset(in);
       assertThat(relativeDataOffset > 0).isTrue();
       checkExpectedBytes(
           expectedEntry.getCompressedBinaryContent(),
-          (int) (parsedEntry.getFileOffsetOfLocalEntry() + relativeDataOffset));
+          (int) (parsedEntryBuilder.fileOffsetOfLocalEntry() + relativeDataOffset));
     }
   }
 }

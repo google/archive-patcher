@@ -124,17 +124,17 @@ class PreDiffPlanner {
     Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
     for (PreDiffPlanEntry entry : defaultEntries) {
       if (entry.getZipEntryUncompressionOption().uncompressOldEntry) {
-        long offset = entry.getOldEntry().getFileOffsetOfCompressedData();
-        long length = entry.getOldEntry().getCompressedSize();
+        long offset = entry.getOldEntry().fileOffsetOfCompressedData();
+        long length = entry.getOldEntry().compressedSize();
         TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
         oldFilePlan.add(range);
       }
       if (entry.getZipEntryUncompressionOption().uncompressNewEntry) {
-        long offset = entry.getNewEntry().getFileOffsetOfCompressedData();
-        long length = entry.getNewEntry().getCompressedSize();
+        long offset = entry.getNewEntry().fileOffsetOfCompressedData();
+        long length = entry.getNewEntry().compressedSize();
         JreDeflateParameters newJreDeflateParameters =
             newArchiveJreDeflateParametersByPath.get(
-                new ByteArrayHolder(entry.getNewEntry().getFileNameBytes()));
+                new ByteArrayHolder(entry.getNewEntry().fileNameBytes()));
         TypedRange<JreDeflateParameters> range =
             new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
         newFilePlan.add(range);
@@ -267,12 +267,12 @@ class PreDiffPlanner {
    * @return true if unsuitable
    */
   private boolean unsuitable(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    if (oldEntry.getCompressionMethod() != 0 && !oldEntry.isDeflateCompressed()) {
+    if (oldEntry.compressionMethod() != 0 && !oldEntry.isDeflateCompressed()) {
       // The old entry is compressed in a way that is not supported. It cannot be uncompressed, so
       // no uncompressed diff is possible; leave both old and new alone.
       return true;
     }
-    if (newEntry.getCompressionMethod() != 0 && !newEntry.isDeflateCompressed()) {
+    if (newEntry.compressionMethod() != 0 && !newEntry.isDeflateCompressed()) {
       // The new entry is compressed in a way that is not supported. Same result as above.
       return true;
     }
@@ -289,7 +289,7 @@ class PreDiffPlanner {
    */
   private boolean unsuitableDeflate(MinimalZipEntry newEntry) {
     JreDeflateParameters newJreDeflateParameters =
-        newArchiveJreDeflateParametersByPath.get(new ByteArrayHolder(newEntry.getFileNameBytes()));
+        newArchiveJreDeflateParametersByPath.get(new ByteArrayHolder(newEntry.fileNameBytes()));
     if (newEntry.isDeflateCompressed() && newJreDeflateParameters == null) {
       // The new entry is compressed via deflate, but the parameters were undivinable. Therefore the
       // new entry cannot be recompressed, so leave both old and new alone.
@@ -308,7 +308,7 @@ class PreDiffPlanner {
    * @return as described
    */
   private boolean bothEntriesUncompressed(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return oldEntry.getCompressionMethod() == 0 && newEntry.getCompressionMethod() == 0;
+    return oldEntry.compressionMethod() == 0 && newEntry.compressionMethod() == 0;
   }
 
   /**
@@ -321,7 +321,7 @@ class PreDiffPlanner {
    */
   private boolean uncompressedChangedToCompressed(
       MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return oldEntry.getCompressionMethod() == 0 && newEntry.getCompressionMethod() != 0;
+    return oldEntry.compressionMethod() == 0 && newEntry.compressionMethod() != 0;
   }
 
   /**
@@ -336,7 +336,7 @@ class PreDiffPlanner {
    */
   private boolean compressedChangedToUncompressed(
       MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
-    return newEntry.getCompressionMethod() == 0 && oldEntry.getCompressionMethod() != 0;
+    return newEntry.compressionMethod() == 0 && oldEntry.compressionMethod() != 0;
   }
 
   /**
@@ -351,20 +351,20 @@ class PreDiffPlanner {
    */
   private boolean compressedBytesIdentical(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
-    if (oldEntry.getCompressedSize() != newEntry.getCompressedSize()) {
+    if (oldEntry.compressedSize() != newEntry.compressedSize()) {
       // Length is not the same, so content cannot match.
       return false;
     }
     try (InputStream oldFileInputStream =
-            oldFile.sliceFrom(oldEntry.getFileOffsetOfCompressedData()).openStream();
+            oldFile.sliceFrom(oldEntry.fileOffsetOfCompressedData()).openStream();
         BufferedInputStream oldFileBufferedInputStream =
             new BufferedInputStream(oldFileInputStream);
         InputStream newFileInputStream =
-            newFile.sliceFrom(newEntry.getFileOffsetOfCompressedData()).openStream();
+            newFile.sliceFrom(newEntry.fileOffsetOfCompressedData()).openStream();
         BufferedInputStream newFileBufferedInputStream =
             new BufferedInputStream(newFileInputStream)) {
 
-      for (int i = 0; i < oldEntry.getCompressedSize(); ++i) {
+      for (int i = 0; i < oldEntry.compressedSize(); ++i) {
         if (oldFileBufferedInputStream.read() != newFileBufferedInputStream.read()) {
           return false;
         }

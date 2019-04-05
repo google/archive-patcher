@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.MinimalZipEntryUtils.getFakeBuilder;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesChanged;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -32,8 +33,8 @@ import org.junit.runners.JUnit4;
 public class PreDiffPlanEntryTest {
   private static final byte[] FILENAME1 = {'f', 'o', 'o'};
   private static final byte[] FILENAME2 = {'b', 'a', 'r'};
-  private static final MinimalZipEntry ENTRY1 = new MinimalZipEntry(0, 1, 2, 3, FILENAME1, true, 0);
-  private static final MinimalZipEntry ENTRY2 = new MinimalZipEntry(1, 2, 3, 4, FILENAME2, true, 0);
+  private static final MinimalZipEntry ENTRY1 = getFakeBuilder().fileNameBytes(FILENAME1).build();
+  private static final MinimalZipEntry ENTRY2 = getFakeBuilder().fileNameBytes(FILENAME2).build();
 
   private static final PreDiffPlanEntry DEFAULT_QUALIFIED_RECOMMENDATION =
       builderWithCompressedBytesChanged().setZipEntries(ENTRY1, ENTRY2).build();

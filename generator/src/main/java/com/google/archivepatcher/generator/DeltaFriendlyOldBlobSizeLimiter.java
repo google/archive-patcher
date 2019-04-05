@@ -77,8 +77,8 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
         result.add(originalEntry);
       } else {
         long extraBytesConsumed =
-            originalEntry.getOldEntry().getUncompressedSize()
-                - originalEntry.getOldEntry().getCompressedSize();
+            originalEntry.getOldEntry().uncompressedSize()
+                - originalEntry.getOldEntry().compressedSize();
         if (bytesRemaining - extraBytesConsumed >= 0) {
           // Keep the original entry, but also subtract from the remaining space.
           result.add(originalEntry);
@@ -111,8 +111,7 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
   private static class UncompressedOldEntrySizeComparator implements Comparator<PreDiffPlanEntry> {
     @Override
     public int compare(PreDiffPlanEntry e1, PreDiffPlanEntry e2) {
-      return Long.compare(
-          e1.getOldEntry().getUncompressedSize(), e2.getOldEntry().getUncompressedSize());
+      return Long.compare(e1.getOldEntry().uncompressedSize(), e2.getOldEntry().uncompressedSize());
     }
   }
 }

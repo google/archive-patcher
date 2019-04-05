@@ -78,31 +78,30 @@ public class MinimalZipArchiveTest {
       UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);
       MinimalZipEntry actual = parsedEntries.get(x);
       assertThat(actual.getFileName()).isEqualTo(expected.path);
-      assertThat(actual.getCompressionMethod()).isEqualTo(expected.level == 0 ? 0 : 8);
-      assertThat(actual.getCompressedSize())
-          .isEqualTo(expected.getCompressedBinaryContent().length);
-      assertThat(actual.getUncompressedSize())
+      assertThat(actual.compressionMethod()).isEqualTo(expected.level == 0 ? 0 : 8);
+      assertThat(actual.compressedSize()).isEqualTo(expected.getCompressedBinaryContent().length);
+      assertThat(actual.uncompressedSize())
           .isEqualTo(expected.getUncompressedBinaryContent().length);
-      assertThat(actual.getGeneralPurposeFlagBit11()).isFalse();
+      assertThat(actual.generalPurposeFlagBit11()).isFalse();
       CRC32 crc32 = new CRC32();
       crc32.update(expected.getUncompressedBinaryContent());
-      assertThat(actual.getCrc32OfUncompressedData()).isEqualTo(crc32.getValue());
+      assertThat(actual.crc32OfUncompressedData()).isEqualTo(crc32.getValue());
 
       // Offset verification is a little trickier
       // 1. Verify that the offsets are in ascending order and increasing.
-      assertThat(actual.getFileOffsetOfLocalEntry()).isGreaterThan(lastSeenHeaderOffset);
-      lastSeenHeaderOffset = actual.getFileOffsetOfLocalEntry();
+      assertThat(actual.fileOffsetOfLocalEntry()).isGreaterThan(lastSeenHeaderOffset);
+      lastSeenHeaderOffset = actual.fileOffsetOfLocalEntry();
 
       // 2. Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
-        byte actualByte = unitTestZipArchive[((int) actual.getFileOffsetOfLocalEntry()) + index];
+        byte actualByte = unitTestZipArchive[((int) actual.fileOffsetOfLocalEntry()) + index];
         assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
       // 3. Verify that the data is at the calculated position
       byte[] expectedContent = expected.getCompressedBinaryContent();
-      int calculatedDataOffset = (int) actual.getFileOffsetOfCompressedData();
+      int calculatedDataOffset = (int) actual.fileOffsetOfCompressedData();
       for (int index = 0; index < expectedContent.length; index++) {
         assertThat(unitTestZipArchive[calculatedDataOffset + index])
             .isEqualTo(expectedContent[index]);
