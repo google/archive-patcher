@@ -37,26 +37,26 @@ public class PreDiffPlanEntryTest {
   private static final MinimalZipEntry ENTRY2 = getFakeBuilder().fileNameBytes(FILENAME2).build();
 
   private static final PreDiffPlanEntry DEFAULT_QUALIFIED_RECOMMENDATION =
-      builderWithCompressedBytesChanged().setZipEntries(ENTRY1, ENTRY2).build();
+      builderWithCompressedBytesChanged().oldEntry(ENTRY1).newEntry(ENTRY2).build();
   private static final PreDiffPlanEntry CLONED_DEFAULT_QUALIFIED_RECOMMENDATION =
       DEFAULT_QUALIFIED_RECOMMENDATION.toBuilder().build();
   private static final PreDiffPlanEntry ALTERED_ENTRY1 =
-      builderWithCompressedBytesChanged().setZipEntries(ENTRY2, ENTRY2).build();
+      builderWithCompressedBytesChanged().oldEntry(ENTRY2).newEntry(ENTRY2).build();
   private static final PreDiffPlanEntry ALTERED_ENTRY2 =
-      builderWithCompressedBytesChanged().setZipEntries(ENTRY1, ENTRY1).build();
+      builderWithCompressedBytesChanged().oldEntry(ENTRY1).newEntry(ENTRY1).build();
   private static final PreDiffPlanEntry ALTERED_RECOMMENDATION =
       PreDiffPlanEntry.builder()
-          .setZipEntries(ENTRY1, ENTRY2)
-          .setUncompressionOption(
-              ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-              UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED)
+          .oldEntry(ENTRY1)
+          .newEntry(ENTRY2)
+          .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+          .uncompressionOptionExplanation(UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED)
           .build();
   private static final PreDiffPlanEntry ALTERED_REASON =
       PreDiffPlanEntry.builder()
-          .setZipEntries(ENTRY1, ENTRY2)
-          .setUncompressionOption(
-              ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-              UncompressionOptionExplanation.UNSUITABLE)
+          .oldEntry(ENTRY1)
+          .newEntry(ENTRY2)
+          .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_BOTH)
+          .uncompressionOptionExplanation(UncompressionOptionExplanation.UNSUITABLE)
           .build();
   private static final List<PreDiffPlanEntry> ALL_MUTATIONS =
       Collections.unmodifiableList(
@@ -88,11 +88,11 @@ public class PreDiffPlanEntryTest {
 
   @Test
   public void testGetters() {
-    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getOldEntry()).isEqualTo(ENTRY1);
-    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getNewEntry()).isEqualTo(ENTRY2);
-    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getZipEntryUncompressionOption())
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.oldEntry()).isEqualTo(ENTRY1);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.newEntry()).isEqualTo(ENTRY2);
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.zipEntryUncompressionOption())
         .isEqualTo(ZipEntryUncompressionOption.UNCOMPRESS_BOTH);
-    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.getUncompressionOptionExplanation())
+    assertThat(DEFAULT_QUALIFIED_RECOMMENDATION.uncompressionOptionExplanation())
         .isEqualTo(UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
   }
 }

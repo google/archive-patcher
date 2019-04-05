@@ -90,8 +90,8 @@ public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
     List<PreDiffPlanEntry> result = new ArrayList<>(sorted.size());
     long recompressibleBytesRemaining = maxBytesToRecompress;
     for (PreDiffPlanEntry originalEntry : sorted) {
-      if (originalEntry.getZipEntryUncompressionOption().uncompressNewEntry) {
-        long bytesToRecompress = originalEntry.getNewEntry().uncompressedSize();
+      if (originalEntry.zipEntryUncompressionOption().uncompressNewEntry) {
+        long bytesToRecompress = originalEntry.newEntry().uncompressedSize();
         if (recompressibleBytesRemaining - bytesToRecompress >= 0) {
           // Keep the original entry, but also subtract from the remaining space.
           result.add(originalEntry);
@@ -100,8 +100,8 @@ public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
           // Update the entry to prevent uncompressing this tuple.
           result.add(
               originalEntry.toBuilder()
-                  .setUncompressionOption(
-                      ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                  .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+                  .uncompressionOptionExplanation(
                       UncompressionOptionExplanation.RESOURCE_CONSTRAINED)
                   .build());
         }
@@ -117,7 +117,7 @@ public class TotalRecompressionLimiter implements PreDiffPlanEntryModifier {
   private static class UncompressedNewEntrySizeComparator implements Comparator<PreDiffPlanEntry> {
     @Override
     public int compare(PreDiffPlanEntry e1, PreDiffPlanEntry e2) {
-      return Long.compare(e1.getNewEntry().uncompressedSize(), e2.getNewEntry().uncompressedSize());
+      return Long.compare(e1.newEntry().uncompressedSize(), e2.newEntry().uncompressedSize());
     }
   }
 }

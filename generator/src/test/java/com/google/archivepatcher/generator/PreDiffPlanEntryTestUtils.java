@@ -26,8 +26,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithCompressedToUncompressed() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_OLD,
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_OLD)
+        .uncompressionOptionExplanation(
             UncompressionOptionExplanation.COMPRESSED_CHANGED_TO_UNCOMPRESSED);
   }
 
@@ -37,8 +37,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithUncompressedToCompressed() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_NEW,
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEW)
+        .uncompressionOptionExplanation(
             UncompressionOptionExplanation.UNCOMPRESSED_CHANGED_TO_COMPRESSED);
   }
 
@@ -48,9 +48,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithCompressedBytesIdentical() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
   }
 
   /**
@@ -59,9 +58,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithBothEntriesUncompressed() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED);
   }
 
   /**
@@ -70,9 +68,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithUnsuitable() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.UNSUITABLE);
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.UNSUITABLE);
   }
 
   /**
@@ -81,9 +78,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithDeflateUnsuitable() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
-            UncompressionOptionExplanation.DEFLATE_UNSUITABLE);
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.DEFLATE_UNSUITABLE);
   }
 
   /**
@@ -92,9 +88,8 @@ public class PreDiffPlanEntryTestUtils {
    */
   public static PreDiffPlanEntry.Builder builderWithCompressedBytesChanged() {
     return PreDiffPlanEntry.builder()
-        .setUncompressionOption(
-            ZipEntryUncompressionOption.UNCOMPRESS_BOTH,
-            UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
+        .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_BOTH)
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED);
   }
 
   /**
@@ -109,8 +104,8 @@ public class PreDiffPlanEntryTestUtils {
         .map(
             originalEntry ->
                 originalEntry.toBuilder()
-                    .setUncompressionOption(
-                        ZipEntryUncompressionOption.UNCOMPRESS_NEITHER,
+                    .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
+                    .uncompressionOptionExplanation(
                         UncompressionOptionExplanation.RESOURCE_CONSTRAINED)
                     .build())
         .collect(Collectors.toList());

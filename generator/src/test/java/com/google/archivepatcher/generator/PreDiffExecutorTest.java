@@ -174,8 +174,8 @@ public class PreDiffExecutorTest {
     assertThat(newFile.length()).isLessThan(deltaFriendlyNewFile.length());
 
     assertThat(plan.getPreDiffPlanEntries()).hasSize(1);
-    assertThat(plan.getPreDiffPlanEntries().get(0).getDeltaFormat()).isEqualTo(DeltaFormat.BSDIFF);
-    assertThat(plan.getPreDiffPlanEntries().get(0).getDeltaFormatExplanation())
+    assertThat(plan.getPreDiffPlanEntries().get(0).deltaFormat()).isEqualTo(DeltaFormat.BSDIFF);
+    assertThat(plan.getPreDiffPlanEntries().get(0).deltaFormatExplanation())
         .isEqualTo(DeltaFormatExplanation.DEFAULT);
 
     // Nitty-gritty, assert that the file content is exactly what is expected.

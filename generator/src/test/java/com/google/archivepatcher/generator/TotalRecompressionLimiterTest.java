@@ -57,25 +57,25 @@ public class TotalRecompressionLimiterTest {
   // mix of UNCOMPRESS_NEW and UNCOMPRESS_BOTH, both of which will have the "new" entry flagged for
   // recompression (i.e., should be relevant to the filtering logic).
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_A_100K =
-      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_A_100K).build();
+      builderWithCompressedBytesChanged().oldEntry(UNIMPORTANT).newEntry(ENTRY_A_100K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_B_200K =
-      builderWithUncompressedToCompressed().setZipEntries(UNIMPORTANT, ENTRY_B_200K).build();
+      builderWithUncompressedToCompressed().oldEntry(UNIMPORTANT).newEntry(ENTRY_B_200K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_C_300K =
-      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_C_300K).build();
+      builderWithCompressedBytesChanged().oldEntry(UNIMPORTANT).newEntry(ENTRY_C_300K).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_D_400K =
-      builderWithCompressedBytesChanged().setZipEntries(UNIMPORTANT, ENTRY_D_400K).build();
+      builderWithCompressedBytesChanged().oldEntry(UNIMPORTANT).newEntry(ENTRY_D_400K).build();
 
   // Remaining entries are all ones where recompression is NOT required. Note the mixture of
   // UNCOMPRESS_NEITHER and UNCOMPRESS_OLD, neither of which will have the "new" entry flagged for
   // recompression (ie., must be ignored by the filtering logic).
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_A_UNCHANGED =
-      builderWithCompressedBytesIdentical().setZipEntries(UNIMPORTANT, IGNORED_A).build();
+      builderWithCompressedBytesIdentical().oldEntry(UNIMPORTANT).newEntry(IGNORED_A).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_B_BOTH_UNCOMPRESSED =
-      builderWithBothEntriesUncompressed().setZipEntries(UNIMPORTANT, IGNORED_B).build();
+      builderWithBothEntriesUncompressed().oldEntry(UNIMPORTANT).newEntry(IGNORED_B).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_C_UNSUITABLE =
-      builderWithUnsuitable().setZipEntries(UNIMPORTANT, IGNORED_C).build();
+      builderWithUnsuitable().oldEntry(UNIMPORTANT).newEntry(IGNORED_C).build();
   private static final PreDiffPlanEntry PRE_DIFF_PLAN_ENTRY_IGNORED_D_CHANGED_TO_UNCOMPRESSED =
-      builderWithCompressedToUncompressed().setZipEntries(UNIMPORTANT, IGNORED_D).build();
+      builderWithCompressedToUncompressed().oldEntry(UNIMPORTANT).newEntry(IGNORED_D).build();
 
   /** Convenience reference to all the entries that should be ignored by filtering. */
   private static final List<PreDiffPlanEntry> ALL_IGNORED_PRE_DIFF_PLAN_ENTRIES =
@@ -152,8 +152,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_ExactlySmallest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_A_100K.getNewEntry().uncompressedSize(); // Exactly large enough
+    long limit = PRE_DIFF_PLAN_ENTRY_A_100K.newEntry().uncompressedSize(); // Exactly large enough
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_A_100K);
@@ -167,8 +166,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_EdgeUnderSmallest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_A_100K.getNewEntry().uncompressedSize() - 1; // 1 byte too small
+    long limit = PRE_DIFF_PLAN_ENTRY_A_100K.newEntry().uncompressedSize() - 1; // 1 byte too small
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.addAll(
@@ -184,8 +182,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_EdgeOverSmallest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_A_100K.getNewEntry().uncompressedSize() + 1; // 1 byte extra room
+    long limit = PRE_DIFF_PLAN_ENTRY_A_100K.newEntry().uncompressedSize() + 1; // 1 byte extra room
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_A_100K);
@@ -199,8 +196,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_ExactlyLargest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_D_400K.getNewEntry().uncompressedSize(); // Exactly large enough
+    long limit = PRE_DIFF_PLAN_ENTRY_D_400K.newEntry().uncompressedSize(); // Exactly large enough
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
@@ -214,8 +210,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_EdgeUnderLargest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_D_400K.getNewEntry().uncompressedSize() - 1; // 1 byte too small
+    long limit = PRE_DIFF_PLAN_ENTRY_D_400K.newEntry().uncompressedSize() - 1; // 1 byte too small
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_C_300K);
@@ -229,8 +224,7 @@ public class TotalRecompressionLimiterTest {
 
   @Test
   public void testLimit_EdgeOverLargest() {
-    long limit =
-        PRE_DIFF_PLAN_ENTRY_D_400K.getNewEntry().uncompressedSize() + 1; // 1 byte extra room
+    long limit = PRE_DIFF_PLAN_ENTRY_D_400K.newEntry().uncompressedSize() + 1; // 1 byte extra room
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
@@ -249,8 +243,8 @@ public class TotalRecompressionLimiterTest {
     // adding the first largest, and the fourth largest will fail because there is not enough space
     // after adding the third largest. Tricky.
     long limit =
-        PRE_DIFF_PLAN_ENTRY_D_400K.getNewEntry().uncompressedSize()
-            + PRE_DIFF_PLAN_ENTRY_B_200K.getNewEntry().uncompressedSize();
+        PRE_DIFF_PLAN_ENTRY_D_400K.newEntry().uncompressedSize()
+            + PRE_DIFF_PLAN_ENTRY_B_200K.newEntry().uncompressedSize();
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_B_200K);

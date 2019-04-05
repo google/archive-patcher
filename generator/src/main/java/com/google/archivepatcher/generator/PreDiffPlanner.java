@@ -123,18 +123,18 @@ class PreDiffPlanner {
     Set<TypedRange<Void>> oldFilePlan = new HashSet<>();
     Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
     for (PreDiffPlanEntry entry : defaultEntries) {
-      if (entry.getZipEntryUncompressionOption().uncompressOldEntry) {
-        long offset = entry.getOldEntry().fileOffsetOfCompressedData();
-        long length = entry.getOldEntry().compressedSize();
+      if (entry.zipEntryUncompressionOption().uncompressOldEntry) {
+        long offset = entry.oldEntry().fileOffsetOfCompressedData();
+        long length = entry.oldEntry().compressedSize();
         TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
         oldFilePlan.add(range);
       }
-      if (entry.getZipEntryUncompressionOption().uncompressNewEntry) {
-        long offset = entry.getNewEntry().fileOffsetOfCompressedData();
-        long length = entry.getNewEntry().compressedSize();
+      if (entry.zipEntryUncompressionOption().uncompressNewEntry) {
+        long offset = entry.newEntry().fileOffsetOfCompressedData();
+        long length = entry.newEntry().compressedSize();
         JreDeflateParameters newJreDeflateParameters =
             newArchiveJreDeflateParametersByPath.get(
-                new ByteArrayHolder(entry.getNewEntry().fileNameBytes()));
+                new ByteArrayHolder(entry.newEntry().fileNameBytes()));
         TypedRange<JreDeflateParameters> range =
             new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
         newFilePlan.add(range);
@@ -210,7 +210,8 @@ class PreDiffPlanner {
   private PreDiffPlanEntry getPreDiffPlanEntry(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
 
-    PreDiffPlanEntry.Builder builder = PreDiffPlanEntry.builder().setZipEntries(oldEntry, newEntry);
+    PreDiffPlanEntry.Builder builder =
+        PreDiffPlanEntry.builder().oldEntry(oldEntry).newEntry(newEntry);
 
     setUncompressionOption(builder, oldEntry, newEntry);
 
@@ -230,31 +231,45 @@ class PreDiffPlanner {
     // 1. If either old and new are unsuitable for uncompression, we leave them untouched.
     // Reason singled out in order to monitor unsupported versions of zlib.
     if (unsuitableDeflate(newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_NEITHER, DEFLATE_UNSUITABLE);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_NEITHER)
+          .uncompressionOptionExplanation(DEFLATE_UNSUITABLE);
     } else if (unsuitable(oldEntry, newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_NEITHER, UNSUITABLE);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_NEITHER)
+          .uncompressionOptionExplanation(UNSUITABLE);
     }
 
     // 2. If both are uncompressed, we have nothing to do.
     else if (bothEntriesUncompressed(oldEntry, newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_NEITHER, BOTH_ENTRIES_UNCOMPRESSED);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_NEITHER)
+          .uncompressionOptionExplanation(BOTH_ENTRIES_UNCOMPRESSED);
     }
 
     // 3. Now at least one is compressed. If there is change, we uncompress accordingly.
     else if (uncompressedChangedToCompressed(oldEntry, newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_NEW, UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_NEW)
+          .uncompressionOptionExplanation(UNCOMPRESSED_CHANGED_TO_COMPRESSED);
     } else if (compressedChangedToUncompressed(oldEntry, newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_OLD, COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_OLD)
+          .uncompressionOptionExplanation(COMPRESSED_CHANGED_TO_UNCOMPRESSED);
     } else if (compressedBytesIdentical(oldEntry, newEntry)) {
-      builder.setUncompressionOption(UNCOMPRESS_NEITHER, COMPRESSED_BYTES_IDENTICAL);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_NEITHER)
+          .uncompressionOptionExplanation(COMPRESSED_BYTES_IDENTICAL);
     } else {
       // Compressed bytes not identical.
-      builder.setUncompressionOption(UNCOMPRESS_BOTH, COMPRESSED_BYTES_CHANGED);
+      builder
+          .zipEntryUncompressionOption(UNCOMPRESS_BOTH)
+          .uncompressionOptionExplanation(COMPRESSED_BYTES_CHANGED);
     }
   }
 
   private void setDeltaFormat(PreDiffPlanEntry.Builder builder) {
-    builder.setDeltaFormat(BSDIFF, DEFAULT);
+    builder.deltaFormat(BSDIFF).deltaFormatExplanation(DEFAULT);
   }
 
   /**

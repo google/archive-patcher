@@ -137,28 +137,28 @@ public class PatchExplainer {
       for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
 
         // Short-circuit for identical resources.
-        if (preDiffPlanEntry.getUncompressionOptionExplanation()
+        if (preDiffPlanEntry.uncompressionOptionExplanation()
             == UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL) {
           // Patch size should be effectively zero.
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().fileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.newEntry().fileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
-                  preDiffPlanEntry.getUncompressionOptionExplanation()));
+                  preDiffPlanEntry.uncompressionOptionExplanation()));
           continue;
         }
 
-        if (preDiffPlanEntry.getOldEntry().crc32OfUncompressedData()
-                == preDiffPlanEntry.getNewEntry().crc32OfUncompressedData()
-            && preDiffPlanEntry.getOldEntry().uncompressedSize()
-                == preDiffPlanEntry.getNewEntry().uncompressedSize()) {
+        if (preDiffPlanEntry.oldEntry().crc32OfUncompressedData()
+                == preDiffPlanEntry.newEntry().crc32OfUncompressedData()
+            && preDiffPlanEntry.oldEntry().uncompressedSize()
+                == preDiffPlanEntry.newEntry().uncompressedSize()) {
           // If the path, size and CRC32 are the same assume it's a match. Patch size should be
           // effectively zero.
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getNewEntry().fileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.newEntry().fileNameBytes()),
                   /* compressedSizeInPatch= */ 0L,
-                  preDiffPlanEntry.getUncompressionOptionExplanation()));
+                  preDiffPlanEntry.uncompressionOptionExplanation()));
           continue;
         }
 
@@ -171,18 +171,18 @@ public class PatchExplainer {
         // category.
 
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
-        long oldOffset = preDiffPlanEntry.getOldEntry().fileOffsetOfCompressedData();
-        long oldLength = preDiffPlanEntry.getOldEntry().compressedSize();
-        if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressOldEntry) {
+        long oldOffset = preDiffPlanEntry.oldEntry().fileOffsetOfCompressedData();
+        long oldLength = preDiffPlanEntry.oldEntry().compressedSize();
+        if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressOldEntry) {
           uncompress(oldFile, oldOffset, oldLength, uncompressor, oldTemp.file);
         } else {
           extractCopy(oldFile, oldOffset, oldLength, oldTemp.file);
         }
 
         // Get the inputs ready for running a delta: uncompress/copy the *new* content as necessary.
-        long newOffset = preDiffPlanEntry.getNewEntry().fileOffsetOfCompressedData();
-        long newLength = preDiffPlanEntry.getNewEntry().compressedSize();
-        if (preDiffPlanEntry.getZipEntryUncompressionOption().uncompressNewEntry) {
+        long newOffset = preDiffPlanEntry.newEntry().fileOffsetOfCompressedData();
+        long newLength = preDiffPlanEntry.newEntry().compressedSize();
+        if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressNewEntry) {
           uncompress(newFile, newOffset, newLength, uncompressor, newTemp.file);
         } else {
           extractCopy(newFile, newOffset, newLength, newTemp.file);
@@ -198,9 +198,9 @@ public class PatchExplainer {
               getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);
           result.add(
               EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.getOldEntry().fileNameBytes()),
+                  new ByteArrayHolder(preDiffPlanEntry.oldEntry().fileNameBytes()),
                   compressedDeltaSize,
-                  preDiffPlanEntry.getUncompressionOptionExplanation()));
+                  preDiffPlanEntry.uncompressionOptionExplanation()));
         }
       }
     }
