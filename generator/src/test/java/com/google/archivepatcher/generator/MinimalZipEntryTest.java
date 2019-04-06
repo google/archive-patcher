@@ -39,12 +39,12 @@ public class MinimalZipEntryTest {
     assertThat(utf8Bytes).isNotEqualTo(cp437Bytes);
 
     MinimalZipEntry utf8Entry =
-        getFakeBuilder().fileNameBytes(utf8Bytes).generalPurposeFlagBit11(true).build();
+        getFakeBuilder().fileNameBytes(utf8Bytes).useUtf8Encoding(true).build();
     assertThat(utf8Entry.fileNameBytes()).isEqualTo(utf8Bytes);
     assertThat(utf8Entry.getFileName()).isEqualTo(fileName);
 
     MinimalZipEntry cp437Entry =
-        getFakeBuilder().fileNameBytes(cp437Bytes).generalPurposeFlagBit11(false).build();
+        getFakeBuilder().fileNameBytes(cp437Bytes).useUtf8Encoding(false).build();
     assertThat(cp437Entry.fileNameBytes()).isEqualTo(cp437Bytes);
     assertThat(cp437Entry.getFileName()).isEqualTo(fileName);
   }

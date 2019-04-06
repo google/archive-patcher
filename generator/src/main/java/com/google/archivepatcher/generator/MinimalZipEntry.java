@@ -47,10 +47,12 @@ public abstract class MinimalZipEntry {
   public abstract byte[] fileNameBytes();
 
   /**
-   * The value of the 11th bit of the general purpose flag, which controls the encoding of file
-   * names and comments. See {@link #getFileName()} for more information.
+   * If we should use UTF8 encoding for interpreting the bytes of the filename.
+   *
+   * <p>This is obtained from the 11th bit of the general purpose flag, which controls the encoding
+   * of file names and comments. See {@link #getFileName()} for more information.
    */
-  public abstract boolean generalPurposeFlagBit11();
+  public abstract boolean useUtf8Encoding();
 
   /** The file offset at which the first byte of the local entry header begins. */
   public abstract long fileOffsetOfLocalEntry();
@@ -83,8 +85,8 @@ public abstract class MinimalZipEntry {
     /** @see #fileNameBytes() */
     abstract Builder fileNameBytes(byte[] fileNameBytes);
 
-    /** @see #generalPurposeFlagBit11() */
-    abstract Builder generalPurposeFlagBit11(boolean generalPurposeFlagBit11);
+    /** @see #useUtf8Encoding() */
+    abstract Builder useUtf8Encoding(boolean useUtf8Encoding);
 
     /** @see #fileOffsetOfLocalEntry() */
     abstract Builder fileOffsetOfLocalEntry(long fileOffsetOfLocalEntry);
@@ -109,15 +111,15 @@ public abstract class MinimalZipEntry {
    * systems use the default character set for the environment instead of Cp437 when writing these
    * bytes. For such instances, callers can obtain the raw bytes by using {@link #fileNameBytes()}
    * instead and checking the value of the 11th bit of the general purpose bit flag for a hint using
-   * {@link #generalPurposeFlagBit11()}. There is also something called EFS ("0x0008 extra field
-   * storage") that specifies additional behavior for character encoding, but this tool doesn't
-   * support it as the use is not standardized.
+   * {@link #useUtf8Encoding()}. There is also something called EFS ("0x0008 extra field storage")
+   * that specifies additional behavior for character encoding, but this tool doesn't support it as
+   * the use is not standardized.
    *
    * @return as described
    */
   // TODO: Support EFS
   public String getFileName() {
-    String charsetName = generalPurposeFlagBit11() ? "UTF8" : "Cp437";
+    String charsetName = useUtf8Encoding() ? "UTF8" : "Cp437";
     try {
       return new String(fileNameBytes(), charsetName);
     } catch (UnsupportedEncodingException e) {

@@ -185,7 +185,7 @@ class MinimalZipParser {
     readOrDie(in, fileNameBuffer, 0, fileNameBuffer.length);
     skipOrDie(in, extrasLength + commentLength);
     // General purpose flag bit 11 is an important hint for the character set used for file names.
-    boolean generalPurposeFlagBit11 = (generalPurposeFlags & (0x1 << 10)) != 0;
+    boolean useUtf8Encoding = (generalPurposeFlags & (0x1 << 10)) != 0;
 
     // Some tools may list compression method deflate but set level to zero (store), so they will
     // have a compressed size equal to the uncompresesd size. Don't consider such things to be
@@ -200,7 +200,7 @@ class MinimalZipParser {
         .compressedSize(compressedSize)
         .uncompressedSize(uncompressedSize)
         .fileNameBytes(fileNameBuffer)
-        .generalPurposeFlagBit11(generalPurposeFlagBit11)
+        .useUtf8Encoding(useUtf8Encoding)
         .fileOffsetOfLocalEntry(fileOffsetOfLocalEntry);
   }
 

@@ -33,7 +33,7 @@ public class MinimalZipEntryUtils {
         .compressedSize(0)
         .uncompressedSize(0)
         .fileNameBytes(new byte[] {})
-        .generalPurposeFlagBit11(true)
+        .useUtf8Encoding(true)
         .fileOffsetOfLocalEntry(0)
         .fileOffsetOfCompressedData(0);
   }

@@ -84,7 +84,7 @@ public class MinimalZipArchiveTest {
       assertThat(actual.compressedSize()).isEqualTo(expected.getCompressedBinaryContent().length);
       assertThat(actual.uncompressedSize())
           .isEqualTo(expected.getUncompressedBinaryContent().length);
-      assertThat(actual.generalPurposeFlagBit11()).isFalse();
+      assertThat(actual.useUtf8Encoding()).isFalse();
       CRC32 crc32 = new CRC32();
       crc32.update(expected.getUncompressedBinaryContent());
       assertThat(actual.crc32OfUncompressedData()).isEqualTo(crc32.getValue());
