@@ -191,10 +191,12 @@ public class PreDiffExecutorTest {
       MinimalZipEntry oldEntry = findEntry(oldFile, ENTRY_LEVEL_6.path);
       ByteArrayOutputStream expectedDeltaFriendlyOldFileBytes = new ByteArrayOutputStream();
       expectedDeltaFriendlyOldFileBytes.write(
-          oldBytes, 0, (int) oldEntry.fileOffsetOfCompressedData());
+          oldBytes, 0, (int) oldEntry.compressedDataRange().getOffset());
       expectedDeltaFriendlyOldFileBytes.write(ENTRY_LEVEL_6.getUncompressedBinaryContent());
       int oldRemainderOffset =
-          (int) (oldEntry.fileOffsetOfCompressedData() + oldEntry.compressedSize());
+          (int)
+              (oldEntry.compressedDataRange().getOffset()
+                  + oldEntry.compressedDataRange().getLength());
       int oldRemainderLength = oldBytes.length - oldRemainderOffset;
       expectedDeltaFriendlyOldFileBytes.write(oldBytes, oldRemainderOffset, oldRemainderLength);
       byte[] expectedOld = expectedDeltaFriendlyOldFileBytes.toByteArray();
@@ -207,10 +209,12 @@ public class PreDiffExecutorTest {
       MinimalZipEntry newEntry = findEntry(newFile, ENTRY_LEVEL_9.path);
       ByteArrayOutputStream expectedDeltaFriendlyNewFileBytes = new ByteArrayOutputStream();
       expectedDeltaFriendlyNewFileBytes.write(
-          newBytes, 0, (int) newEntry.fileOffsetOfCompressedData());
+          newBytes, 0, (int) newEntry.compressedDataRange().getOffset());
       expectedDeltaFriendlyNewFileBytes.write(ENTRY_LEVEL_9.getUncompressedBinaryContent());
       int newRemainderOffset =
-          (int) (newEntry.fileOffsetOfCompressedData() + newEntry.compressedSize());
+          (int)
+              (newEntry.compressedDataRange().getOffset()
+                  + newEntry.compressedDataRange().getLength());
       int newRemainderLength = newBytes.length - newRemainderOffset;
       expectedDeltaFriendlyNewFileBytes.write(newBytes, newRemainderOffset, newRemainderLength);
       byte[] expectedNew = expectedDeltaFriendlyNewFileBytes.toByteArray();

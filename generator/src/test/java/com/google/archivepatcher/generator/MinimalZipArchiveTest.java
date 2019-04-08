@@ -81,7 +81,8 @@ public class MinimalZipArchiveTest {
       MinimalZipEntry actual = parsedEntries.get(x);
       assertThat(actual.getFileName()).isEqualTo(expected.path);
       assertThat(actual.compressionMethod()).isEqualTo(expected.level == 0 ? STORED : DEFLATE);
-      assertThat(actual.compressedSize()).isEqualTo(expected.getCompressedBinaryContent().length);
+      assertThat(actual.compressedDataRange().getLength())
+          .isEqualTo(expected.getCompressedBinaryContent().length);
       assertThat(actual.uncompressedSize())
           .isEqualTo(expected.getUncompressedBinaryContent().length);
       assertThat(actual.useUtf8Encoding()).isFalse();
@@ -91,19 +92,19 @@ public class MinimalZipArchiveTest {
 
       // Offset verification is a little trickier
       // 1. Verify that the offsets are in ascending order and increasing.
-      assertThat(actual.fileOffsetOfLocalEntry()).isGreaterThan(lastSeenHeaderOffset);
-      lastSeenHeaderOffset = actual.fileOffsetOfLocalEntry();
+      assertThat(actual.localEntryRange().getOffset()).isGreaterThan(lastSeenHeaderOffset);
+      lastSeenHeaderOffset = actual.localEntryRange().getOffset();
 
       // 2. Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
-        byte actualByte = unitTestZipArchive[((int) actual.fileOffsetOfLocalEntry()) + index];
+        byte actualByte = unitTestZipArchive[((int) actual.localEntryRange().getOffset()) + index];
         assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
       // 3. Verify that the data is at the calculated position
       byte[] expectedContent = expected.getCompressedBinaryContent();
-      int calculatedDataOffset = (int) actual.fileOffsetOfCompressedData();
+      int calculatedDataOffset = (int) actual.compressedDataRange().getOffset();
       for (int index = 0; index < expectedContent.length; index++) {
         assertThat(unitTestZipArchive[calculatedDataOffset + index])
             .isEqualTo(expectedContent[index]);
@@ -115,13 +116,15 @@ public class MinimalZipArchiveTest {
       // it to contain the compressed data.
       if (x != UnitTestZipArchive.allEntriesInFileOrder.size() - 1) {
         long expectedLength =
-            parsedEntries.get(x + 1).fileOffsetOfLocalEntry() - actual.fileOffsetOfLocalEntry();
-        assertThat(actual.lengthOfLocalEntry()).isEqualTo(expectedLength);
+            parsedEntries.get(x + 1).localEntryRange().getOffset()
+                - actual.localEntryRange().getOffset();
+        assertThat(actual.localEntryRange().getLength()).isEqualTo(expectedLength);
       } else {
-        assertThat(actual.lengthOfLocalEntry())
+        assertThat(actual.localEntryRange().getLength())
             .isAtLeast(
-                actual.compressedSize()
-                    + (actual.fileOffsetOfCompressedData() - actual.fileOffsetOfLocalEntry()));
+                actual.compressedDataRange().getLength()
+                    + (actual.compressedDataRange().getOffset()
+                        - actual.localEntryRange().getOffset()));
       }
     }
   }

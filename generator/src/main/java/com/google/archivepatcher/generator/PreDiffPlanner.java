@@ -128,20 +128,14 @@ class PreDiffPlanner {
     Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
     for (PreDiffPlanEntry entry : defaultEntries) {
       if (entry.zipEntryUncompressionOption().uncompressOldEntry) {
-        long offset = entry.oldEntry().fileOffsetOfCompressedData();
-        long length = entry.oldEntry().compressedSize();
-        Range range = Range.of(offset, length);
-        oldFilePlan.add(range);
+        oldFilePlan.add(entry.oldEntry().compressedDataRange());
       }
       if (entry.zipEntryUncompressionOption().uncompressNewEntry) {
-        long offset = entry.newEntry().fileOffsetOfCompressedData();
-        long length = entry.newEntry().compressedSize();
         JreDeflateParameters newJreDeflateParameters =
             newArchiveJreDeflateParametersByPath.get(
                 new ByteArrayHolder(entry.newEntry().fileNameBytes()));
-        TypedRange<JreDeflateParameters> range =
-            TypedRange.of(offset, length, newJreDeflateParameters);
-        newFilePlan.add(range);
+        newFilePlan.add(
+            entry.newEntry().compressedDataRange().withMetadata(newJreDeflateParameters));
       }
     }
 
@@ -366,20 +360,20 @@ class PreDiffPlanner {
    */
   private boolean compressedBytesIdentical(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
-    if (oldEntry.compressedSize() != newEntry.compressedSize()) {
+    if (oldEntry.compressedDataRange().getLength() != newEntry.compressedDataRange().getLength()) {
       // Length is not the same, so content cannot match.
       return false;
     }
     try (InputStream oldFileInputStream =
-            oldFile.sliceFrom(oldEntry.fileOffsetOfCompressedData()).openStream();
+            oldFile.slice(oldEntry.compressedDataRange()).openStream();
         BufferedInputStream oldFileBufferedInputStream =
             new BufferedInputStream(oldFileInputStream);
         InputStream newFileInputStream =
-            newFile.sliceFrom(newEntry.fileOffsetOfCompressedData()).openStream();
+            newFile.slice(newEntry.compressedDataRange()).openStream();
         BufferedInputStream newFileBufferedInputStream =
             new BufferedInputStream(newFileInputStream)) {
 
-      for (int i = 0; i < oldEntry.compressedSize(); ++i) {
+      for (int i = 0; i < oldEntry.compressedDataRange().getLength(); i++) {
         if (oldFileBufferedInputStream.read() != newFileBufferedInputStream.read()) {
           return false;
         }

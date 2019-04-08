@@ -117,13 +117,12 @@ public class DefaultDeflateCompressionDiviner {
       JreDeflateParameters divinedParameters = null;
       if (minimalZipEntry.compressionMethod() == CompressionMethod.DEFLATE) {
         // Keep small entries in memory to avoid unnecessary file I/O.
-        if (minimalZipEntry.compressedSize() < (100 * 1024)) {
+        if (minimalZipEntry.compressedDataRange().getLength() < (100 * 1024)) {
           try {
-            byte[] compressedBytes = new byte[(int) minimalZipEntry.compressedSize()];
+            byte[] compressedBytes =
+                new byte[(int) minimalZipEntry.compressedDataRange().getLength()];
             try (InputStream in =
-                archiveBlob
-                    .slice(minimalZipEntry.fileOffsetOfCompressedData(), compressedBytes.length)
-                    .openStream()) {
+                archiveBlob.slice(minimalZipEntry.compressedDataRange()).openStream()) {
               readFully(in, compressedBytes);
             }
             divinedParameters = divineDeflateParametersForEntry(ByteSource.wrap(compressedBytes));
@@ -131,9 +130,7 @@ public class DefaultDeflateCompressionDiviner {
             divinedParameters = null;
           }
         } else {
-          try (ByteSource slice =
-              archiveBlob.slice(
-                  minimalZipEntry.fileOffsetOfCompressedData(), minimalZipEntry.compressedSize())) {
+          try (ByteSource slice = archiveBlob.slice(minimalZipEntry.compressedDataRange())) {
             divinedParameters = divineDeflateParametersForEntry(slice);
           }
         }

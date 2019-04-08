@@ -14,7 +14,18 @@
 
 package com.google.archivepatcher.shared;
 
-/** A range represented by an offset and a length. */
+import com.google.archivepatcher.shared.bytesource.ByteSource;
+import java.io.OutputStream;
+import java.util.List;
+
+/**
+ * A range represented by an offset and a length.
+ *
+ * <p>Conceptually, we would have {@link TypedRange} extend {@link Range}. But since {@link
+ * DeltaFriendlyFile#generateDeltaFriendlyFile(List, ByteSource, OutputStream) need to copy over the
+ * metadata (and thus cannot take {@link Range} arguments, we do it this way so that a list of
+ * {@link Range}s can be passed to that method without being wrapped in {@link TypedRange}s.
+ */
 public class Range extends TypedRange<Void> {
   private Range(long offset, long length) {
     super(offset, length, null);
@@ -23,5 +34,9 @@ public class Range extends TypedRange<Void> {
   /** Constructs a range from an offset and a length. */
   public static Range of(long offset, long length) {
     return new Range(offset, length);
+  }
+
+  public <T> TypedRange<T> withMetadata(T metadata) {
+    return TypedRange.of(getOffset(), getLength(), metadata);
   }
 }

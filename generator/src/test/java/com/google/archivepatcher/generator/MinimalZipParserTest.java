@@ -167,7 +167,7 @@ public class MinimalZipParserTest {
       // Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
-        byte actualByte = unitTestZipArchive[((int) parsed.fileOffsetOfLocalEntry()) + index];
+        byte actualByte = unitTestZipArchive[((int) parsed.localEntryRange().getOffset()) + index];
         assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
@@ -182,7 +182,7 @@ public class MinimalZipParserTest {
       crc32.update(uncompressedContent);
       assertThat(parsed.crc32OfUncompressedData()).isEqualTo(crc32.getValue());
       byte[] compressedContent = expectedEntry.getCompressedBinaryContent();
-      assertThat(parsed.compressedSize()).isEqualTo(compressedContent.length);
+      assertThat(parsed.compressedDataRange().getLength()).isEqualTo(compressedContent.length);
     }
   }
 

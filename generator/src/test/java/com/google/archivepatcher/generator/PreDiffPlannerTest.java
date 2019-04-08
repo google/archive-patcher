@@ -176,7 +176,7 @@ public class PreDiffPlannerTest {
   private Range findRangeWithoutParams(File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return Range.of(found.fileOffsetOfCompressedData(), found.compressedSize());
+    return found.compressedDataRange();
   }
 
   /**
@@ -190,10 +190,9 @@ public class PreDiffPlannerTest {
       File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return TypedRange.of(
-        found.fileOffsetOfCompressedData(),
-        found.compressedSize(),
-        JreDeflateParameters.of(unitTestEntry.level, 0, true));
+    return found
+        .compressedDataRange()
+        .withMetadata(JreDeflateParameters.of(unitTestEntry.level, 0, true));
   }
 
   /**

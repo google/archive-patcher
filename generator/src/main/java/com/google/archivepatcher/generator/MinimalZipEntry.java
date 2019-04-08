@@ -15,6 +15,7 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
+import com.google.archivepatcher.shared.Range;
 import com.google.auto.value.AutoValue;
 import java.io.UnsupportedEncodingException;
 
@@ -27,13 +28,13 @@ public abstract class MinimalZipEntry {
   /** The CRC32 of the <em>uncompressed</em> data. */
   public abstract long crc32OfUncompressedData();
 
-  /**
-   * The size of the data as it exists in the archive. For compressed entries, this is the size of
-   * the compressed data; for uncompressed entries, this is the same as {@link #uncompressedSize}.
-   */
-  public abstract long compressedSize();
+  /** The range of the data as it exists in the archive. */
+  public abstract Range compressedDataRange();
 
-  /** The size of the <em>uncompressed</em> data. */
+  /**
+   * The size of the <em>uncompressed</em> data. It will be the same as the length of {@link
+   * #compressedDataRange()} if the data is uncompressed.
+   */
   public abstract long uncompressedSize();
 
   /**
@@ -54,25 +55,8 @@ public abstract class MinimalZipEntry {
    */
   public abstract boolean useUtf8Encoding();
 
-  /** The file offset at which the first byte of the local entry header begins. */
-  public abstract long fileOffsetOfLocalEntry();
-
-  /**
-   * Returns the length of the local entry including header, compressed data and optional metadata
-   * at the end.
-   *
-   * <p>Note that for the last entry in the local file header section, the length will include
-   * length of extra metadata between the local file header section and central directory. For our
-   * purpose, this extra length does not matter.
-   */
-  public abstract long lengthOfLocalEntry();
-
-  /**
-   * The file offset at which the first byte of the data for the entry begins. For compressed data,
-   * this is the first byte of the deflated data; for uncompressed data, this is the first byte of
-   * the uncompressed data.
-   */
-  public abstract long fileOffsetOfCompressedData();
+  /** The range in the original archive corresponding to the local entry header. */
+  public abstract Range localEntryRange();
 
   public static Builder builder() {
     return new AutoValue_MinimalZipEntry.Builder();
@@ -80,14 +64,16 @@ public abstract class MinimalZipEntry {
 
   @AutoValue.Builder
   public abstract static class Builder {
+    private long fileOffsetOfCompressedData = -1;
+    private long compressedSize = -1;
+    private long fileOffsetOfLocalEntry = -1;
+    private long lengthOfLocalEntry = -1;
+
     /** @see #compressionMethod() */
     abstract Builder compressionMethod(CompressionMethod compressionMethod);
 
     /** @see #crc32OfUncompressedData() */
     abstract Builder crc32OfUncompressedData(long crc32OfUncompressedData);
-
-    /** @see #compressedSize() */
-    abstract Builder compressedSize(long compressedSize);
 
     /** @see #uncompressedSize() */
     abstract Builder uncompressedSize(long uncompressedSize);
@@ -98,22 +84,63 @@ public abstract class MinimalZipEntry {
     /** @see #useUtf8Encoding() */
     abstract Builder useUtf8Encoding(boolean useUtf8Encoding);
 
-    /** @see #fileOffsetOfLocalEntry() */
-    abstract Builder fileOffsetOfLocalEntry(long fileOffsetOfLocalEntry);
+    /** @see #compressedDataRange() */
+    abstract Builder compressedDataRange(Range compressedDataRange);
+
+    /** Offset in original file where compressed data begins. */
+    public Builder fileOffsetOfCompressedData(long fileOffsetOfCompressedData) {
+      this.fileOffsetOfCompressedData = fileOffsetOfCompressedData;
+      return this;
+    }
+
+    /** Size of the compressed data. */
+    public Builder compressedSize(long compressedSize) {
+      this.compressedSize = compressedSize;
+      return this;
+    }
+
+    /** @see #localEntryRange() */
+    abstract Builder localEntryRange(Range localEntryRange);
+
+    /** Offset of local header entry in the original file. */
+    public Builder fileOffsetOfLocalEntry(long fileOffsetOfLocalEntry) {
+      this.fileOffsetOfLocalEntry = fileOffsetOfLocalEntry;
+      return this;
+    }
 
     /**
-     * Getter for the {@link #fileOffsetOfLocalEntry()}. We need this to generate {@link
-     * #fileOffsetOfCompressedData()} when parsing the entries..
+     * Getter for the {@link #fileOffsetOfLocalEntry()}. We need to access this to generate {@link
+     * #fileOffsetOfCompressedData} when parsing the entries.
      */
-    public abstract long fileOffsetOfLocalEntry();
+    public long fileOffsetOfLocalEntry() {
+      return fileOffsetOfLocalEntry;
+    }
 
-    /** @see #fileOffsetOfCompressedData() */
-    abstract Builder fileOffsetOfCompressedData(long fileOffsetOfCompressedData);
+    /** Length of the local header entry. */
+    public Builder lengthOfLocalEntry(long lengthOfLocalEntry) {
+      this.lengthOfLocalEntry = lengthOfLocalEntry;
+      return this;
+    }
 
-    /** @see #lengthOfLocalEntry() */
-    abstract Builder lengthOfLocalEntry(long lengthOfLocalEntry);
+    abstract MinimalZipEntry autoBuild();
 
-    abstract MinimalZipEntry build();
+    public MinimalZipEntry build() {
+      checkNonNegative(fileOffsetOfLocalEntry, "fileOffsetOfLocalEntry");
+      checkNonNegative(lengthOfLocalEntry, "lengthOfLocalEntry");
+      checkNonNegative(fileOffsetOfCompressedData, "fileOffsetOfCompressedData");
+      checkNonNegative(compressedSize, "compressedSize");
+
+      localEntryRange(Range.of(fileOffsetOfLocalEntry, lengthOfLocalEntry));
+      compressedDataRange(Range.of(fileOffsetOfCompressedData, compressedSize));
+
+      return autoBuild();
+    }
+
+    private static void checkNonNegative(long value, String name) {
+      if (value < 0) {
+        throw new IllegalStateException(name + " must be set and non-negative");
+      }
+    }
   }
 
   /**

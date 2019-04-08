@@ -28,6 +28,7 @@ import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.CountingOutputStream;
 import com.google.archivepatcher.shared.DeflateUncompressor;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.Uncompressor;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
@@ -171,21 +172,25 @@ public class PatchExplainer {
         // category.
 
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
-        long oldOffset = preDiffPlanEntry.oldEntry().fileOffsetOfCompressedData();
-        long oldLength = preDiffPlanEntry.oldEntry().compressedSize();
         if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressOldEntry) {
-          uncompress(oldFile, oldOffset, oldLength, uncompressor, oldTemp.file);
+          uncompress(
+              oldFile,
+              preDiffPlanEntry.oldEntry().compressedDataRange(),
+              uncompressor,
+              oldTemp.file);
         } else {
-          extractCopy(oldFile, oldOffset, oldLength, oldTemp.file);
+          extractCopy(oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), oldTemp.file);
         }
 
         // Get the inputs ready for running a delta: uncompress/copy the *new* content as necessary.
-        long newOffset = preDiffPlanEntry.newEntry().fileOffsetOfCompressedData();
-        long newLength = preDiffPlanEntry.newEntry().compressedSize();
         if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressNewEntry) {
-          uncompress(newFile, newOffset, newLength, uncompressor, newTemp.file);
+          uncompress(
+              newFile,
+              preDiffPlanEntry.newEntry().compressedDataRange(),
+              uncompressor,
+              newTemp.file);
         } else {
-          extractCopy(newFile, newOffset, newLength, newTemp.file);
+          extractCopy(newFile, preDiffPlanEntry.newEntry().compressedDataRange(), newTemp.file);
         }
 
         // File is actually changed (or transitioned between compressed and uncompressed forms).
@@ -219,23 +224,27 @@ public class PatchExplainer {
   private long getCompressedSize(File file, MinimalZipEntry entry, Compressor compressor)
       throws IOException {
     return getCompressedSize(
-        file, entry.fileOffsetOfCompressedData(), entry.compressedSize(), compressor);
+        file,
+        entry.compressedDataRange().getOffset(),
+        entry.compressedDataRange().getLength(),
+        compressor);
   }
 
   /**
    * Uncompress the specified content to a new file.
+   *
    * @param source the file to read from
-   * @param offset the offset at which to start reading
-   * @param length the number of bytes to uncompress
+   * @param rangeToUncompress
    * @param uncompressor the uncompressor to use
    * @param dest the file to write the uncompressed bytes to
    * @throws IOException if anything goes wrong
    */
   private void uncompress(
-      File source, long offset, long length, Uncompressor uncompressor, File dest)
+      File source, Range rangeToUncompress, Uncompressor uncompressor, File dest)
       throws IOException {
     try (RandomAccessFileInputStream rafis =
-            new RandomAccessFileInputStream(source, offset, length);
+            new RandomAccessFileInputStream(
+                source, rangeToUncompress.getOffset(), rangeToUncompress.getLength());
         FileOutputStream out = new FileOutputStream(dest);
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
       uncompressor.uncompress(rafis, bufferedOut);
@@ -244,15 +253,15 @@ public class PatchExplainer {
 
   /**
    * Extract a copy of the specified content to a new file.
+   *
    * @param source the file to read from
-   * @param offset the offset at which to start reading
-   * @param length the number of bytes to uncompress
    * @param dest the file to write the uncompressed bytes to
    * @throws IOException if anything goes wrong
    */
-  private void extractCopy(File source, long offset, long length, File dest) throws IOException {
+  private void extractCopy(File source, Range rangeToExtract, File dest) throws IOException {
     try (RandomAccessFileInputStream rafis =
-            new RandomAccessFileInputStream(source, offset, length);
+            new RandomAccessFileInputStream(
+                source, rangeToExtract.getOffset(), rangeToExtract.getLength());
         FileOutputStream out = new FileOutputStream(dest);
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
       byte[] buffer = new byte[32768];
