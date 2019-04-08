@@ -72,19 +72,22 @@ public class PatchConstants {
    * constant as represented in a patch file.
    */
   public enum DeltaFormat {
-    /**
-     * The bsdiff delta format.
-     */
-    BSDIFF((byte) 0);
+    /** The bsdiff delta format. */
+    BSDIFF((byte) 0, true);
 
-    /**
-     * The representation of this enumerated constant in patch files.
-     */
+    /** The representation of this enumerated constant in patch files. */
     public final byte patchValue;
 
+    /**
+     * Whether this delta algorithm can be applied to multiple entries at once (e.g., BSDIFF) or
+     * does it have to be applied to one entry at a time (e.g., FBF).
+     */
+    public final boolean supportsMultiEntryDelta;
+
     /** Construct a new enumerated constant with the specified value in patch files. */
-    DeltaFormat(byte patchValue) {
+    DeltaFormat(byte patchValue, boolean supportsMultiEntryDelta) {
       this.patchValue = patchValue;
+      this.supportsMultiEntryDelta = supportsMultiEntryDelta;
     }
 
     /**
