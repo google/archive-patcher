@@ -58,6 +58,16 @@ public abstract class MinimalZipEntry {
   public abstract long fileOffsetOfLocalEntry();
 
   /**
+   * Returns the length of the local entry including header, compressed data and optional metadata
+   * at the end.
+   *
+   * <p>Note that for the last entry in the local file header section, the length will include
+   * length of extra metadata between the local file header section and central directory. For our
+   * purpose, this extra length does not matter.
+   */
+  public abstract long lengthOfLocalEntry();
+
+  /**
    * The file offset at which the first byte of the data for the entry begins. For compressed data,
    * this is the first byte of the deflated data; for uncompressed data, this is the first byte of
    * the uncompressed data.
@@ -99,6 +109,9 @@ public abstract class MinimalZipEntry {
 
     /** @see #fileOffsetOfCompressedData() */
     abstract Builder fileOffsetOfCompressedData(long fileOffsetOfCompressedData);
+
+    /** @see #lengthOfLocalEntry() */
+    abstract Builder lengthOfLocalEntry(long lengthOfLocalEntry);
 
     abstract MinimalZipEntry build();
   }

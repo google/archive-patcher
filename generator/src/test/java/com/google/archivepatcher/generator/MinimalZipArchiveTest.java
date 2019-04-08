@@ -108,6 +108,21 @@ public class MinimalZipArchiveTest {
         assertThat(unitTestZipArchive[calculatedDataOffset + index])
             .isEqualTo(expectedContent[index]);
       }
+
+      // Assume that the offset of local entry is correct. Verifying the length of the local entry.
+
+      // For all but last entry, we require the length to be exact. For the last one, we just expect
+      // it to contain the compressed data.
+      if (x != UnitTestZipArchive.allEntriesInFileOrder.size() - 1) {
+        long expectedLength =
+            parsedEntries.get(x + 1).fileOffsetOfLocalEntry() - actual.fileOffsetOfLocalEntry();
+        assertThat(actual.lengthOfLocalEntry()).isEqualTo(expectedLength);
+      } else {
+        assertThat(actual.lengthOfLocalEntry())
+            .isAtLeast(
+                actual.compressedSize()
+                    + (actual.fileOffsetOfCompressedData() - actual.fileOffsetOfLocalEntry()));
+      }
     }
   }
 }

@@ -155,10 +155,13 @@ public class MinimalZipParserTest {
         .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
-    // MinimalZipEntry.fileOffsetOfCompressedData(), as that has yet to be computed.
+    // fileOffsetOfCompressedData() and lengthOfLocalEntry, as those have yet to be computed.
     for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.allEntriesInFileOrder) {
       MinimalZipEntry parsed =
-          MinimalZipParser.parseCentralDirectoryEntry(in).fileOffsetOfCompressedData(-1).build();
+          MinimalZipParser.parseCentralDirectoryEntry(in)
+              .fileOffsetOfCompressedData(0)
+              .lengthOfLocalEntry(0)
+              .build();
       assertThat(parsed.getFileName()).isEqualTo(expectedEntry.path);
 
       // Verify that the local signature header is at the calculated position

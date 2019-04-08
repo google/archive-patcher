@@ -245,7 +245,8 @@ public class PreDiffPlannerTest {
               centralDirectoryMetadata.getOffsetOfCentralDirectory() + offsetToStartOfCentralDir;
           MinimalZipEntry candidate =
               MinimalZipParser.parseCentralDirectoryEntry(sliceIn)
-                  .fileOffsetOfCompressedData(-1)
+                  .fileOffsetOfCompressedData(0)
+                  .lengthOfLocalEntry(0)
                   .build();
           if (candidate.getFileName().equals(unitTestEntry.path)) {
             // Located! Track offset and bail out.

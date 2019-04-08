@@ -103,6 +103,7 @@ public class MinimalZipArchive {
         offsetOfNextEntry = centralDirectoryMetadata.getOffsetOfCentralDirectory();
       }
       long rangeLength = offsetOfNextEntry - entryBuilder.fileOffsetOfLocalEntry();
+      entryBuilder.lengthOfLocalEntry(rangeLength);
       try (InputStream inputStream =
           data.slice(entryBuilder.fileOffsetOfLocalEntry(), rangeLength).openStream()) {
         long relativeDataOffset =
