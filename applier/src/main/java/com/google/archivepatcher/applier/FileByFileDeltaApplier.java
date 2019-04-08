@@ -92,7 +92,7 @@ public class FileByFileDeltaApplier implements DeltaApplier {
     // Apply the delta. In v1 there is always exactly one delta descriptor, it is bsdiff, and it
     // takes up the rest of the patch stream - so there is no need to examine the list of
     // DeltaDescriptors in the patch at all.
-    long deltaLength = plan.getDeltaDescriptors().get(0).getDeltaLength();
+    long deltaLength = plan.getDeltaDescriptors().get(0).deltaLength();
     DeltaApplier deltaApplier = getDeltaApplier();
     // Don't close this stream, as it is just a limiting wrapper.
     @SuppressWarnings("resource")

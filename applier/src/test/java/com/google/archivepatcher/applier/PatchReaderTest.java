@@ -76,7 +76,7 @@ public class PatchReaderTest {
   private static final String DELTA_CONTENT = "all your delta are belong to us";
 
   private static final DeltaDescriptor DELTA_DESCRIPTOR =
-      new DeltaDescriptor(
+      DeltaDescriptor.create(
           PatchConstants.DeltaFormat.BSDIFF,
           DELTA_FRIENDLY_OLD_FILE_WORK_RANGE,
           DELTA_FRIENDLY_NEW_FILE_WORK_RANGE,
@@ -195,24 +195,24 @@ public class PatchReaderTest {
             ? -1
             : DELTA_DESCRIPTORS.size()); // Number of difference records
     for (DeltaDescriptor descriptor : DELTA_DESCRIPTORS) {
-      patchOut.write(corruption.corruptDeltaType ? 73 : descriptor.getFormat().patchValue);
+      patchOut.write(corruption.corruptDeltaType ? 73 : descriptor.deltaFormat().patchValue);
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyOldFileWorkRangeOffset
               ? -1
-              : descriptor.getDeltaFriendlyOldFileRange().getOffset());
+              : descriptor.deltaFriendlyOldFileRange().getOffset());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyOldFileWorkRangeLength
               ? -1
-              : descriptor.getDeltaFriendlyOldFileRange().getLength());
+              : descriptor.deltaFriendlyOldFileRange().getLength());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileWorkRangeOffset
               ? -1
-              : descriptor.getDeltaFriendlyNewFileRange().getOffset());
+              : descriptor.deltaFriendlyNewFileRange().getOffset());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileWorkRangeLength
               ? -1
-              : descriptor.getDeltaFriendlyNewFileRange().getLength());
-      patchOut.writeLong(corruption.corruptDeltaLength ? -1 : descriptor.getDeltaLength());
+              : descriptor.deltaFriendlyNewFileRange().getLength());
+      patchOut.writeLong(corruption.corruptDeltaLength ? -1 : descriptor.deltaLength());
     }
 
     // Finally, the delta bytes

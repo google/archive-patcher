@@ -132,7 +132,7 @@ public class PatchReader {
           dataIn.readLong(), "delta-friendly new file work range length");
       long deltaLength = checkNonNegative(dataIn.readLong(), "delta length");
       DeltaDescriptor descriptor =
-          new DeltaDescriptor(
+          DeltaDescriptor.create(
               PatchConstants.DeltaFormat.fromPatchValue(deltaFormatByte),
               Range.of(deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength),
               Range.of(deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength),

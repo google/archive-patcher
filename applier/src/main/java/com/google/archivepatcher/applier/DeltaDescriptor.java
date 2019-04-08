@@ -17,111 +17,33 @@ package com.google.archivepatcher.applier;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
+import com.google.auto.value.AutoValue;
 
 /**
  * Describes all of the information needed to apply a single delta operation - the format of the
  * delta, the ranges in the delta-friendly old and new files that serve as inputs and outputs, and
  * the number of bytes that the delta comprises in the patch stream.
  */
-public class DeltaDescriptor {
-  /**
-   * The format of the delta.
-   */
-  private final PatchConstants.DeltaFormat format;
+@AutoValue
+public abstract class DeltaDescriptor {
+  /** Returns the format of the delta. */
+  public abstract PatchConstants.DeltaFormat deltaFormat();
 
-  /** The work range for the delta-friendly old file. */
-  private final Range deltaFriendlyOldFileRange;
+  /** Returns the work range for the delta-friendly old file. */
+  public abstract Range deltaFriendlyOldFileRange();
 
-  /** The work range for the delta-friendly new file. */
-  private final Range deltaFriendlyNewFileRange;
+  /** Returns the work range for the delta-friendly new file. */
+  public abstract Range deltaFriendlyNewFileRange();
 
-  /**
-   * The number of bytes of delta data in the patch stream.
-   */
-  private final long deltaLength;
+  /** Returns the number of bytes of delta data in the patch stream. */
+  public abstract long deltaLength();
 
-  /**
-   * Constructs a new descriptor having the specified data.
-   *
-   * @param format the format of the delta
-   * @param deltaFriendlyOldFileRange the work range for the delta-friendly old file
-   * @param deltaFriendlyNewFileRange the work range for the delta-friendly new file
-   * @param deltaLength the number of bytes of delta data in the patch stream
-   */
-  public DeltaDescriptor(
-      DeltaFormat format,
+  public static DeltaDescriptor create(
+      DeltaFormat deltaFormat,
       Range deltaFriendlyOldFileRange,
       Range deltaFriendlyNewFileRange,
       long deltaLength) {
-    this.format = format;
-    this.deltaFriendlyOldFileRange = deltaFriendlyOldFileRange;
-    this.deltaFriendlyNewFileRange = deltaFriendlyNewFileRange;
-    this.deltaLength = deltaLength;
-  }
-
-  /**
-   * Returns the format of the delta.
-   * @return as described
-   */
-  public PatchConstants.DeltaFormat getFormat() {
-    return format;
-  }
-
-  /**
-   * Returns the work range for the delta-friendly old file.
-   *
-   * @return as described
-   */
-  public Range getDeltaFriendlyOldFileRange() {
-    return deltaFriendlyOldFileRange;
-  }
-
-  /**
-   * Returns the work range for the delta-friendly new file.
-   *
-   * @return as described
-   */
-  public Range getDeltaFriendlyNewFileRange() {
-    return deltaFriendlyNewFileRange;
-  }
-
-  /**
-   * Returns the number of bytes of delta data in the patch stream.
-   * @return as described
-   */
-  public long getDeltaLength() {
-    return deltaLength;
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result =
-        prime * result
-            + ((deltaFriendlyNewFileRange == null) ? 0 : deltaFriendlyNewFileRange.hashCode());
-    result =
-        prime * result
-            + ((deltaFriendlyOldFileRange == null) ? 0 : deltaFriendlyOldFileRange.hashCode());
-    result = prime * result + (int) (deltaLength ^ (deltaLength >>> 32));
-    result = prime * result + ((format == null) ? 0 : format.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (obj == null) return false;
-    if (getClass() != obj.getClass()) return false;
-    DeltaDescriptor other = (DeltaDescriptor) obj;
-    if (deltaFriendlyNewFileRange == null) {
-      if (other.deltaFriendlyNewFileRange != null) return false;
-    } else if (!deltaFriendlyNewFileRange.equals(other.deltaFriendlyNewFileRange)) return false;
-    if (deltaFriendlyOldFileRange == null) {
-      if (other.deltaFriendlyOldFileRange != null) return false;
-    } else if (!deltaFriendlyOldFileRange.equals(other.deltaFriendlyOldFileRange)) return false;
-    if (deltaLength != other.deltaLength) return false;
-    if (format != other.format) return false;
-    return true;
+    return new AutoValue_DeltaDescriptor(
+        deltaFormat, deltaFriendlyOldFileRange, deltaFriendlyNewFileRange, deltaLength);
   }
 }
