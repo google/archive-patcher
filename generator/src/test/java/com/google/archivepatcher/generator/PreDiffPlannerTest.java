@@ -28,6 +28,7 @@ import com.google.archivepatcher.generator.DefaultDeflateCompressionDiviner.Divi
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
@@ -167,14 +168,15 @@ public class PreDiffPlannerTest {
   /**
    * Finds the {@link TypedRange} corresponding to the compressed data for the specified unit test
    * entry in the specified temp file.
+   *
    * @param tempFile the archive to search within
    * @param unitTestEntry the unit test entry to look up
    * @return the {@link TypedRange} for the unit test entry's compressed data
    */
-  private TypedRange<Void> findRangeWithoutParams(File tempFile, UnitTestZipEntry unitTestEntry) {
+  private Range findRangeWithoutParams(File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return new TypedRange<>(found.fileOffsetOfCompressedData(), found.compressedSize(), null);
+    return Range.of(found.fileOffsetOfCompressedData(), found.compressedSize());
   }
 
   /**
@@ -188,7 +190,7 @@ public class PreDiffPlannerTest {
       File tempFile, UnitTestZipEntry unitTestEntry) {
     MinimalZipEntry found = findEntry(tempFile, unitTestEntry);
     assertWithMessage("entry not found in temp file").that(found).isNotNull();
-    return new TypedRange<>(
+    return TypedRange.of(
         found.fileOffsetOfCompressedData(),
         found.compressedSize(),
         JreDeflateParameters.of(unitTestEntry.level, 0, true));
@@ -201,7 +203,7 @@ public class PreDiffPlannerTest {
    * @param unitTestEntry the unit test entry to deliberately corrupt
    */
   private void corruptEntryData(File tempFile, UnitTestZipEntry unitTestEntry) throws IOException {
-    TypedRange<Void> range = findRangeWithoutParams(tempFile, unitTestEntry);
+    Range range = findRangeWithoutParams(tempFile, unitTestEntry);
     assertWithMessage("range too short to corrupt with 'junk'")
         .that(range.getLength() >= 4)
         .isTrue();

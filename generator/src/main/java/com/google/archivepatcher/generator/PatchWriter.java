@@ -16,6 +16,7 @@ package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
@@ -91,7 +92,7 @@ public class PatchWriter {
 
     // Write out all the delta-friendly old file uncompression instructions
     dataOut.writeInt(plan.getOldFileUncompressionPlan().size());
-    for (TypedRange<Void> range : plan.getOldFileUncompressionPlan()) {
+    for (Range range : plan.getOldFileUncompressionPlan()) {
       dataOut.writeLong(range.getOffset());
       dataOut.writeLong(range.getLength());
     }

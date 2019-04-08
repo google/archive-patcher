@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,16 +46,15 @@ public class PatchWriterTest {
 
   private static final JreDeflateParameters DEFLATE_PARAMS = JreDeflateParameters.of(6, 0, true);
 
-  private static final TypedRange<Void> OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE =
-      new TypedRange<>(BIG, 17L, null);
+  private static final Range OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE = Range.of(BIG, 17L);
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_UNCOMPRESS_RANGE =
-      new TypedRange<>(BIG - 100L, BIG, DEFLATE_PARAMS);
+      TypedRange.of(BIG - 100L, BIG, DEFLATE_PARAMS);
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE =
-      new TypedRange<>(BIG, BIG, DEFLATE_PARAMS);
+      TypedRange.of(BIG, BIG, DEFLATE_PARAMS);
 
-  private static final List<TypedRange<Void>> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
+  private static final List<Range> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
       Collections.singletonList(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
 
   private static final List<TypedRange<JreDeflateParameters>> NEW_DELTA_FRIENDLY_UNCOMPRESS_PLAN =

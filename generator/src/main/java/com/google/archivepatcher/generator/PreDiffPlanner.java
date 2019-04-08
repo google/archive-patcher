@@ -35,6 +35,7 @@ import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedInputStream;
@@ -123,13 +124,13 @@ class PreDiffPlanner {
     }
 
     // Process entries to extract ranges for decompression & recompression
-    Set<TypedRange<Void>> oldFilePlan = new HashSet<>();
+    Set<Range> oldFilePlan = new HashSet<>();
     Set<TypedRange<JreDeflateParameters>> newFilePlan = new HashSet<>();
     for (PreDiffPlanEntry entry : defaultEntries) {
       if (entry.zipEntryUncompressionOption().uncompressOldEntry) {
         long offset = entry.oldEntry().fileOffsetOfCompressedData();
         long length = entry.oldEntry().compressedSize();
-        TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
+        Range range = Range.of(offset, length);
         oldFilePlan.add(range);
       }
       if (entry.zipEntryUncompressionOption().uncompressNewEntry) {
@@ -139,12 +140,12 @@ class PreDiffPlanner {
             newArchiveJreDeflateParametersByPath.get(
                 new ByteArrayHolder(entry.newEntry().fileNameBytes()));
         TypedRange<JreDeflateParameters> range =
-            new TypedRange<JreDeflateParameters>(offset, length, newJreDeflateParameters);
+            TypedRange.of(offset, length, newJreDeflateParameters);
         newFilePlan.add(range);
       }
     }
 
-    List<TypedRange<Void>> oldFilePlanList = new ArrayList<>(oldFilePlan);
+    List<Range> oldFilePlanList = new ArrayList<>(oldFilePlan);
     Collections.sort(oldFilePlanList);
     List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
     Collections.sort(newFilePlanList);

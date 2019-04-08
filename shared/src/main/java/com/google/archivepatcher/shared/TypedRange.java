@@ -37,14 +37,20 @@ public class TypedRange<T> implements Comparable<TypedRange<T>> {
 
   /**
    * Constructs a new range with the specified parameters.
+   *
    * @param offset the offset at which the range starts
    * @param length the length of the range
    * @param metadata optional metadata associated with this range
    */
-  public TypedRange(long offset, long length, T metadata) {
+  protected TypedRange(long offset, long length, T metadata) {
     this.offset = offset;
     this.length = length;
     this.metadata = metadata;
+  }
+
+  /** Constructs a {@link TypedRange} from an offset, a length and metadata. */
+  public static <T> TypedRange<T> of(long offset, long length, T metadata) {
+    return new TypedRange<>(offset, length, metadata);
   }
 
   @Override

@@ -16,7 +16,7 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
-import com.google.archivepatcher.shared.TypedRange;
+import com.google.archivepatcher.shared.Range;
 
 /**
  * Describes all of the information needed to apply a single delta operation - the format of the
@@ -29,15 +29,11 @@ public class DeltaDescriptor {
    */
   private final PatchConstants.DeltaFormat format;
 
-  /**
-   * The work range for the delta-friendly old file.
-   */
-  private final TypedRange<Void> deltaFriendlyOldFileRange;
+  /** The work range for the delta-friendly old file. */
+  private final Range deltaFriendlyOldFileRange;
 
-  /**
-   * The work range for the delta-friendly new file.
-   */
-  private final TypedRange<Void> deltaFriendlyNewFileRange;
+  /** The work range for the delta-friendly new file. */
+  private final Range deltaFriendlyNewFileRange;
 
   /**
    * The number of bytes of delta data in the patch stream.
@@ -46,6 +42,7 @@ public class DeltaDescriptor {
 
   /**
    * Constructs a new descriptor having the specified data.
+   *
    * @param format the format of the delta
    * @param deltaFriendlyOldFileRange the work range for the delta-friendly old file
    * @param deltaFriendlyNewFileRange the work range for the delta-friendly new file
@@ -53,8 +50,8 @@ public class DeltaDescriptor {
    */
   public DeltaDescriptor(
       DeltaFormat format,
-      TypedRange<Void> deltaFriendlyOldFileRange,
-      TypedRange<Void> deltaFriendlyNewFileRange,
+      Range deltaFriendlyOldFileRange,
+      Range deltaFriendlyNewFileRange,
       long deltaLength) {
     this.format = format;
     this.deltaFriendlyOldFileRange = deltaFriendlyOldFileRange;
@@ -72,17 +69,19 @@ public class DeltaDescriptor {
 
   /**
    * Returns the work range for the delta-friendly old file.
+   *
    * @return as described
    */
-  public TypedRange<Void> getDeltaFriendlyOldFileRange() {
+  public Range getDeltaFriendlyOldFileRange() {
     return deltaFriendlyOldFileRange;
   }
 
   /**
    * Returns the work range for the delta-friendly new file.
+   *
    * @return as described
    */
-  public TypedRange<Void> getDeltaFriendlyNewFileRange() {
+  public Range getDeltaFriendlyNewFileRange() {
     return deltaFriendlyNewFileRange;
   }
 

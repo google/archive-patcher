@@ -15,6 +15,7 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.util.Iterator;
 import java.util.List;
@@ -46,10 +47,8 @@ import java.util.List;
  * based is available via {@link #getPreDiffPlanEntries()}.
  */
 public class PreDiffPlan {
-  /**
-   * The plan for uncompressing the old file, in file order.
-   */
-  private final List<TypedRange<Void>> oldFileUncompressionPlan;
+  /** The plan for uncompressing the old file, in file order. */
+  private final List<Range> oldFileUncompressionPlan;
 
   /**
    * The plan for uncompressing the new file, in file order.
@@ -73,7 +72,7 @@ public class PreDiffPlan {
    */
   public PreDiffPlan(
       List<PreDiffPlanEntry> preDiffPlanEntries,
-      List<TypedRange<Void>> oldFileUncompressionPlan,
+      List<Range> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan) {
     this(preDiffPlanEntries, oldFileUncompressionPlan, newFileUncompressionPlan, null);
   }
@@ -89,7 +88,7 @@ public class PreDiffPlan {
    */
   public PreDiffPlan(
       List<PreDiffPlanEntry> preDiffPlanEntries,
-      List<TypedRange<Void>> oldFileUncompressionPlan,
+      List<Range> oldFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan,
       List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan) {
     ensureOrdered(oldFileUncompressionPlan);
@@ -102,16 +101,17 @@ public class PreDiffPlan {
   }
 
   /**
-   * Ensures that the lists passed into the constructors are ordered and throws an exception if
-   * they are not. Null lists and lists whose size is less than 2 are ignored.
+   * Ensures that the lists passed into the constructors are ordered and throws an exception if they
+   * are not. Null lists and lists whose size is less than 2 are ignored.
+   *
    * @param list the list to check
    */
-  private <T> void ensureOrdered(List<TypedRange<T>> list) {
+  private <T extends TypedRange> void ensureOrdered(List<T> list) {
     if (list != null && list.size() >= 2) {
-      Iterator<TypedRange<T>> iterator = list.iterator();
-      TypedRange<T> lastEntry = iterator.next();
+      Iterator<T> iterator = list.iterator();
+      T lastEntry = iterator.next();
       while (iterator.hasNext()) {
-        TypedRange<T> nextEntry = iterator.next();
+        T nextEntry = iterator.next();
         if (lastEntry.compareTo(nextEntry) > 0) {
           throw new IllegalArgumentException("List must be ordered");
         }
@@ -121,9 +121,10 @@ public class PreDiffPlan {
 
   /**
    * Returns the plan for uncompressing the old file to create the delta-friendly old file.
+   *
    * @return the plan
    */
-  public final List<TypedRange<Void>> getOldFileUncompressionPlan() {
+  public final List<Range> getOldFileUncompressionPlan() {
     return oldFileUncompressionPlan;
   }
 

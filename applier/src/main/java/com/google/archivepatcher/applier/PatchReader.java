@@ -16,10 +16,12 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,7 +50,7 @@ public class PatchReader {
     DataInputStream dataIn = new DataInputStream(in);
 
     // Read header and flags.
-    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes("US-ASCII");
+    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes(StandardCharsets.US_ASCII);
     byte[] actualIdentifier = new byte[expectedIdentifier.length];
     dataIn.readFully(actualIdentifier);
     if (!Arrays.equals(expectedIdentifier, actualIdentifier)) {
@@ -61,8 +63,7 @@ public class PatchReader {
     // Read old file uncompression instructions.
     int numOldFileUncompressionInstructions = (int) checkNonNegative(
         dataIn.readInt(), "old file uncompression instruction count");
-    List<TypedRange<Void>> oldFileUncompressionPlan =
-        new ArrayList<TypedRange<Void>>(numOldFileUncompressionInstructions);
+    List<Range> oldFileUncompressionPlan = new ArrayList<>(numOldFileUncompressionInstructions);
     long lastReadOffset = -1;
     for (int x = 0; x < numOldFileUncompressionInstructions; x++) {
       long offset = checkNonNegative(dataIn.readLong(), "old file uncompression range offset");
@@ -70,7 +71,7 @@ public class PatchReader {
       if (offset < lastReadOffset) {
         throw new PatchFormatException("old file uncompression ranges out of order or overlapping");
       }
-      TypedRange<Void> range = new TypedRange<Void>(offset, length, null);
+      Range range = Range.of(offset, length);
       oldFileUncompressionPlan.add(range);
       lastReadOffset = offset + length; // To check that the next range starts after the current one
     }
@@ -81,8 +82,7 @@ public class PatchReader {
         numDeltaFriendlyNewFileRecompressionInstructions,
         "delta-friendly new file recompression instruction count");
     List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan =
-        new ArrayList<TypedRange<JreDeflateParameters>>(
-            numDeltaFriendlyNewFileRecompressionInstructions);
+        new ArrayList<>(numDeltaFriendlyNewFileRecompressionInstructions);
     lastReadOffset = -1;
     for (int x = 0; x < numDeltaFriendlyNewFileRecompressionInstructions; x++) {
       long offset = checkNonNegative(
@@ -106,10 +106,7 @@ public class PatchReader {
       int strategy = (int) checkRange(dataIn.readUnsignedByte(), 0, 2, "recompression strategy");
       int nowrapInt = (int) checkRange(dataIn.readUnsignedByte(), 0, 1, "recompression nowrap");
       TypedRange<JreDeflateParameters> range =
-          new TypedRange<JreDeflateParameters>(
-              offset,
-              length,
-              JreDeflateParameters.of(level, strategy, nowrapInt == 0 ? false : true));
+          TypedRange.of(offset, length, JreDeflateParameters.of(level, strategy, nowrapInt != 0));
       deltaFriendlyNewFileRecompressionPlan.add(range);
     }
 
@@ -117,7 +114,7 @@ public class PatchReader {
     // V1 has exactly one delta and it must be bsdiff.
     int numDeltaRecords = (int) checkRange(dataIn.readInt(), 1, 1, "num delta records");
 
-    List<DeltaDescriptor> deltaDescriptors = new ArrayList<DeltaDescriptor>(numDeltaRecords);
+    List<DeltaDescriptor> deltaDescriptors = new ArrayList<>(numDeltaRecords);
     for (int x = 0; x < numDeltaRecords; x++) {
       byte deltaFormatByte = (byte)
       checkRange(
@@ -137,10 +134,8 @@ public class PatchReader {
       DeltaDescriptor descriptor =
           new DeltaDescriptor(
               PatchConstants.DeltaFormat.fromPatchValue(deltaFormatByte),
-              new TypedRange<Void>(
-                  deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength, null),
-              new TypedRange<Void>(
-                  deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength, null),
+              Range.of(deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength),
+              Range.of(deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength),
               deltaLength);
       deltaDescriptors.add(descriptor);
     }
@@ -154,13 +149,13 @@ public class PatchReader {
 
   /**
    * Assert that the value isn't negative.
+   *
    * @param value the value to check
    * @param description the description to use in error messages if the value is not ok
    * @return the value
    * @throws PatchFormatException if the value is not ok
    */
-  private static final long checkNonNegative(long value, String description)
-      throws PatchFormatException {
+  private static long checkNonNegative(long value, String description) throws PatchFormatException {
     if (value < 0) {
       throw new PatchFormatException("Bad value for " + description + ": " + value);
     }
@@ -169,6 +164,7 @@ public class PatchReader {
 
   /**
    * Assert that the value is in the specified range.
+   *
    * @param value the value to check
    * @param min the minimum (inclusive) value to allow
    * @param max the maximum (inclusive) value to allow
@@ -176,7 +172,7 @@ public class PatchReader {
    * @return the value
    * @throws PatchFormatException if the value is not ok
    */
-  private static final long checkRange(long value, long min, long max, String description)
+  private static long checkRange(long value, long min, long max, String description)
       throws PatchFormatException {
     if (value < min || value > max) {
       throw new PatchFormatException(

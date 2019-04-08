@@ -16,6 +16,7 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,22 +43,20 @@ public class PatchReaderTest {
 
   private static final JreDeflateParameters DEFLATE_PARAMS = JreDeflateParameters.of(6, 0, true);
 
-  private static final TypedRange<Void> OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE1 =
-      new TypedRange<Void>(BIG, 17L, null);
+  private static final Range OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE1 = Range.of(BIG, 17L);
 
-  private static final TypedRange<Void> OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE2 =
-      new TypedRange<Void>(BIG + 25L, 19L, null);
+  private static final Range OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE2 = Range.of(BIG + 25L, 19L);
 
-  private static final List<TypedRange<Void>> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
+  private static final List<Range> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
       Collections.unmodifiableList(
           Arrays.asList(
               OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE1, OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE2));
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE1 =
-      new TypedRange<JreDeflateParameters>(BIG, BIG, DEFLATE_PARAMS);
+      TypedRange.of(BIG, BIG, DEFLATE_PARAMS);
 
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE2 =
-      new TypedRange<JreDeflateParameters>(BIG * 2, BIG, DEFLATE_PARAMS);
+      TypedRange.of(BIG * 2, BIG, DEFLATE_PARAMS);
 
   private static final List<TypedRange<JreDeflateParameters>> NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN =
       Collections.unmodifiableList(
@@ -68,11 +67,11 @@ public class PatchReaderTest {
 
   private static final long DELTA_FRIENDLY_NEW_FILE_SIZE = BIG + 75L;
 
-  private static final TypedRange<Void> DELTA_FRIENDLY_OLD_FILE_WORK_RANGE =
-      new TypedRange<Void>(0, DELTA_FRIENDLY_OLD_FILE_SIZE, null);
+  private static final Range DELTA_FRIENDLY_OLD_FILE_WORK_RANGE =
+      Range.of(0, DELTA_FRIENDLY_OLD_FILE_SIZE);
 
-  private static final TypedRange<Void> DELTA_FRIENDLY_NEW_FILE_WORK_RANGE =
-      new TypedRange<Void>(0, DELTA_FRIENDLY_NEW_FILE_SIZE, null);
+  private static final Range DELTA_FRIENDLY_NEW_FILE_WORK_RANGE =
+      Range.of(0, DELTA_FRIENDLY_NEW_FILE_SIZE);
 
   private static final String DELTA_CONTENT = "all your delta are belong to us";
 
@@ -148,12 +147,12 @@ public class PatchReaderTest {
         corruption.corruptOldFileUncompressionInstructionCount
             ? -1
             : OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN.size());
-    List<TypedRange<Void>> oldDeltaFriendlyUncompressPlan =
-        new ArrayList<TypedRange<Void>>(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN);
+    List<Range> oldDeltaFriendlyUncompressPlan =
+        new ArrayList<Range>(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN);
     if (corruption.corruptOldFileUncompressionInstructionOrder) {
       Collections.reverse(oldDeltaFriendlyUncompressPlan);
     }
-    for (TypedRange<Void> range : oldDeltaFriendlyUncompressPlan) {
+    for (Range range : oldDeltaFriendlyUncompressPlan) {
       patchOut.writeLong(
           corruption.corruptOldFileUncompressionInstructionOffset ? -1 : range.getOffset());
       patchOut.writeLong(

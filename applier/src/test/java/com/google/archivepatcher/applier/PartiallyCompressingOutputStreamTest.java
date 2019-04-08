@@ -37,29 +37,29 @@ public class PartiallyCompressingOutputStreamTest {
   private PartiallyCompressingOutputStream stream;
 
   // The preamble comes before any compressed bytes in the stream
-  private static byte[] PREAMBLE_BYTES = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  private static final byte[] PREAMBLE_BYTES = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
   // First range for compression
-  private static JreDeflateParameters PARAMS1 = JreDeflateParameters.of(1, 0, true);
-  private static UnitTestZipEntry ENTRY1 =
+  private static final JreDeflateParameters PARAMS1 = JreDeflateParameters.of(1, 0, true);
+  private static final UnitTestZipEntry ENTRY1 =
       UnitTestZipArchive.makeUnitTestZipEntry(
           "/foo", PARAMS1.level, PARAMS1.nowrap, "foo-level1", null);
-  private static long OFFSET1 = PREAMBLE_BYTES.length;
-  private static long LENGTH1 = ENTRY1.getUncompressedBinaryContent().length;
-  private static TypedRange<JreDeflateParameters> COMPRESS_RANGE_1 =
-      new TypedRange<JreDeflateParameters>(OFFSET1, LENGTH1, PARAMS1);
+  private static final long OFFSET1 = PREAMBLE_BYTES.length;
+  private static final long LENGTH1 = ENTRY1.getUncompressedBinaryContent().length;
+  private static final TypedRange<JreDeflateParameters> COMPRESS_RANGE_1 =
+      TypedRange.of(OFFSET1, LENGTH1, PARAMS1);
 
-  private static byte[] GAP1_BYTES = new byte[] {37};
+  private static final byte[] GAP1_BYTES = new byte[] {37};
 
   // Second range for compression, with a gap in between. Note this changes nowrap and level
-  private static JreDeflateParameters PARAMS2 = JreDeflateParameters.of(6, 0, false);
-  private static UnitTestZipEntry ENTRY2 =
+  private static final JreDeflateParameters PARAMS2 = JreDeflateParameters.of(6, 0, false);
+  private static final UnitTestZipEntry ENTRY2 =
       UnitTestZipArchive.makeUnitTestZipEntry(
           "/bar", PARAMS2.level, PARAMS2.nowrap, "bar-level6", null);
-  private static long OFFSET2 = OFFSET1 + LENGTH1 + GAP1_BYTES.length;
-  private static long LENGTH2 = ENTRY2.getUncompressedBinaryContent().length;
-  private static TypedRange<JreDeflateParameters> COMPRESS_RANGE_2 =
-      new TypedRange<JreDeflateParameters>(OFFSET2, LENGTH2, PARAMS2);
+  private static final long OFFSET2 = OFFSET1 + LENGTH1 + GAP1_BYTES.length;
+  private static final long LENGTH2 = ENTRY2.getUncompressedBinaryContent().length;
+  private static final TypedRange<JreDeflateParameters> COMPRESS_RANGE_2 =
+      TypedRange.of(OFFSET2, LENGTH2, PARAMS2);
 
   private byte[] fuse(byte[]... arrays) throws IOException {
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -77,9 +77,7 @@ public class PartiallyCompressingOutputStreamTest {
   @Test
   public void testWrite_Nothing() throws IOException {
     // Test the case where there are no compression ranges at all and nothing is written.
-    stream =
-        new PartiallyCompressingOutputStream(
-            Collections.<TypedRange<JreDeflateParameters>>emptyList(), outBuffer, 32768);
+    stream = new PartiallyCompressingOutputStream(Collections.emptyList(), outBuffer, 32768);
     byte[] input = new byte[] {};
     stream.write(input);
     stream.flush();
@@ -90,9 +88,7 @@ public class PartiallyCompressingOutputStreamTest {
   @Test
   public void testWrite_NoneCompressed() throws IOException {
     // Test the case where there are no compression ranges at all.
-    stream =
-        new PartiallyCompressingOutputStream(
-            Collections.<TypedRange<JreDeflateParameters>>emptyList(), outBuffer, 32768);
+    stream = new PartiallyCompressingOutputStream(Collections.emptyList(), outBuffer, 32768);
     byte[] input = new byte[] {1, 77, 66, 44, 22, 11};
     byte[] expected = input.clone();
     stream.write(input);
@@ -104,8 +100,7 @@ public class PartiallyCompressingOutputStreamTest {
   public void testWrite_AllCompressed() throws IOException {
     // Test the case where a single compression range covers the entire input
     TypedRange<JreDeflateParameters> range =
-        new TypedRange<JreDeflateParameters>(
-            0, ENTRY1.getUncompressedBinaryContent().length, PARAMS1);
+        TypedRange.of(0, ENTRY1.getUncompressedBinaryContent().length, PARAMS1);
     stream =
         new PartiallyCompressingOutputStream(Collections.singletonList(range), outBuffer, 32768);
     stream.write(ENTRY1.getUncompressedBinaryContent());

@@ -38,7 +38,7 @@ public class DeltaFriendlyFile {
    * generateInverse</code> set to <code>true</code> and a copy buffer size of {@link
    * #DEFAULT_COPY_BUFFER_SIZE}.
    *
-   * @param <T> the type of the data associated with the ranges
+   * @param <M> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
    *     delta-friendly form
    * @param data the original archive
@@ -47,8 +47,8 @@ public class DeltaFriendlyFile {
    *     file, with identical metadata and in the same order
    * @throws IOException if anything goes wrong
    */
-  public static <T> List<TypedRange<T>> generateDeltaFriendlyFile(
-      List<TypedRange<T>> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
+  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
+      List<T> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
       throws IOException {
     return generateDeltaFriendlyFile(
         rangesToUncompress, data, deltaFriendlyOut, true, DEFAULT_COPY_BUFFER_SIZE);
@@ -75,21 +75,21 @@ public class DeltaFriendlyFile {
    *     order; otherwise, return null
    * @throws IOException if anything goes wrong
    */
-  public static <T> List<TypedRange<T>> generateDeltaFriendlyFile(
-      List<TypedRange<T>> rangesToUncompress,
+  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
+      List<T> rangesToUncompress,
       ByteSource blob,
       OutputStream deltaFriendlyOut,
       boolean generateInverse,
       int copyBufferSize)
       throws IOException {
-    List<TypedRange<T>> inverseRanges = null;
+    List<TypedRange<M>> inverseRanges = null;
     if (generateInverse) {
-      inverseRanges = new ArrayList<TypedRange<T>>(rangesToUncompress.size());
+      inverseRanges = new ArrayList<>(rangesToUncompress.size());
     }
     long lastReadOffset = 0;
     try (PartiallyUncompressingPipe filteredOut =
         new PartiallyUncompressingPipe(deltaFriendlyOut, copyBufferSize)) {
-      for (TypedRange<T> rangeToUncompress : rangesToUncompress) {
+      for (TypedRange<M> rangeToUncompress : rangesToUncompress) {
         long gap = rangeToUncompress.getOffset() - lastReadOffset;
         if (gap > 0) {
           // Copy bytes up to the range start point
@@ -113,9 +113,8 @@ public class DeltaFriendlyFile {
         if (generateInverse) {
           long inverseRangeEnd = filteredOut.getNumBytesWritten();
           long inverseRangeLength = inverseRangeEnd - inverseRangeStart;
-          TypedRange<T> inverseRange =
-              new TypedRange<T>(
-                  inverseRangeStart, inverseRangeLength, rangeToUncompress.getMetadata());
+          TypedRange<M> inverseRange =
+              TypedRange.of(inverseRangeStart, inverseRangeLength, rangeToUncompress.getMetadata());
           inverseRanges.add(inverseRange);
         }
       }
@@ -138,7 +137,7 @@ public class DeltaFriendlyFile {
    * generation of the inverse range and to specify the size of the copy buffer are provided for
    * clients that desire a minimal memory footprint.
    *
-   * @param <T> the type of the data associated with the ranges
+   * @param <M> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
    *     delta-friendly form
    * @param blob the blob to read from
@@ -151,8 +150,8 @@ public class DeltaFriendlyFile {
    *     order; otherwise, return null
    * @throws IOException if anything goes wrong
    */
-  public static <T> List<TypedRange<T>> generateDeltaFriendlyFile(
-      List<TypedRange<T>> rangesToUncompress,
+  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
+      List<T> rangesToUncompress,
       File blob,
       OutputStream deltaFriendlyOut,
       boolean generateInverse,
