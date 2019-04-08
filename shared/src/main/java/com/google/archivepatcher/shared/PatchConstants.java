@@ -132,7 +132,7 @@ public class PatchConstants {
     /**
      * Obtain the value of the current compression method as specified in the ZIP format.
      *
-     * @throws IllegalArgumentException if the
+     * @throws IllegalArgumentException if the compression method is {@link #UNKNOWN}.
      */
     public int value() {
       switch (this) {
