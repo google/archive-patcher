@@ -33,7 +33,7 @@ public abstract class MinimalZipEntry {
    */
   public abstract long compressedSize();
 
-  /** The size of the <em>uncompressed</em data. */
+  /** The size of the <em>uncompressed</em> data. */
   public abstract long uncompressedSize();
 
   /**
