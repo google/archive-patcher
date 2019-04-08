@@ -58,8 +58,8 @@ public class DefaultDeflateCompressionDiviner {
 
     /**
      * The {@link JreDeflateParameters} for the result, possibly null. This value is only set if
-     * {@link MinimalZipEntry#isDeflateCompressed()} is true <em>and</em> the compression settings
-     * were successfully divined.
+     * {@link MinimalZipEntry} is deflate compressed <em>and</em> the compression settings were
+     * successfully divined.
      */
     public final JreDeflateParameters divinedParameters;
 
