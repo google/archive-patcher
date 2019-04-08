@@ -55,7 +55,11 @@ public abstract class ByteSource implements Closeable {
     return new RandomAccessFileByteSource(file);
   }
 
-  /** Convenience method to obtain a {@link ByteSource} from a byte array. */
+  /**
+   * Convenience method to obtain a {@link ByteSource} from a byte array.
+   *
+   * <p>WARNING: the byte array passed in is not copied and should not be mutated afterwards.
+   */
   public static ByteSource wrap(byte[] buffer) {
     return new ByteArrayByteSource(buffer);
   }

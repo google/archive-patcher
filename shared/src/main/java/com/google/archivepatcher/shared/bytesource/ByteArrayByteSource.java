@@ -17,15 +17,19 @@ package com.google.archivepatcher.shared.bytesource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 
 /** A {@link ByteSource} backed by a byte array. */
 public class ByteArrayByteSource extends ByteSource {
 
   private final byte[] buffer;
 
+  /**
+   * Constructs a new {@link ByteArrayByteSource}.
+   *
+   * <p>WARNING: the byte array passed in is not copied and should not be mutated afterwards.
+   */
   public ByteArrayByteSource(byte[] buffer) {
-    this.buffer = Arrays.copyOf(buffer, buffer.length);
+    this.buffer = buffer;
   }
 
   @Override
