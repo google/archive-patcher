@@ -125,7 +125,6 @@ public class FileByFileDeltaApplier implements DeltaApplier {
           plan.getOldFileUncompressionPlan(),
           oldBlob,
           deltaFriendlyOldFileOut,
-          false,
           DEFAULT_COPY_BUFFER_SIZE);
     }
   }

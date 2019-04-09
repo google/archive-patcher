@@ -121,13 +121,13 @@ public class PatchWriterTest {
 
     // Read the uncompression instructions
     assertThat(patchIn.readInt()).isEqualTo(1); // Number of old archive uncompression instructions
-    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getOffset());
-    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.getLength());
+    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.offset());
+    assertThat(patchIn.readLong()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE.length());
 
     // Read the recompression instructions
     assertThat(patchIn.readInt()).isEqualTo(1); // Number of new archive recompression instructions
-    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getOffset());
-    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.getLength());
+    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.offset());
+    assertThat(patchIn.readLong()).isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE.length());
     // Now the JreDeflateParameters for the record
     assertThat(patchIn.read())
         .isEqualTo(PatchConstants.CompatibilityWindowId.DEFAULT_DEFLATE.patchValue);

@@ -14,21 +14,17 @@
 
 package com.google.archivepatcher.shared;
 
+import java.util.Objects;
+
 /**
- * A range, annotated with metadata, that is represented as an offset and a length. Comparison is
- * performed based on the natural ordering of the offset field.
+ * A range, annotated with metadata, that is represented as an offset and a length.
+ *
  * @param <T> the type of the metadata
  */
-public class TypedRange<T> implements Comparable<TypedRange<T>> {
-  /**
-   * The offset at which the range starts.
-   */
-  private final long offset;
+public class TypedRange<T> extends Range {
 
-  /**
-   * The length of the range.
-   */
-  private final long length;
+  /** Underlying range. */
+  private final Range range;
 
   /**
    * Optional metadata associated with this range.
@@ -38,45 +34,36 @@ public class TypedRange<T> implements Comparable<TypedRange<T>> {
   /**
    * Constructs a new range with the specified parameters.
    *
-   * @param offset the offset at which the range starts
-   * @param length the length of the range
+   * @param range the underlying range
    * @param metadata optional metadata associated with this range
    */
-  protected TypedRange(long offset, long length, T metadata) {
-    this.offset = offset;
-    this.length = length;
+  TypedRange(Range range, T metadata) {
+    this.range = range;
     this.metadata = metadata;
+  }
+
+  @Override
+  public long length() {
+    return range.length();
+  }
+
+  @Override
+  public long offset() {
+    return range.offset();
   }
 
   /** Constructs a {@link TypedRange} from an offset, a length and metadata. */
   public static <T> TypedRange<T> of(long offset, long length, T metadata) {
-    return new TypedRange<>(offset, length, metadata);
+    return new TypedRange<>(Range.of(offset, length), metadata);
   }
 
   @Override
   public String toString() {
-    return "offset " + offset + ", length " + length + ", metadata " + metadata;
-  }
-
-  /**
-   * Returns the offset at which the range starts.
-   * @return as described
-   */
-  public long getOffset() {
-    return offset;
-  }
-
-  /**
-   * Returns the length of the range.
-   * @return as described
-   */
-  public long getLength() {
-    return length;
+    return "range: " + range + ", metadata: " + metadata;
   }
 
   /**
    * Returns the metadata associated with the range, or null if no metadata has been set.
-   * @return as described
    */
   public T getMetadata() {
     return metadata;
@@ -84,30 +71,23 @@ public class TypedRange<T> implements Comparable<TypedRange<T>> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + (int) (length ^ (length >>> 32));
-    result = prime * result + ((metadata == null) ? 0 : metadata.hashCode());
-    result = prime * result + (int) (offset ^ (offset >>> 32));
-    return result;
+    return Objects.hash(range, metadata);
   }
 
   @Override
   public boolean equals(Object obj) {
     if (this == obj) return true;
-    if (obj == null) return false;
-    if (getClass() != obj.getClass()) return false;
+    if (!(obj instanceof TypedRange)) {
+      return false;
+    }
     TypedRange<?> other = (TypedRange<?>) obj;
-    if (length != other.length) return false;
+    if (!range.equals(other.range)) {
+      return false;
+    }
     if (metadata == null) {
       if (other.metadata != null) return false;
     } else if (!metadata.equals(other.metadata)) return false;
-    if (offset != other.offset) return false;
     return true;
   }
 
-  @Override
-  public int compareTo(TypedRange<T> other) {
-    return Long.compare(getOffset(), other.getOffset());
-  }
 }

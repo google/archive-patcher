@@ -191,12 +191,10 @@ public class PreDiffExecutorTest {
       MinimalZipEntry oldEntry = findEntry(oldFile, ENTRY_LEVEL_6.path);
       ByteArrayOutputStream expectedDeltaFriendlyOldFileBytes = new ByteArrayOutputStream();
       expectedDeltaFriendlyOldFileBytes.write(
-          oldBytes, 0, (int) oldEntry.compressedDataRange().getOffset());
+          oldBytes, 0, (int) oldEntry.compressedDataRange().offset());
       expectedDeltaFriendlyOldFileBytes.write(ENTRY_LEVEL_6.getUncompressedBinaryContent());
       int oldRemainderOffset =
-          (int)
-              (oldEntry.compressedDataRange().getOffset()
-                  + oldEntry.compressedDataRange().getLength());
+          (int) (oldEntry.compressedDataRange().offset() + oldEntry.compressedDataRange().length());
       int oldRemainderLength = oldBytes.length - oldRemainderOffset;
       expectedDeltaFriendlyOldFileBytes.write(oldBytes, oldRemainderOffset, oldRemainderLength);
       byte[] expectedOld = expectedDeltaFriendlyOldFileBytes.toByteArray();
@@ -209,12 +207,10 @@ public class PreDiffExecutorTest {
       MinimalZipEntry newEntry = findEntry(newFile, ENTRY_LEVEL_9.path);
       ByteArrayOutputStream expectedDeltaFriendlyNewFileBytes = new ByteArrayOutputStream();
       expectedDeltaFriendlyNewFileBytes.write(
-          newBytes, 0, (int) newEntry.compressedDataRange().getOffset());
+          newBytes, 0, (int) newEntry.compressedDataRange().offset());
       expectedDeltaFriendlyNewFileBytes.write(ENTRY_LEVEL_9.getUncompressedBinaryContent());
       int newRemainderOffset =
-          (int)
-              (newEntry.compressedDataRange().getOffset()
-                  + newEntry.compressedDataRange().getLength());
+          (int) (newEntry.compressedDataRange().offset() + newEntry.compressedDataRange().length());
       int newRemainderLength = newBytes.length - newRemainderOffset;
       expectedDeltaFriendlyNewFileBytes.write(newBytes, newRemainderOffset, newRemainderLength);
       byte[] expectedNew = expectedDeltaFriendlyNewFileBytes.toByteArray();

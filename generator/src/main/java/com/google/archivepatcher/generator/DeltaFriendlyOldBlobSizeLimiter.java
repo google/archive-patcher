@@ -78,7 +78,7 @@ public class DeltaFriendlyOldBlobSizeLimiter implements PreDiffPlanEntryModifier
       } else {
         long extraBytesConsumed =
             originalEntry.oldEntry().uncompressedSize()
-                - originalEntry.oldEntry().compressedDataRange().getLength();
+                - originalEntry.oldEntry().compressedDataRange().length();
         if (bytesRemaining - extraBytesConsumed >= 0) {
           // Keep the original entry, but also subtract from the remaining space.
           result.add(originalEntry);

@@ -218,7 +218,7 @@ public class PreDiffExecutor {
     }
     try (BufferedOutputStream bufferedOut =
         new BufferedOutputStream(new FileOutputStream(deltaFriendlyNewFile))) {
-      return DeltaFriendlyFile.generateDeltaFriendlyFile(
+      return DeltaFriendlyFile.generateDeltaFriendlyFileWithInverse(
           preDiffPlan.getNewFileUncompressionPlan(), originalNewBlob, bufferedOut);
     }
   }

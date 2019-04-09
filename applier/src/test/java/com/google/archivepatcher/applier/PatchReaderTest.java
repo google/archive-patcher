@@ -156,9 +156,9 @@ public class PatchReaderTest {
     }
     for (Range range : oldDeltaFriendlyUncompressPlan) {
       patchOut.writeLong(
-          corruption.corruptOldFileUncompressionInstructionOffset ? -1 : range.getOffset());
+          corruption.corruptOldFileUncompressionInstructionOffset ? -1 : range.offset());
       patchOut.writeLong(
-          corruption.corruptOldFileUncompressionInstructionLength ? -1 : range.getLength());
+          corruption.corruptOldFileUncompressionInstructionLength ? -1 : range.length());
     }
 
     // Write the recompression instructions
@@ -175,11 +175,11 @@ public class PatchReaderTest {
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileRecompressionInstructionOffset
               ? -1
-              : range.getOffset());
+              : range.offset());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileRecompressionInstructionLength
               ? -1
-              : range.getLength());
+              : range.length());
       // Now the JreDeflateParameters for the record
       patchOut.write(
           corruption.corruptCompatibilityWindowId
@@ -201,19 +201,19 @@ public class PatchReaderTest {
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyOldFileWorkRangeOffset
               ? -1
-              : descriptor.deltaFriendlyOldFileRange().getOffset());
+              : descriptor.deltaFriendlyOldFileRange().offset());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyOldFileWorkRangeLength
               ? -1
-              : descriptor.deltaFriendlyOldFileRange().getLength());
+              : descriptor.deltaFriendlyOldFileRange().length());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileWorkRangeOffset
               ? -1
-              : descriptor.deltaFriendlyNewFileRange().getOffset());
+              : descriptor.deltaFriendlyNewFileRange().offset());
       patchOut.writeLong(
           corruption.corruptDeltaFriendlyNewFileWorkRangeLength
               ? -1
-              : descriptor.deltaFriendlyNewFileRange().getLength());
+              : descriptor.deltaFriendlyNewFileRange().length());
       patchOut.writeLong(corruption.corruptDeltaLength ? -1 : descriptor.deltaLength());
     }
 

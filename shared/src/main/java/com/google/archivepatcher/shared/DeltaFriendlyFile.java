@@ -38,7 +38,7 @@ public class DeltaFriendlyFile {
    * generateInverse</code> set to <code>true</code> and a copy buffer size of {@link
    * #DEFAULT_COPY_BUFFER_SIZE}.
    *
-   * @param <M> the type of the data associated with the ranges
+   * @param <T> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
    *     delta-friendly form
    * @param data the original archive
@@ -47,11 +47,66 @@ public class DeltaFriendlyFile {
    *     file, with identical metadata and in the same order
    * @throws IOException if anything goes wrong
    */
-  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
-      List<T> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
+  public static <T> List<TypedRange<T>> generateDeltaFriendlyFileWithInverse(
+      List<TypedRange<T>> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
       throws IOException {
     return generateDeltaFriendlyFile(
-        rangesToUncompress, data, deltaFriendlyOut, true, DEFAULT_COPY_BUFFER_SIZE);
+        rangesToUncompress,
+        data,
+        deltaFriendlyOut,
+        /* generateInverse= */ true,
+        DEFAULT_COPY_BUFFER_SIZE);
+  }
+
+  /**
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
+   * <code>
+   * generateInverse</code> set to <code>false</code> and a copy buffer size of {@link
+   * #DEFAULT_COPY_BUFFER_SIZE}.
+   *
+   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
+   *     delta-friendly form
+   * @param data the original archive
+   * @param deltaFriendlyOut a stream to write the delta-friendly file to
+   * @return the ranges in the delta-friendly file that correspond to the ranges in the original
+   *     file, with identical metadata and in the same order
+   * @throws IOException if anything goes wrong
+   */
+  public static void generateDeltaFriendlyFile(
+      List<Range> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
+      throws IOException {
+    generateDeltaFriendlyFile(
+        wrapRanges(rangesToUncompress),
+        data,
+        deltaFriendlyOut,
+        /* generateInverse= */ false,
+        DEFAULT_COPY_BUFFER_SIZE);
+  }
+
+  /**
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
+   * <code>
+   * generateInverse</code> set to <code>false</code> and the specified copy buffer size.
+   *
+   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
+   *     delta-friendly form
+   * @param blob the original archive
+   * @param deltaFriendlyOut a stream to write the delta-friendly file to
+   * @return the ranges in the delta-friendly file that correspond to the ranges in the original
+   *     file, with identical metadata and in the same order
+   * @throws IOException if anything goes wrong
+   */
+  public static void generateDeltaFriendlyFile(
+      List<Range> rangesToUncompress, File blob, OutputStream deltaFriendlyOut, int copyBufferSize)
+      throws IOException {
+    try (ByteSource byteSource = ByteSource.fromFile(blob)) {
+      generateDeltaFriendlyFile(
+          wrapRanges(rangesToUncompress),
+          byteSource,
+          deltaFriendlyOut,
+          /* generateInverse= */ false,
+          copyBufferSize);
+    }
   }
 
   /**
@@ -75,22 +130,22 @@ public class DeltaFriendlyFile {
    *     order; otherwise, return null
    * @throws IOException if anything goes wrong
    */
-  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
-      List<T> rangesToUncompress,
+  private static <T> List<TypedRange<T>> generateDeltaFriendlyFile(
+      List<TypedRange<T>> rangesToUncompress,
       ByteSource blob,
       OutputStream deltaFriendlyOut,
       boolean generateInverse,
       int copyBufferSize)
       throws IOException {
-    List<TypedRange<M>> inverseRanges = null;
+    List<TypedRange<T>> inverseRanges = null;
     if (generateInverse) {
       inverseRanges = new ArrayList<>(rangesToUncompress.size());
     }
     long lastReadOffset = 0;
     try (PartiallyUncompressingPipe filteredOut =
         new PartiallyUncompressingPipe(deltaFriendlyOut, copyBufferSize)) {
-      for (TypedRange<M> rangeToUncompress : rangesToUncompress) {
-        long gap = rangeToUncompress.getOffset() - lastReadOffset;
+      for (TypedRange<T> rangeToUncompress : rangesToUncompress) {
+        long gap = rangeToUncompress.offset() - lastReadOffset;
         if (gap > 0) {
           // Copy bytes up to the range start point
           try (InputStream in = blob.slice(lastReadOffset, gap).openStream()) {
@@ -101,19 +156,19 @@ public class DeltaFriendlyFile {
         // Now uncompress the range.
         long inverseRangeStart = filteredOut.getNumBytesWritten();
         try (InputStream in =
-            blob.slice(rangeToUncompress.getOffset(), rangeToUncompress.getLength()).openStream()) {
+            blob.slice(rangeToUncompress.offset(), rangeToUncompress.length()).openStream()) {
           // TODO: Support nowrap=false here? Never encountered in practice.
           // This would involve catching the ZipException, checking if numBytesWritten is still
           // zero,
           // resetting the stream and trying again.
           filteredOut.pipe(in, PartiallyUncompressingPipe.Mode.UNCOMPRESS_NOWRAP);
         }
-        lastReadOffset = rangeToUncompress.getOffset() + rangeToUncompress.getLength();
+        lastReadOffset = rangeToUncompress.offset() + rangeToUncompress.length();
 
         if (generateInverse) {
           long inverseRangeEnd = filteredOut.getNumBytesWritten();
           long inverseRangeLength = inverseRangeEnd - inverseRangeStart;
-          TypedRange<M> inverseRange =
+          TypedRange<T> inverseRange =
               TypedRange.of(inverseRangeStart, inverseRangeLength, rangeToUncompress.getMetadata());
           inverseRanges.add(inverseRange);
         }
@@ -129,37 +184,11 @@ public class DeltaFriendlyFile {
     return inverseRanges;
   }
 
-  /**
-   * Generate one delta-friendly file and (optionally) return the ranges necessary to invert the
-   * transform, in file order. There is a 1:1 correspondence between the ranges in the input list
-   * and the returned list, but the offsets and lengths will be different (the input list represents
-   * compressed data, the output list represents uncompressed data). The ability to suppress
-   * generation of the inverse range and to specify the size of the copy buffer are provided for
-   * clients that desire a minimal memory footprint.
-   *
-   * @param <M> the type of the data associated with the ranges
-   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
-   *     delta-friendly form
-   * @param blob the blob to read from
-   * @param deltaFriendlyOut a stream to write the delta-friendly file to
-   * @param generateInverse if <code>true</code>, generate and return a list of inverse ranges in
-   *     file order; otherwise, do all the normal work but return null instead of the inverse ranges
-   * @param copyBufferSize the size of the buffer to use for copying bytes between streams
-   * @return if <code>generateInverse</code> was true, returns the ranges in the delta-friendly file
-   *     that correspond to the ranges in the original file, with identical metadata and in the same
-   *     order; otherwise, return null
-   * @throws IOException if anything goes wrong
-   */
-  public static <M, T extends TypedRange<M>> List<TypedRange<M>> generateDeltaFriendlyFile(
-      List<T> rangesToUncompress,
-      File blob,
-      OutputStream deltaFriendlyOut,
-      boolean generateInverse,
-      int copyBufferSize)
-      throws IOException {
-    try (ByteSource byteSource = ByteSource.fromFile(blob)) {
-      return generateDeltaFriendlyFile(
-          rangesToUncompress, byteSource, deltaFriendlyOut, generateInverse, copyBufferSize);
+  private static List<TypedRange<Void>> wrapRanges(List<Range> ranges) {
+    List<TypedRange<Void>> typedRanges = new ArrayList<>(ranges.size());
+    for (Range range : ranges) {
+      typedRanges.add(range.withMetadata(/* metadata= */ null));
     }
+    return typedRanges;
   }
 }

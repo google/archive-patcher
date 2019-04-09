@@ -185,7 +185,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - PRE_DIFF_PLAN_ENTRY_A_100K
                 .oldEntry()
                 .compressedDataRange()
-                .getLength(); // Exactly large enough
+                .length(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_A_100K);
@@ -203,7 +203,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testLimit_EdgeUnderSmallest() {
     long limit =
         PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().uncompressedSize()
-            - PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().compressedDataRange().getLength()
+            - PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().compressedDataRange().length()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
@@ -224,7 +224,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testLimit_EdgeOverSmallest() {
     long limit =
         PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().uncompressedSize()
-            - PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().compressedDataRange().getLength()
+            - PRE_DIFF_PLAN_ENTRY_A_100K.oldEntry().compressedDataRange().length()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
@@ -246,7 +246,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
             - PRE_DIFF_PLAN_ENTRY_D_400K
                 .oldEntry()
                 .compressedDataRange()
-                .getLength(); // Exactly large enough
+                .length(); // Exactly large enough
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_D_400K);
@@ -264,7 +264,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testLimit_EdgeUnderLargest() {
     long limit =
         PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().uncompressedSize()
-            - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().getLength()
+            - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().length()
             - 1; // 1 byte too small
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
@@ -283,7 +283,7 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
   public void testLimit_EdgeOverLargest() {
     long limit =
         PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().uncompressedSize()
-            - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().getLength()
+            - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().length()
             + 1; // 1 byte extra room
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
@@ -306,9 +306,9 @@ public class DeltaFriendlyOldBlobSizeLimiterTest {
     // after adding the third largest. Tricky.
     long limit =
         (PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().uncompressedSize()
-                - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().getLength())
+                - PRE_DIFF_PLAN_ENTRY_D_400K.oldEntry().compressedDataRange().length())
             + (PRE_DIFF_PLAN_ENTRY_B_200K.oldEntry().uncompressedSize()
-                - PRE_DIFF_PLAN_ENTRY_B_200K.oldEntry().compressedDataRange().getLength());
+                - PRE_DIFF_PLAN_ENTRY_B_200K.oldEntry().compressedDataRange().length());
     DeltaFriendlyOldBlobSizeLimiter limiter = new DeltaFriendlyOldBlobSizeLimiter(limit);
     List<PreDiffPlanEntry> expected = new ArrayList<>();
     expected.add(PRE_DIFF_PLAN_ENTRY_B_200K);

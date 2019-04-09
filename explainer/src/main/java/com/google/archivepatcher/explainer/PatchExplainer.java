@@ -225,8 +225,8 @@ public class PatchExplainer {
       throws IOException {
     return getCompressedSize(
         file,
-        entry.compressedDataRange().getOffset(),
-        entry.compressedDataRange().getLength(),
+        entry.compressedDataRange().offset(),
+        entry.compressedDataRange().length(),
         compressor);
   }
 
@@ -244,7 +244,7 @@ public class PatchExplainer {
       throws IOException {
     try (RandomAccessFileInputStream rafis =
             new RandomAccessFileInputStream(
-                source, rangeToUncompress.getOffset(), rangeToUncompress.getLength());
+                source, rangeToUncompress.offset(), rangeToUncompress.length());
         FileOutputStream out = new FileOutputStream(dest);
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
       uncompressor.uncompress(rafis, bufferedOut);
@@ -261,7 +261,7 @@ public class PatchExplainer {
   private void extractCopy(File source, Range rangeToExtract, File dest) throws IOException {
     try (RandomAccessFileInputStream rafis =
             new RandomAccessFileInputStream(
-                source, rangeToExtract.getOffset(), rangeToExtract.getLength());
+                source, rangeToExtract.offset(), rangeToExtract.length());
         FileOutputStream out = new FileOutputStream(dest);
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
       byte[] buffer = new byte[32768];

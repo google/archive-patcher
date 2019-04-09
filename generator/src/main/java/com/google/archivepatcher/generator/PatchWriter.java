@@ -93,15 +93,15 @@ public class PatchWriter {
     // Write out all the delta-friendly old file uncompression instructions
     dataOut.writeInt(plan.getOldFileUncompressionPlan().size());
     for (Range range : plan.getOldFileUncompressionPlan()) {
-      dataOut.writeLong(range.getOffset());
-      dataOut.writeLong(range.getLength());
+      dataOut.writeLong(range.offset());
+      dataOut.writeLong(range.length());
     }
 
     // Write out all the delta-friendly new file recompression instructions
     dataOut.writeInt(plan.getDeltaFriendlyNewFileRecompressionPlan().size());
     for (TypedRange<JreDeflateParameters> range : plan.getDeltaFriendlyNewFileRecompressionPlan()) {
-      dataOut.writeLong(range.getOffset());
-      dataOut.writeLong(range.getLength());
+      dataOut.writeLong(range.offset());
+      dataOut.writeLong(range.length());
       // Write the deflate information
       dataOut.write(PatchConstants.CompatibilityWindowId.DEFAULT_DEFLATE.patchValue);
       dataOut.write(range.getMetadata().level);

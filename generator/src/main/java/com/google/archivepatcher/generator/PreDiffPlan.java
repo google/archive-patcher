@@ -106,13 +106,13 @@ public class PreDiffPlan {
    *
    * @param list the list to check
    */
-  private <T extends TypedRange> void ensureOrdered(List<T> list) {
+  private <T extends Range> void ensureOrdered(List<T> list) {
     if (list != null && list.size() >= 2) {
       Iterator<T> iterator = list.iterator();
       T lastEntry = iterator.next();
       while (iterator.hasNext()) {
         T nextEntry = iterator.next();
-        if (lastEntry.compareTo(nextEntry) > 0) {
+        if (Range.getOffsetCompartor().compare(lastEntry, nextEntry) > 0) {
           throw new IllegalArgumentException("List must be ordered");
         }
       }

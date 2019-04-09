@@ -140,9 +140,9 @@ class PreDiffPlanner {
     }
 
     List<Range> oldFilePlanList = new ArrayList<>(oldFilePlan);
-    Collections.sort(oldFilePlanList);
+    Collections.sort(oldFilePlanList, Range.getOffsetCompartor());
     List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
-    Collections.sort(newFilePlanList);
+    Collections.sort(newFilePlanList, Range.getOffsetCompartor());
     return new PreDiffPlan(
         Collections.unmodifiableList(defaultEntries),
         Collections.unmodifiableList(oldFilePlanList),
@@ -360,7 +360,7 @@ class PreDiffPlanner {
    */
   private boolean compressedBytesIdentical(MinimalZipEntry oldEntry, MinimalZipEntry newEntry)
       throws IOException {
-    if (oldEntry.compressedDataRange().getLength() != newEntry.compressedDataRange().getLength()) {
+    if (oldEntry.compressedDataRange().length() != newEntry.compressedDataRange().length()) {
       // Length is not the same, so content cannot match.
       return false;
     }
@@ -373,7 +373,7 @@ class PreDiffPlanner {
         BufferedInputStream newFileBufferedInputStream =
             new BufferedInputStream(newFileInputStream)) {
 
-      for (int i = 0; i < oldEntry.compressedDataRange().getLength(); i++) {
+      for (int i = 0; i < oldEntry.compressedDataRange().length(); i++) {
         if (oldFileBufferedInputStream.read() != newFileBufferedInputStream.read()) {
           return false;
         }

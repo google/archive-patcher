@@ -155,7 +155,7 @@ public class MinimalZipParserTest {
         .isEqualTo(metadata.getOffsetOfCentralDirectory());
 
     // Read each entry and verify all fields *except* the value returned by
-    // fileOffsetOfCompressedData() and lengthOfLocalEntry, as those have yet to be computed.
+    // fileOffsetOfCompressedData() and getLengthOfLocalEntry, as those have yet to be computed.
     for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.allEntriesInFileOrder) {
       MinimalZipEntry parsed =
           MinimalZipParser.parseCentralDirectoryEntry(in)
@@ -167,7 +167,7 @@ public class MinimalZipParserTest {
       // Verify that the local signature header is at the calculated position
       byte[] expectedSignatureBlock = new byte[] {0x50, 0x4b, 0x03, 0x04};
       for (int index = 0; index < 4; index++) {
-        byte actualByte = unitTestZipArchive[((int) parsed.localEntryRange().getOffset()) + index];
+        byte actualByte = unitTestZipArchive[((int) parsed.localEntryRange().offset()) + index];
         assertThat(actualByte).isEqualTo(expectedSignatureBlock[index]);
       }
 
@@ -182,7 +182,7 @@ public class MinimalZipParserTest {
       crc32.update(uncompressedContent);
       assertThat(parsed.crc32OfUncompressedData()).isEqualTo(crc32.getValue());
       byte[] compressedContent = expectedEntry.getCompressedBinaryContent();
-      assertThat(parsed.compressedDataRange().getLength()).isEqualTo(compressedContent.length);
+      assertThat(parsed.compressedDataRange().length()).isEqualTo(compressedContent.length);
     }
   }
 

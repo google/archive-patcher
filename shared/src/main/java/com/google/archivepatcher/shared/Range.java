@@ -14,29 +14,32 @@
 
 package com.google.archivepatcher.shared;
 
-import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.OutputStream;
-import java.util.List;
+import com.google.auto.value.AutoValue;
+import java.util.Comparator;
 
-/**
- * A range represented by an offset and a length.
- *
- * <p>Conceptually, we would have {@link TypedRange} extend {@link Range}. But since {@link
- * DeltaFriendlyFile#generateDeltaFriendlyFile(List, ByteSource, OutputStream) need to copy over the
- * metadata (and thus cannot take {@link Range} arguments, we do it this way so that a list of
- * {@link Range}s can be passed to that method without being wrapped in {@link TypedRange}s.
- */
-public class Range extends TypedRange<Void> {
-  private Range(long offset, long length) {
-    super(offset, length, null);
+/** A range represented by an offset and a length. */
+@AutoValue
+public abstract class Range {
+
+  /**
+   * A comparator where comparison is performed based on the natural ordering of the offset field.
+   */
+  public static <T extends Range> Comparator<T> getOffsetCompartor() {
+    return (o1, o2) -> Long.compare(o1.offset(), o2.offset());
   }
+
+  /** Offset of the range. */
+  public abstract long offset();
+
+  /** Length of the range. */
+  public abstract long length();
 
   /** Constructs a range from an offset and a length. */
   public static Range of(long offset, long length) {
-    return new Range(offset, length);
+    return new AutoValue_Range(offset, length);
   }
 
   public <T> TypedRange<T> withMetadata(T metadata) {
-    return TypedRange.of(getOffset(), getLength(), metadata);
+    return new TypedRange<>(this, metadata);
   }
 }

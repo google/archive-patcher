@@ -197,7 +197,7 @@ public class PartiallyCompressingOutputStream extends FilterOutputStream {
       // All compression ranges have been consumed
       return -1L;
     }
-    return nextCompressedRange.getOffset() - numBytesWritten;
+    return nextCompressedRange.offset() - numBytesWritten;
   }
 
   private long bytesTillCompressionEnds() {
@@ -205,6 +205,6 @@ public class PartiallyCompressingOutputStream extends FilterOutputStream {
       // All compression ranges have been consumed
       return -1L;
     }
-    return (nextCompressedRange.getOffset() + nextCompressedRange.getLength()) - numBytesWritten;
+    return (nextCompressedRange.offset() + nextCompressedRange.length()) - numBytesWritten;
   }
 }

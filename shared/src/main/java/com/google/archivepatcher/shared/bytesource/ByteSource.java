@@ -14,7 +14,7 @@
 
 package com.google.archivepatcher.shared.bytesource;
 
-import com.google.archivepatcher.shared.TypedRange;
+import com.google.archivepatcher.shared.Range;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -35,9 +35,9 @@ public abstract class ByteSource implements Closeable {
     return new SlicedByteSource(this, offset, length);
   }
 
-  /** Same with {@link #slice(long, long)} but with a {@link TypedRange} argument. */
-  public ByteSource slice(TypedRange<?> range) {
-    return slice(range.getOffset(), range.getLength());
+  /** Same with {@link #slice(long, long)} but with a {@link Range} argument. */
+  public ByteSource slice(Range range) {
+    return slice(range.offset(), range.length());
   }
 
   /** Returns a slice of this {@link ByteSource} starting at byte {@code offset}. */

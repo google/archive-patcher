@@ -32,41 +32,41 @@ public class TypedRangeTest {
   @Test
   public void testGetters() {
     String text = "hello";
-    TypedRange<String> range = new TypedRange<String>(555, 777, text);
-    assertThat(range.getOffset()).isEqualTo(555);
-    assertThat(range.getLength()).isEqualTo(777);
+    TypedRange<String> range = TypedRange.of(555, 777, text);
+    assertThat(range.offset()).isEqualTo(555);
+    assertThat(range.length()).isEqualTo(777);
     assertThat(text).isSameAs(range.getMetadata());
   }
 
   @Test
   public void testToString() {
     // Just make sure this doesn't crash.
-    TypedRange<String> range = new TypedRange<String>(555, 777, "woohoo");
+    TypedRange<String> range = TypedRange.of(555, 777, "woohoo");
     assertThat(range.toString()).isNotNull();
     assertThat(range.toString()).isNotEmpty();
   }
 
   @Test
   @SuppressWarnings("SelfComparison") // self comparison is intentional here for testing compareTo.
-  public void testCompare() {
-    TypedRange<String> range1 = new TypedRange<String>(1, 777, null);
-    TypedRange<String> range2 = new TypedRange<String>(2, 777, null);
-    assertThat(range1).isLessThan(range2);
-    assertThat(range2).isGreaterThan(range1);
-    assertThat(range1).isEquivalentAccordingToCompareTo(range1);
+  public void testOffsetComparator() {
+    TypedRange<String> range1 = TypedRange.of(1, 777, null);
+    TypedRange<String> range2 = TypedRange.of(2, 777, null);
+    assertThat(Range.getOffsetCompartor().compare(range1, range2)).isLessThan(0);
+    assertThat(Range.getOffsetCompartor().compare(range2, range1)).isGreaterThan(0);
+    assertThat(Range.getOffsetCompartor().compare(range1, range1)).isEqualTo(0);
   }
 
   @Test
   public void testHashCode() {
-    TypedRange<String> range1a = new TypedRange<String>(123, 456, "hi mom");
-    TypedRange<String> range1b = new TypedRange<String>(123, 456, "hi mom");
+    TypedRange<String> range1a = TypedRange.of(123, 456, "hi mom");
+    TypedRange<String> range1b = TypedRange.of(123, 456, "hi mom");
     assertThat(range1b.hashCode()).isEqualTo(range1a.hashCode());
     Set<Integer> hashCodes = new HashSet<Integer>();
     hashCodes.add(range1a.hashCode());
-    hashCodes.add(new TypedRange<String>(123 + 1, 456, "hi mom").hashCode()); // offset changed
-    hashCodes.add(new TypedRange<String>(123, 456 + 1, "hi mom").hashCode()); // length changed
-    hashCodes.add(new TypedRange<String>(123 + 1, 456, "x").hashCode()); // metadata changed
-    hashCodes.add(new TypedRange<String>(123 + 1, 456, null).hashCode()); // no metadata at all
+    hashCodes.add(TypedRange.of(123 + 1, 456, "hi mom").hashCode()); // offset changed
+    hashCodes.add(TypedRange.of(123, 456 + 1, "hi mom").hashCode()); // length changed
+    hashCodes.add(TypedRange.of(123 + 1, 456, "x").hashCode()); // metadata changed
+    hashCodes.add(TypedRange.of(123 + 1, 456, null).hashCode()); // no metadata at all
     // Assert that all 4 hash codes are unique
     assertThat(hashCodes).hasSize(5);
   }
@@ -74,17 +74,17 @@ public class TypedRangeTest {
   @Test
   @SuppressWarnings("TruthSelfEquals") // we are testing equals here.
   public void testEquals() {
-    TypedRange<String> range1a = new TypedRange<String>(123, 456, "hi mom");
+    TypedRange<String> range1a = TypedRange.of(123, 456, "hi mom");
     assertThat(range1a).isEqualTo(range1a); // identity case
-    TypedRange<String> range1b = new TypedRange<String>(123, 456, "hi mom");
+    TypedRange<String> range1b = TypedRange.of(123, 456, "hi mom");
     assertThat(range1b).isEqualTo(range1a); // equality case
-    assertThat(range1a).isNotEqualTo(new TypedRange<String>(123 + 1, 456, "hi mom")); // offset
-    assertThat(range1a).isNotEqualTo(new TypedRange<String>(123, 456 + 1, "hi mom")); // length
-    assertThat(range1a).isNotEqualTo(new TypedRange<String>(123, 456, "foo")); // metadata
-    assertThat(range1a).isNotEqualTo(new TypedRange<String>(123, 456, null)); // no metadata
-    assertThat(new TypedRange<String>(123, 456, null)).isNotEqualTo(range1a); // other code branch
-    assertThat(new TypedRange<String>(123, 456, null))
-        .isEqualTo(new TypedRange<String>(123, 456, null)); // both with null metadata
+    assertThat(range1a).isNotEqualTo(TypedRange.of(123 + 1, 456, "hi mom")); // offset
+    assertThat(range1a).isNotEqualTo(TypedRange.of(123, 456 + 1, "hi mom")); // length
+    assertThat(range1a).isNotEqualTo(TypedRange.of(123, 456, "foo")); // metadata
+    assertThat(range1a).isNotEqualTo(TypedRange.of(123, 456, null)); // no metadata
+    assertThat(TypedRange.of(123, 456, null)).isNotEqualTo(range1a); // other code branch
+    assertThat(TypedRange.of(123, 456, null))
+        .isEqualTo(TypedRange.of(123, 456, null)); // both with null metadata
     assertThat(range1a).isNotEqualTo(null); // versus null
     assertThat(range1a).isNotEqualTo("space channel 5"); // versus object of different class
   }

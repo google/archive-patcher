@@ -203,11 +203,9 @@ public class PreDiffPlannerTest {
    */
   private void corruptEntryData(File tempFile, UnitTestZipEntry unitTestEntry) throws IOException {
     Range range = findRangeWithoutParams(tempFile, unitTestEntry);
-    assertWithMessage("range too short to corrupt with 'junk'")
-        .that(range.getLength() >= 4)
-        .isTrue();
+    assertWithMessage("range too short to corrupt with 'junk'").that(range.length() >= 4).isTrue();
     try (RandomAccessFile raf = new RandomAccessFile(tempFile, "rw")) {
-      raf.seek(range.getOffset());
+      raf.seek(range.offset());
       raf.write("junk".getBytes(StandardCharsets.UTF_8));
     }
   }
