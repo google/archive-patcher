@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.TestUtils.assertThrows;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
@@ -50,30 +52,39 @@ public class PreDiffPlanTest {
     new PreDiffPlan(Collections.emptyList(), SORTED_VOID_LIST, SORTED_DEFLATE_LIST);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testConstructor_OldFileUncompressionOrderNotOK() {
-    new PreDiffPlan(
-        Collections.emptyList(),
-        reverse(SORTED_VOID_LIST),
-        SORTED_DEFLATE_LIST,
-        SORTED_DEFLATE_LIST);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new PreDiffPlan(
+                Collections.emptyList(),
+                reverse(SORTED_VOID_LIST),
+                SORTED_DEFLATE_LIST,
+                SORTED_DEFLATE_LIST));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testConstructor_NewFileUncompressionOrderNotOK() {
-    new PreDiffPlan(
-        Collections.emptyList(),
-        SORTED_VOID_LIST,
-        reverse(SORTED_DEFLATE_LIST),
-        SORTED_DEFLATE_LIST);
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new PreDiffPlan(
+                Collections.emptyList(),
+                SORTED_VOID_LIST,
+                reverse(SORTED_DEFLATE_LIST),
+                SORTED_DEFLATE_LIST));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testConstructor_NewFileRecompressionOrderNotOK() {
-    new PreDiffPlan(
-        Collections.emptyList(),
-        SORTED_VOID_LIST,
-        SORTED_DEFLATE_LIST,
-        reverse(SORTED_DEFLATE_LIST));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new PreDiffPlan(
+                Collections.emptyList(),
+                SORTED_VOID_LIST,
+                SORTED_DEFLATE_LIST,
+                reverse(SORTED_DEFLATE_LIST)));
   }
 }

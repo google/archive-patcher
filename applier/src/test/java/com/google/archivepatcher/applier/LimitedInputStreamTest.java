@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.applier;
 
+import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.io.IOException;
@@ -70,8 +71,9 @@ public class LimitedInputStreamTest {
   }
 
   @SuppressWarnings("resource")
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetLimit_BadValue() {
-    new LimitedInputStream(new ForeverInputStream(), -1);
+    assertThrows(
+        IllegalArgumentException.class, () -> new LimitedInputStream(new ForeverInputStream(), -1));
   }
 }

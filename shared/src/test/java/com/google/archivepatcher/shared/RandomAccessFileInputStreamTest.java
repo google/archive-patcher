@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -189,29 +190,30 @@ public class RandomAccessFileInputStreamTest {
     assertThat(stream.read()).isEqualTo(-1);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetRange_TooLong() throws IOException {
-    stream.setRange(0, testData.length + 1);
+    assertThrows(IllegalArgumentException.class, () -> stream.setRange(0, testData.length + 1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetRange_NegativeOffset() throws IOException {
-    stream.setRange(-1, testData.length);
+    assertThrows(IllegalArgumentException.class, () -> stream.setRange(-1, testData.length));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetRange_NegativeLength() throws IOException {
-    stream.setRange(0, -1);
+    assertThrows(IllegalArgumentException.class, () -> stream.setRange(0, -1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetRange_LongOverflow() throws IOException {
-    stream.setRange(Long.MAX_VALUE, 1); // Oh dear.
+    assertThrows(
+        IllegalArgumentException.class, () -> stream.setRange(Long.MAX_VALUE, 1)); // Oh dear.
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testReset_NoMarkSet() throws IOException {
-    stream.reset();
+    assertThrows(IOException.class, () -> stream.reset());
   }
 
   @Test

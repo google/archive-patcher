@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.io.DataInputStream;
@@ -78,20 +79,23 @@ public class RandomAccessFileOutputStreamTest {
     assertThat(tempFile.length()).isEqualTo(11);
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testCreateAndFailToSize() throws IOException {
-    stream =
-        new RandomAccessFileOutputStream(tempFile, 11L) {
-          @Override
-          protected RandomAccessFile getRandomAccessFile(File file) throws IOException {
-            return new RandomAccessFile(file, "rw") {
-              @Override
-              public void setLength(long newLength) throws IOException {
-                // Do nothing, to trigger failure case in the constructor.
-              }
-            };
-          }
-        };
+    assertThrows(
+        IOException.class,
+        () ->
+            stream =
+                new RandomAccessFileOutputStream(tempFile, 11L) {
+                  @Override
+                  protected RandomAccessFile getRandomAccessFile(File file) throws IOException {
+                    return new RandomAccessFile(file, "rw") {
+                      @Override
+                      public void setLength(long newLength) throws IOException {
+                        // Do nothing, to trigger failure case in the constructor.
+                      }
+                    };
+                  }
+                });
   }
 
   @Test
