@@ -50,7 +50,7 @@ public class PatchReader {
     DataInputStream dataIn = new DataInputStream(in);
 
     // Read header and flags.
-    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes(StandardCharsets.US_ASCII);
+    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes("US-ASCII");
     byte[] actualIdentifier = new byte[expectedIdentifier.length];
     dataIn.readFully(actualIdentifier);
     if (!Arrays.equals(expectedIdentifier, actualIdentifier)) {
