@@ -21,7 +21,6 @@ import com.google.archivepatcher.shared.TypedRange;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -50,7 +49,7 @@ public class PatchReader {
     DataInputStream dataIn = new DataInputStream(in);
 
     // Read header and flags.
-    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes(StandardCharsets.US_ASCII);
+    byte[] expectedIdentifier = PatchConstants.IDENTIFIER.getBytes("US-ASCII");
     byte[] actualIdentifier = new byte[expectedIdentifier.length];
     dataIn.readFully(actualIdentifier);
     if (!Arrays.equals(expectedIdentifier, actualIdentifier)) {
