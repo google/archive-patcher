@@ -21,6 +21,7 @@ import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -28,7 +29,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,14 +54,14 @@ public class PatchWriterTest {
   private static final TypedRange<JreDeflateParameters> NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE =
       TypedRange.of(BIG, BIG, DEFLATE_PARAMS);
 
-  private static final List<Range> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
-      Collections.singletonList(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
+  private static final ImmutableList<Range> OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
+      ImmutableList.of(OLD_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
 
-  private static final List<TypedRange<JreDeflateParameters>> NEW_DELTA_FRIENDLY_UNCOMPRESS_PLAN =
-      Collections.singletonList(NEW_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
+  private static final ImmutableList<TypedRange<JreDeflateParameters>>
+      NEW_DELTA_FRIENDLY_UNCOMPRESS_PLAN = ImmutableList.of(NEW_DELTA_FRIENDLY_UNCOMPRESS_RANGE);
 
-  private static final List<TypedRange<JreDeflateParameters>> NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN =
-      Collections.singletonList(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE);
+  private static final ImmutableList<TypedRange<JreDeflateParameters>>
+      NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN = ImmutableList.of(NEW_DELTA_FRIENDLY_RECOMPRESS_RANGE);
 
   private static final long DELTA_FRIENDLY_OLD_FILE_SIZE = BIG - 75L;
 

@@ -21,6 +21,7 @@ import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -84,8 +85,8 @@ public class PatchReaderTest {
           DELTA_FRIENDLY_NEW_FILE_WORK_RANGE,
           DELTA_CONTENT.length());
 
-  private static final List<DeltaDescriptor> DELTA_DESCRIPTORS =
-      Collections.singletonList(DELTA_DESCRIPTOR);
+  private static final ImmutableList<DeltaDescriptor> DELTA_DESCRIPTORS =
+      ImmutableList.of(DELTA_DESCRIPTOR);
 
   private Corruption corruption = null;
 

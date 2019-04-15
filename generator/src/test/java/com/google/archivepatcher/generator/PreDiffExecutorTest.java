@@ -21,13 +21,13 @@ import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import org.junit.After;
@@ -124,7 +124,7 @@ public class PreDiffExecutorTest {
 
   @Test
   public void testPrepareForDiffing_OneCompressedEntry_Unchanged() throws IOException {
-    byte[] bytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_6));
+    byte[] bytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_6));
     File oldFile = store(bytes);
     File newFile = store(bytes);
     PreDiffPlan plan;
@@ -150,9 +150,9 @@ public class PreDiffExecutorTest {
 
   @Test
   public void testPrepareForDiffing_OneCompressedEntry_Changed() throws IOException {
-    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_6));
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_6));
     File oldFile = store(oldBytes);
-    byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_9));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_9));
     File newFile = store(newBytes);
     PreDiffPlan plan;
     try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
@@ -223,9 +223,9 @@ public class PreDiffExecutorTest {
   public void testPrepareForDiffing_OneCompressedEntry_Changed_Limited() throws IOException {
     // Like above, but this time limited by a TotalRecompressionLimiter that will prevent the
     // uncompression of the resources.
-    byte[] oldBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_6));
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_6));
     File oldFile = store(oldBytes);
-    byte[] newBytes = UnitTestZipArchive.makeTestZip(Collections.singletonList(ENTRY_LEVEL_9));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_9));
     File newFile = store(newBytes);
     TotalRecompressionLimiter limiter = new TotalRecompressionLimiter(1); // 1 byte limitation
     PreDiffPlan plan;

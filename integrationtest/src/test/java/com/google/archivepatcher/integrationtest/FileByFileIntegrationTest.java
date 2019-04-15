@@ -21,6 +21,8 @@ import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -197,8 +199,8 @@ public class FileByFileIntegrationTest {
     ByteArrayOutputStream patchBuffer = new ByteArrayOutputStream();
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
-            /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singleton(DeltaFormat.BSDIFF),
+            /* preDiffPlanEntryModifiers= */ ImmutableList.of(),
+            ImmutableSet.of(DeltaFormat.BSDIFF),
             useNativeBsDiff);
     generator.generateDelta(oldFile, newFile, patchBuffer);
 

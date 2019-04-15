@@ -18,10 +18,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,8 +59,8 @@ public class FileByFileDeltaGeneratorTest {
     // Simple test of generating a patch with no changes.
     FileByFileDeltaGenerator generator =
         new FileByFileDeltaGenerator(
-            /* preDiffPlanEntryModifiers= */ Collections.emptyList(),
-            Collections.singleton(DeltaFormat.BSDIFF),
+            /* preDiffPlanEntryModifiers= */ ImmutableList.of(),
+            ImmutableSet.of(DeltaFormat.BSDIFF),
             useNativeBsDiff);
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempFileHolder oldArchive = new TempFileHolder();

@@ -20,6 +20,7 @@ import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -101,8 +102,7 @@ public class PartiallyCompressingOutputStreamTest {
     // Test the case where a single compression range covers the entire input
     TypedRange<JreDeflateParameters> range =
         TypedRange.of(0, ENTRY1.getUncompressedBinaryContent().length, PARAMS1);
-    stream =
-        new PartiallyCompressingOutputStream(Collections.singletonList(range), outBuffer, 32768);
+    stream = new PartiallyCompressingOutputStream(ImmutableList.of(range), outBuffer, 32768);
     stream.write(ENTRY1.getUncompressedBinaryContent());
     stream.flush();
     assertThat(outBuffer.toByteArray()).isEqualTo(ENTRY1.getCompressedBinaryContent());
@@ -112,8 +112,7 @@ public class PartiallyCompressingOutputStreamTest {
   public void testWrite_GapAndCompression() throws IOException {
     // Write uncompressed data followed by compressed data
     stream =
-        new PartiallyCompressingOutputStream(
-            Collections.singletonList(COMPRESS_RANGE_1), outBuffer, 32768);
+        new PartiallyCompressingOutputStream(ImmutableList.of(COMPRESS_RANGE_1), outBuffer, 32768);
     byte[] input = fuse(PREAMBLE_BYTES, ENTRY1.getUncompressedBinaryContent());
     byte[] expected = fuse(PREAMBLE_BYTES, ENTRY1.getCompressedBinaryContent());
     stream.write(input);
@@ -125,8 +124,7 @@ public class PartiallyCompressingOutputStreamTest {
   public void testWrite_GapAndCompressionAndGap() throws IOException {
     // Write uncompressed data followed by compressed data and another bit of uncompressed data
     stream =
-        new PartiallyCompressingOutputStream(
-            Collections.singletonList(COMPRESS_RANGE_1), outBuffer, 32768);
+        new PartiallyCompressingOutputStream(ImmutableList.of(COMPRESS_RANGE_1), outBuffer, 32768);
     byte[] input = fuse(PREAMBLE_BYTES, ENTRY1.getUncompressedBinaryContent(), GAP1_BYTES);
     byte[] expected = fuse(PREAMBLE_BYTES, ENTRY1.getCompressedBinaryContent(), GAP1_BYTES);
     stream.write(input);
