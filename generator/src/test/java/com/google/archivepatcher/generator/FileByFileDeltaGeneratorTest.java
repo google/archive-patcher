@@ -20,6 +20,7 @@ import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.hash.Hashing;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,14 +45,19 @@ public class FileByFileDeltaGeneratorTest {
   @Parameters
   public static Collection<Object[]> data() {
     // Note that the order of the parameter is important for gradle to ignore the native test.
-    return Arrays.asList(new Object[][] {{true}, {false}});
+    return Arrays.asList(
+        new Object[][] {
+          {true, "5aa9a44d"},
+          {false, "3247bb5c"}
+        });
   }
 
-  // Indicates whether native BsDiff should be used
   private final boolean useNativeBsDiff;
+  private final String expectedCrc32;
 
-  public FileByFileDeltaGeneratorTest(boolean useNativeBsDiff) {
+  public FileByFileDeltaGeneratorTest(boolean useNativeBsDiff, String expectedCrc32) {
     this.useNativeBsDiff = useNativeBsDiff;
+    this.expectedCrc32 = expectedCrc32;
   }
 
   @Test
@@ -70,6 +76,6 @@ public class FileByFileDeltaGeneratorTest {
       generator.generateDelta(oldArchive.file, newArchive.file, buffer);
     }
     byte[] result = buffer.toByteArray();
-    assertThat(result).isNotEmpty();
+    assertThat(Hashing.crc32().hashBytes(result).toString()).isEqualTo(expectedCrc32);
   }
 }
