@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -214,26 +213,6 @@ public class RandomAccessFileInputStreamTest {
   @Test
   public void testReset_NoMarkSet() throws IOException {
     assertThrows(IOException.class, () -> stream.reset());
-  }
-
-  @Test
-  public void testMark_IOExceptionInRaf() throws IOException {
-    stream =
-        new RandomAccessFileInputStream(
-            new RandomAccessFile(tempFile, "r") {
-              @Override
-              public long getFilePointer() throws IOException {
-                throw new IOException("Blah314159");
-              }
-            },
-            0,
-            testData.length);
-    try {
-      stream.mark(0);
-      assertWithMessage("Executed code that should have failed.").fail();
-    } catch (Exception e) {
-      assertThat(e).hasCauseThat().hasMessageThat().isEqualTo("Blah314159");
-    }
   }
 
   @Test

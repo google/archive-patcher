@@ -60,6 +60,12 @@ public class RandomAccessFileInputStream extends InputStream {
   private final long fileLength;
 
   /**
+   * Current position in the file. Same as {@link RandomAccessFile#getFilePointer()} without doing
+   * IO. We maintain this for performance reasons.
+   */
+  private long currentPosition;
+
+  /**
    * Constructs a new stream for the given file, which will be opened in read-only mode for random
    * access cross the entire file. Equivalent to calling
    * {@link #RandomAccessFileInputStream(File, long, long)} with 0 and {@link File#length()} as the
@@ -133,14 +139,16 @@ public class RandomAccessFileInputStream extends InputStream {
     }
     this.rangeOffset = rangeOffset;
     this.rangeLength = rangeLength;
-    mark = rangeOffset;
-    reset();
+    if (rangeOffset != currentPosition) {
+      raf.seek(rangeOffset);
+      currentPosition = rangeOffset;
+    }
     mark = -1;
   }
 
   @Override
   public int available() throws IOException {
-    long rangeRelativePosition = raf.getFilePointer() - rangeOffset;
+    long rangeRelativePosition = currentPosition - rangeOffset;
     long result = rangeLength - rangeRelativePosition;
     if (result > Integer.MAX_VALUE) {
       return Integer.MAX_VALUE;
@@ -154,7 +162,7 @@ public class RandomAccessFileInputStream extends InputStream {
    * @throws IOException if something goes wrong
    */
   public long getPosition() throws IOException {
-    return raf.getFilePointer();
+    return currentPosition;
   }
 
   @Override
@@ -167,6 +175,7 @@ public class RandomAccessFileInputStream extends InputStream {
     if (available() <= 0) {
       return -1;
     }
+    currentPosition++;
     return raf.read();
   }
 
@@ -180,6 +189,7 @@ public class RandomAccessFileInputStream extends InputStream {
       return -1;
     }
     int result = raf.read(b, off, Math.min(len, available));
+    currentPosition += result;
     return result;
   }
 
@@ -198,7 +208,8 @@ public class RandomAccessFileInputStream extends InputStream {
       return 0;
     }
     int skipAmount = (int) Math.min(available, n);
-    raf.seek(raf.getFilePointer() + skipAmount);
+    currentPosition += skipAmount;
+    raf.seek(currentPosition);
     return skipAmount;
   }
 
@@ -213,11 +224,7 @@ public class RandomAccessFileInputStream extends InputStream {
    */
   @Override
   public void mark(int readlimit) {
-    try {
-      mark = raf.getFilePointer();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    mark = currentPosition;
   }
 
   @Override
@@ -226,6 +233,7 @@ public class RandomAccessFileInputStream extends InputStream {
       throw new IOException("mark not set");
     }
     raf.seek(mark);
+    currentPosition = mark;
   }
 
   /**
