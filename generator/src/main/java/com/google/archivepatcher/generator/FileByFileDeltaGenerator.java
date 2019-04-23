@@ -16,12 +16,10 @@ package com.google.archivepatcher.generator;
 
 import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_BY_DEFAULT;
 
-import com.google.archivepatcher.generator.bsdiff.BsDiffDeltaGenerator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -33,6 +31,8 @@ import java.util.Set;
 /** Generates file-by-file patches. */
 public class FileByFileDeltaGenerator extends DeltaGenerator {
 
+  private static final DeltaFormat DEFAULT_DELTA_FORMAT = DeltaFormat.BSDIFF;
+
   /** Modifiers for planning and patch generation. */
   private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
 
@@ -42,7 +42,7 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
    */
   private final Set<DeltaFormat> supportedDeltaFormats;
 
-  private final boolean useNativeBsDiff;
+  private final DeltaGeneratorFactory deltaGeneratorFactory;
 
   /**
    * Constructs a new generator for File-by-File patches, using the specified configuration.
@@ -75,7 +75,7 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
       boolean useNativeBsDiff) {
     this.preDiffPlanEntryModifiers = getImmutableListCopy(preDiffPlanEntryModifiers);
     this.supportedDeltaFormats = getImmutableSetCopy(supportedDeltaFormats);
-    this.useNativeBsDiff = useNativeBsDiff;
+    this.deltaGeneratorFactory = new DeltaGeneratorFactory(useNativeBsDiff);
   }
 
   /**
@@ -83,7 +83,7 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
    * OutputStream}. The written patch is <em>raw</em>, i.e. it has not been compressed. Compression
    * should almost always be applied to the patch, either right in the specified {@link
    * OutputStream} or in a post-processing step, prior to transmitting the patch to the patch
-   * applier.
+   * applier
    *
    * @param oldBlob the original old file to read (will not be modified)
    * @param newBlob the original new file to read (will not be modified)
@@ -95,24 +95,31 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream patchOut)
       throws IOException, InterruptedException {
     try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
-        TempFileHolder deltaFile = new TempFileHolder();
-        FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
-        BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
+        TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
       PreDiffPlan preDiffPlan =
           generatePreDiffPlanAndPrepareBlobs(
               oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
-      DeltaGenerator deltaGenerator = getDeltaGenerator();
-      deltaGenerator.generateDelta(
-          deltaFriendlyOldFile.file, deltaFriendlyNewFile.file, bufferedDeltaOut);
-      bufferedDeltaOut.close();
-      PatchWriter patchWriter =
-          new PatchWriter(
-              preDiffPlan,
-              deltaFriendlyOldFile.file.length(),
-              deltaFriendlyNewFile.file.length(),
-              deltaFile.file);
-      patchWriter.writePatch(patchOut);
+
+      try (ByteSource deltaFriendlyOldBlob = ByteSource.fromFile(deltaFriendlyOldFile.file);
+          ByteSource deltaFriendlyNewBlob = ByteSource.fromFile(deltaFriendlyNewFile.file)) {
+        // TODO: generate delta entries from PrediffPlan.
+        List<DeltaEntry> deltaEntries =
+            Collections.singletonList(
+                DeltaEntry.builder()
+                    .deltaFormat(DEFAULT_DELTA_FORMAT)
+                    .oldBlobRange(Range.of(0, deltaFriendlyOldBlob.length()))
+                    .newBlobRange(Range.of(0, deltaFriendlyNewBlob.length()))
+                    .build());
+        PatchWriter patchWriter =
+            new PatchWriter(
+                preDiffPlan,
+                deltaFriendlyOldFile.file.length(),
+                deltaEntries,
+                deltaFriendlyOldBlob,
+                deltaFriendlyNewBlob,
+                deltaGeneratorFactory);
+        patchWriter.writePatch(patchOut);
+      }
     }
   }
 
@@ -150,11 +157,6 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
             .build();
 
     return executor.prepareForDiffing();
-  }
-
-  // Visible for testing only
-  protected DeltaGenerator getDeltaGenerator() {
-    return new BsDiffDeltaGenerator(useNativeBsDiff);
   }
 
   private static <T> List<T> getImmutableListCopy(List<T> input) {
