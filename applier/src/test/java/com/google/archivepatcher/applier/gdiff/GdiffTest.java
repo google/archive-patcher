@@ -22,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.util.Random;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -58,7 +57,6 @@ public class GdiffTest {
     FileOutputStream writeInputFile = new FileOutputStream(inputFile);
     writeInputFile.write(oldBytes);
     writeInputFile.close();
-    RandomAccessFile readInputFile = new RandomAccessFile(inputFile, "r");
 
     // Create "patch" file - this is just a stream
     ByteArrayInputStream patchStream = new ByteArrayInputStream(patch);
@@ -66,7 +64,7 @@ public class GdiffTest {
     // Create "output" file - this is just a stream
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
 
-    long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, newBytes.length);
+    long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, newBytes.length);
     assertThat(outputLength).isEqualTo(newBytes.length);
     assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
   }
@@ -107,7 +105,6 @@ public class GdiffTest {
     FileOutputStream writeInputFile = new FileOutputStream(inputFile);
     writeInputFile.write(oldBytes);
     writeInputFile.close();
-    RandomAccessFile readInputFile = new RandomAccessFile(inputFile, "r");
 
     // Create "patch" file - this is just a stream
     ByteArrayInputStream patchStream = new ByteArrayInputStream(patch);
@@ -115,7 +112,7 @@ public class GdiffTest {
     // Create "output" file - this is just a stream
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
 
-    long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, newBytes.length);
+    long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, newBytes.length);
     assertThat(outputLength).isEqualTo(newBytes.length);
     assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
   }
@@ -129,7 +126,6 @@ public class GdiffTest {
     File inputFile = File.createTempFile("testExample", null);
     FileOutputStream writeInputFile = new FileOutputStream(inputFile);
     writeInputFile.close();
-    RandomAccessFile readInputFile = new RandomAccessFile(inputFile, "r");
 
     // First 5 bytes for copying into each patch
     byte[] magicAndVersion = new byte[] {
@@ -163,7 +159,7 @@ public class GdiffTest {
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
 
       // Run the patch and check the output file
-      long outputLength = Gdiff.patch(readInputFile, patchStream, outputStream, data.length);
+      long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, data.length);
       assertThat(outputLength).isEqualTo(spanLength);
       assertThat(outputStream.toByteArray()).isEqualTo(data);
     }
@@ -315,7 +311,6 @@ public class GdiffTest {
     FileOutputStream writeInputFile = new FileOutputStream(inputFile);
     writeInputFile.write(inputBytes, 0, inputLimit);
     writeInputFile.close();
-    RandomAccessFile readInputFile = new RandomAccessFile(inputFile, "r");
 
     if (patchLimit == -1) {
       patchLimit = patchBytes.length;
@@ -327,7 +322,7 @@ public class GdiffTest {
     }
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     try {
-      Gdiff.patch(readInputFile, patchStream, outputStream, outputLimit);
+      Gdiff.patch(inputFile, patchStream, outputStream, outputLimit);
       assertWithMessage("Expected IOException").fail();
     } catch (IOException expected) {
     }

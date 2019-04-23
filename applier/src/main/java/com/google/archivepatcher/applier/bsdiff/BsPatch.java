@@ -17,6 +17,7 @@ package com.google.archivepatcher.applier.bsdiff;
 import com.google.archivepatcher.applier.PatchFormatException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -71,8 +72,7 @@ public class BsPatch {
    * @throws PatchFormatException if the patch stream is invalid
    * @throws IOException if unable to read or write any of the data
    */
-  public static void applyPatch(
-      RandomAccessFile oldData, OutputStream newData, InputStream patchData)
+  public static void applyPatch(File oldData, OutputStream newData, InputStream patchData)
       throws PatchFormatException, IOException {
     applyPatch(oldData, newData, patchData, null);
   }
@@ -90,12 +90,12 @@ public class BsPatch {
    * @throws IOException if unable to read or write any of the data
    */
   public static void applyPatch(
-      RandomAccessFile oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
+      File oldData, OutputStream newData, InputStream patchData, Long expectedNewSize)
       throws PatchFormatException, IOException {
     patchData = new BufferedInputStream(patchData, PATCH_STREAM_BUFFER_SIZE);
     newData = new BufferedOutputStream(newData, OUTPUT_STREAM_BUFFER_SIZE);
-    try {
-      applyPatchInternal(oldData, newData, patchData, expectedNewSize);
+    try (RandomAccessFile oldDataRaf = new RandomAccessFile(oldData, "r")) {
+      applyPatchInternal(oldDataRaf, newData, patchData, expectedNewSize);
     } finally {
       newData.flush();
     }

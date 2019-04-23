@@ -18,6 +18,7 @@ import com.google.archivepatcher.applier.PatchFormatException;
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -69,17 +70,14 @@ public class Gdiff {
   /**
    * Apply a patch to a file.
    *
-   * @param inputFile base file
+   * @param baseFile base file
    * @param patchFile patch file
    * @param output output stream to write the file to
    * @param expectedOutputSize expected size of the output.
    * @throws IOException on file I/O as well as when patch under/over run happens.
    */
   public static long patch(
-      RandomAccessFile inputFile,
-      InputStream patchFile,
-      OutputStream output,
-      long expectedOutputSize)
+      File baseFile, InputStream patchFile, OutputStream output, long expectedOutputSize)
       throws IOException {
     byte[] buffer = new byte[COPY_BUFFER_SIZE];
     long outputSize = 0;
@@ -99,7 +97,7 @@ public class Gdiff {
       throw new PatchFormatException("Unexpected version=" + version);
     }
 
-    try {
+    try (RandomAccessFile baseRaf = new RandomAccessFile(baseFile, "r")) {
       // Start copying
       while (true) {
         int copyLength;
@@ -125,17 +123,17 @@ public class Gdiff {
             if (copyLength == -1) {
               throw new IOException("Unexpected end of patch");
             }
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_USHORT_USHORT:
             copyOffset = patchDataStream.readUnsignedShort();
             copyLength = patchDataStream.readUnsignedShort();
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_USHORT_INT:
             copyOffset = patchDataStream.readUnsignedShort();
             copyLength = patchDataStream.readInt();
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_INT_UBYTE:
             copyOffset = patchDataStream.readInt();
@@ -143,22 +141,22 @@ public class Gdiff {
             if (copyLength == -1) {
               throw new IOException("Unexpected end of patch");
             }
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_INT_USHORT:
             copyOffset = patchDataStream.readInt();
             copyLength = patchDataStream.readUnsignedShort();
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_INT_INT:
             copyOffset = patchDataStream.readInt();
             copyLength = patchDataStream.readInt();
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           case COPY_LONG_INT:
             copyOffset = patchDataStream.readLong();
             copyLength = patchDataStream.readInt();
-            copyFromOriginal(buffer, inputFile, output, copyOffset, copyLength, maxCopyLength);
+            copyFromOriginal(buffer, baseRaf, output, copyOffset, copyLength, maxCopyLength);
             break;
           default:
             // The only possible bytes remaining are DATA_MIN through DATA_MAX,

@@ -170,7 +170,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with bad signature").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -194,7 +194,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn, (long) 10 + 1);
+      BsPatch.applyPatch(oldFile, newData, patchIn, 10L + 1);
       assertWithMessage("Read patch with mismatched newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -217,7 +217,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with negative newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -240,8 +240,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(
-          new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with excessive newLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -264,7 +263,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with negative diffSegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -287,7 +286,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with excessive diffSegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -310,7 +309,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with negative copySegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -333,7 +332,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with excessive copySegmentLength").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -359,7 +358,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch that moves past EOF in new file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -383,7 +382,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with that moves to a negative offset in old file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -407,7 +406,7 @@ public class BsPatchTest {
             );
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with that moves past EOF in old file").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -422,7 +421,7 @@ public class BsPatchTest {
     InputStream patchIn = new ByteArrayInputStream("X".getBytes("US-ASCII"));
     ByteArrayOutputStream newData = new ByteArrayOutputStream();
     try {
-      BsPatch.applyPatch(new RandomAccessFile(oldFile, "r"), newData, patchIn);
+      BsPatch.applyPatch(oldFile, newData, patchIn);
       assertWithMessage("Read patch with truncated signature").fail();
     } catch (PatchFormatException expected) {
       // No way to mock the internal logic, so resort to testing exception string for coverage
@@ -628,11 +627,10 @@ public class BsPatchTest {
   private void invokeApplyPatch(String oldPath, String patchPatch, String newPath)
       throws IOException, PatchFormatException {
     copyToOldFile(oldPath);
-    RandomAccessFile oldData = new RandomAccessFile(oldFile, "r");
     InputStream patchInputStream = new ByteArrayInputStream(readTestData(patchPatch));
     byte[] expectedNewDataBytes = readTestData(newPath);
     ByteArrayOutputStream actualNewData = new ByteArrayOutputStream();
-    BsPatch.applyPatch(oldData, actualNewData, patchInputStream);
+    BsPatch.applyPatch(oldFile, actualNewData, patchInputStream);
     byte[] actualNewDataBytes = actualNewData.toByteArray();
     assertThat(actualNewDataBytes).isEqualTo(expectedNewDataBytes);
   }
