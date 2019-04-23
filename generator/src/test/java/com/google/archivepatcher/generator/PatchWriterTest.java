@@ -121,7 +121,7 @@ public class PatchWriterTest {
     doAnswer(
             invocation -> {
               invocation
-                  .getArgumentAt(4, OutputStream.class)
+                  .getArgument(4, OutputStream.class)
                   .write(invocation.getArgument(0, FakeDeltaEntry.class).delta);
               return null;
             })
