@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.explainer;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.generator.ByteArrayHolder;
@@ -81,12 +82,8 @@ public class PatchExplainerTest {
     @Override
     public void compress(InputStream uncompressedIn, OutputStream compressedOut)
         throws IOException {
-      byte[] readBuffer = new byte[32768];
-      int numRead = 0;
       ByteArrayOutputStream actualInput = new ByteArrayOutputStream();
-      while ((numRead = uncompressedIn.read(readBuffer)) >= 0) {
-        actualInput.write(readBuffer, 0, numRead);
-      }
+      copy(uncompressedIn, actualInput);
       assertThat(actualInput.toByteArray()).isEqualTo(expectedInput);
       compressedOut.write(OUTPUT.getBytes("US-ASCII"));
     }

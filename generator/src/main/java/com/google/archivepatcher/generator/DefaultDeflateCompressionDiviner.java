@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.COPY_BUFFER_SIZE;
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.archivepatcher.shared.bytesource.ByteStreams.readFully;
 
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
@@ -154,7 +156,6 @@ public class DefaultDeflateCompressionDiviner {
    */
   public static JreDeflateParameters divineDeflateParametersForEntry(ByteSource entry)
       throws IOException {
-    byte[] copyBuffer = new byte[32 * 1024];
     // Iterate over all relevant combinations of nowrap, strategy and level.
     for (boolean nowrap : new boolean[] {true, false}) {
       Inflater inflater = new Inflater(nowrap);
@@ -168,7 +169,7 @@ public class DefaultDeflateCompressionDiviner {
           inflater.reset();
           deflater.reset();
           try {
-            if (matches(inflater, deflater, entry, copyBuffer)) {
+            if (matches(inflater, deflater, entry)) {
               end(inflater, deflater);
               return JreDeflateParameters.of(level, strategy, nowrap);
             }
@@ -235,19 +236,15 @@ public class DefaultDeflateCompressionDiviner {
    * @throws IOException if anything goes wrong; in particular, {@link ZipException} is thrown if
    *     there is a problem parsing compressedDataIn
    */
-  private static boolean matches(
-      Inflater inflater, Deflater deflater, ByteSource compressedData, byte[] copyBuffer)
+  private static boolean matches(Inflater inflater, Deflater deflater, ByteSource compressedData)
       throws IOException {
 
     try (MatchingOutputStream matcher =
-            new MatchingOutputStream(compressedData.openStream(), copyBuffer.length);
+            new MatchingOutputStream(compressedData.openStream(), COPY_BUFFER_SIZE);
         InflaterInputStream inflaterIn =
-            new InflaterInputStream(compressedData.openStream(), inflater, copyBuffer.length);
-        DeflaterOutputStream out = new DeflaterOutputStream(matcher, deflater, copyBuffer.length)) {
-      int numRead;
-      while ((numRead = inflaterIn.read(copyBuffer)) >= 0) {
-        out.write(copyBuffer, 0, numRead);
-      }
+            new InflaterInputStream(compressedData.openStream(), inflater, COPY_BUFFER_SIZE);
+        DeflaterOutputStream out = new DeflaterOutputStream(matcher, deflater, COPY_BUFFER_SIZE)) {
+      copy(inflaterIn, out);
       // When done, all bytes have been successfully recompressed. For sanity, check that
       // the matcher has consumed the same number of bytes and arrived at EOF as well.
       out.finish();

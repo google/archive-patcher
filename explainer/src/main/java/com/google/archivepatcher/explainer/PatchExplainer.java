@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.explainer;
 
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
 import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.MinimalZipArchive;
@@ -36,6 +38,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -260,16 +263,8 @@ public class PatchExplainer {
    */
   private void extractCopy(File source, Range rangeToExtract, File dest) throws IOException {
     try (RandomAccessFileInputStream rafis =
-            new RandomAccessFileInputStream(
-                source, rangeToExtract.offset(), rangeToExtract.length());
-        FileOutputStream out = new FileOutputStream(dest);
-        BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
-      byte[] buffer = new byte[32768];
-      int numRead = 0;
-      while ((numRead = rafis.read(buffer)) >= 0) {
-        bufferedOut.write(buffer, 0, numRead);
-      }
-      bufferedOut.flush();
+        new RandomAccessFileInputStream(source, rangeToExtract.offset(), rangeToExtract.length())) {
+      Files.copy(rafis, dest.toPath(), REPLACE_EXISTING);
     }
   }
 

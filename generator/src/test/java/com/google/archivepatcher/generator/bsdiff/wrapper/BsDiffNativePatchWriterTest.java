@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator.bsdiff.wrapper;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.io.ByteArrayOutputStream;
@@ -35,12 +36,7 @@ public final class BsDiffNativePatchWriterTest {
   private byte[] readTestData(String fileName) throws IOException {
     InputStream in = getClass().getResourceAsStream("testdata/" + fileName);
     ByteArrayOutputStream result = new ByteArrayOutputStream();
-    byte[] buffer = new byte[32768];
-    int numRead;
-    while ((numRead = in.read(buffer)) >= 0) {
-      result.write(buffer, 0, numRead);
-    }
-
+    copy(in, result);
     in.close();
 
     return result.toByteArray();

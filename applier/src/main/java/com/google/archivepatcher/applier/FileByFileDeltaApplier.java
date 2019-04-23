@@ -124,10 +124,7 @@ public class FileByFileDeltaApplier extends DeltaApplier {
         new RandomAccessFileOutputStream(
             deltaFriendlyOldBlob, plan.getDeltaFriendlyOldFileSize())) {
       DeltaFriendlyFile.generateDeltaFriendlyFile(
-          plan.getOldFileUncompressionPlan(),
-          oldBlob,
-          deltaFriendlyOldFileOut,
-          DEFAULT_COPY_BUFFER_SIZE);
+          plan.getOldFileUncompressionPlan(), oldBlob, deltaFriendlyOldFileOut);
     }
   }
 

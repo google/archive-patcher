@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -42,12 +44,6 @@ public class DeflateCompressor implements Compressor {
    * standard zlib header and checksum fields. Defaults to true.
    */
   private boolean nowrap = true;
-
-  /**
-   * The size of the buffer used for reading data in during
-   * {@link #compress(InputStream, OutputStream)}.
-   */
-  private int inputBufferSize = 32768;
 
   /**
    * The size of the buffer used for writing data out during
@@ -133,24 +129,6 @@ public class DeflateCompressor implements Compressor {
   }
 
   /**
-   * Returns the size of the buffer used for reading from the input stream in
-   * {@link #compress(InputStream, OutputStream)}.
-   * @return the size (default is 32768)
-   */
-  public int getInputBufferSize() {
-    return inputBufferSize;
-  }
-
-  /**
-   * Sets the size of the buffer used for reading from the input stream in
-   * {@link #compress(InputStream, OutputStream)}.
-   * @param inputBufferSize the size to set (default is 32768)
-   */
-  public void setInputBufferSize(int inputBufferSize) {
-    this.inputBufferSize = inputBufferSize;
-  }
-
-  /**
    * Returns the size of the buffer used for writing to the output stream in
    * {@link #compress(InputStream, OutputStream)}.
    * @return the size (default is 32768)
@@ -222,13 +200,9 @@ public class DeflateCompressor implements Compressor {
 
   @Override
   public void compress(InputStream uncompressedIn, OutputStream compressedOut) throws IOException {
-    byte[] buffer = new byte[inputBufferSize];
     DeflaterOutputStream deflaterOut =
         new DeflaterOutputStream(compressedOut, createOrResetDeflater(), outputBufferSize);
-    int numRead = 0;
-    while ((numRead = uncompressedIn.read(buffer)) >= 0) {
-      deflaterOut.write(buffer, 0, numRead);
-    }
+    copy(uncompressedIn, deflaterOut);
     deflaterOut.finish();
     deflaterOut.flush();
   }

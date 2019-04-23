@@ -33,8 +33,7 @@ public class DeltaFriendlyFile {
   public static final int DEFAULT_COPY_BUFFER_SIZE = 32768;
 
   /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
-   * <code>
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
    * generateInverse</code> set to <code>true</code> and a copy buffer size of {@link
    * #DEFAULT_COPY_BUFFER_SIZE}.
    *
@@ -51,16 +50,11 @@ public class DeltaFriendlyFile {
       List<TypedRange<T>> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
       throws IOException {
     return generateDeltaFriendlyFile(
-        rangesToUncompress,
-        data,
-        deltaFriendlyOut,
-        /* generateInverse= */ true,
-        DEFAULT_COPY_BUFFER_SIZE);
+        rangesToUncompress, data, deltaFriendlyOut, /* generateInverse= */ true);
   }
 
   /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
-   * <code>
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
    * generateInverse</code> set to <code>false</code> and a copy buffer size of {@link
    * #DEFAULT_COPY_BUFFER_SIZE}.
    *
@@ -99,16 +93,11 @@ public class DeltaFriendlyFile {
       int copyBufferSize)
       throws IOException {
     generateDeltaFriendlyFile(
-        wrapRanges(rangesToUncompress),
-        data,
-        deltaFriendlyOut,
-        /* generateInverse= */ false,
-        copyBufferSize);
+        wrapRanges(rangesToUncompress), data, deltaFriendlyOut, /* generateInverse= */ false);
   }
 
   /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
-   * <code>
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
    * generateInverse</code> set to <code>false</code> and the specified copy buffer size.
    *
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
@@ -120,15 +109,13 @@ public class DeltaFriendlyFile {
    * @throws IOException if anything goes wrong
    */
   public static void generateDeltaFriendlyFile(
-      List<Range> rangesToUncompress, File blob, OutputStream deltaFriendlyOut, int copyBufferSize)
-      throws IOException {
+      List<Range> rangesToUncompress, File blob, OutputStream deltaFriendlyOut) throws IOException {
     try (ByteSource byteSource = ByteSource.fromFile(blob)) {
       generateDeltaFriendlyFile(
           wrapRanges(rangesToUncompress),
           byteSource,
           deltaFriendlyOut,
-          /* generateInverse= */ false,
-          copyBufferSize);
+          /* generateInverse= */ false);
     }
   }
 
@@ -147,7 +134,6 @@ public class DeltaFriendlyFile {
    * @param deltaFriendlyOut a stream to write the delta-friendly file to
    * @param generateInverse if <code>true</code>, generate and return a list of inverse ranges in
    *     file order; otherwise, do all the normal work but return null instead of the inverse ranges
-   * @param copyBufferSize the size of the buffer to use for copying bytes between streams
    * @return if <code>generateInverse</code> was true, returns the ranges in the delta-friendly file
    *     that correspond to the ranges in the original file, with identical metadata and in the same
    *     order; otherwise, return null
@@ -157,8 +143,7 @@ public class DeltaFriendlyFile {
       List<TypedRange<T>> rangesToUncompress,
       ByteSource blob,
       OutputStream deltaFriendlyOut,
-      boolean generateInverse,
-      int copyBufferSize)
+      boolean generateInverse)
       throws IOException {
     List<TypedRange<T>> inverseRanges = null;
     if (generateInverse) {
@@ -166,7 +151,7 @@ public class DeltaFriendlyFile {
     }
     long lastReadOffset = 0;
     try (PartiallyUncompressingPipe filteredOut =
-        new PartiallyUncompressingPipe(deltaFriendlyOut, copyBufferSize)) {
+        new PartiallyUncompressingPipe(deltaFriendlyOut)) {
       for (TypedRange<T> rangeToUncompress : rangesToUncompress) {
         long gap = rangeToUncompress.offset() - lastReadOffset;
         if (gap > 0) {

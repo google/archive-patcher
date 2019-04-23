@@ -37,7 +37,7 @@ public class PartiallyUncompressingPipeTest {
   @Before
   public void setup() {
     outBuffer = new ByteArrayOutputStream();
-    stream = new PartiallyUncompressingPipe(outBuffer, 32768);
+    stream = new PartiallyUncompressingPipe(outBuffer);
   }
 
   @Test

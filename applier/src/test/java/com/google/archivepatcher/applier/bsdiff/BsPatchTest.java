@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.applier.bsdiff;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -625,11 +626,7 @@ public class BsPatchTest {
     InputStream in = getClass().getResourceAsStream("testdata/" + testDataFileName);
     assertWithMessage("test data file doesn't exist: " + testDataFileName).that(in).isNotNull();
     ByteArrayOutputStream result = new ByteArrayOutputStream();
-    byte[] buffer = new byte[32768];
-    int numRead = 0;
-    while ((numRead = in.read(buffer)) >= 0) {
-      result.write(buffer, 0, numRead);
-    }
+    copy(in, result);
     return stripNewlineIfNecessary(result.toByteArray());
   }
 

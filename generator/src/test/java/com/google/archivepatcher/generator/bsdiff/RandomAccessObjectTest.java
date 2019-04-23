@@ -14,15 +14,13 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import static com.google.archivepatcher.shared.TestUtils.storeInTempFile;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -35,7 +33,7 @@ public class RandomAccessObjectTest {
   private static final byte[] BLOB = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
 
   @Test
-  public void fileLengthTest() throws IOException {
+  public void fileLengthTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
@@ -46,14 +44,14 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArrayLengthTest() throws IOException {
+  public void byteArrayLengthTest() throws Exception {
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(BLOB)) {
       assertThat(obj.length()).isEqualTo(13);
     }
   }
 
   @Test
-  public void mmapLengthTest() throws IOException {
+  public void mmapLengthTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
@@ -65,7 +63,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileReadByteTest() throws IOException {
+  public void fileReadByteTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "r")) {
@@ -75,8 +73,8 @@ public class RandomAccessObjectTest {
 
       try {
         obj.readByte();
-        assertWithMessage("Should've thrown an IOException").fail();
-      } catch (IOException expected) {
+        assertWithMessage("Should've thrown an Exception").fail();
+      } catch (Exception expected) {
       }
     } finally {
       tmpFile.delete();
@@ -84,7 +82,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArrayReadByteTest() throws IOException {
+  public void byteArrayReadByteTest() throws Exception {
     // Mix positives and negatives to test sign preservation in readByte()
     byte[] bytes = new byte[] {-128, -127, -126, -1, 0, 1, 125, 126, 127};
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(bytes)) {
@@ -94,14 +92,14 @@ public class RandomAccessObjectTest {
 
       try {
         obj.readByte();
-        assertWithMessage("Should've thrown an IOException").fail();
+        assertWithMessage("Should've thrown an Exception").fail();
       } catch (BufferUnderflowException expected) {
       }
     }
   }
 
   @Test
-  public void byteArrayReadUnsignedByteTest() throws IOException {
+  public void byteArrayReadUnsignedByteTest() throws Exception {
     // Test values above 127 to test unsigned-ness of readUnsignedByte()
     int[] ints = new int[] {255, 254, 253};
     byte[] bytes = new byte[] {(byte) 0xff, (byte) 0xfe, (byte) 0xfd};
@@ -112,14 +110,14 @@ public class RandomAccessObjectTest {
 
       try {
         obj.readUnsignedByte();
-        assertWithMessage("Should've thrown an IOException").fail();
+        assertWithMessage("Should've thrown an Exception").fail();
       } catch (BufferUnderflowException expected) {
       }
     }
   }
 
   @Test
-  public void mmapReadByteTest() throws IOException {
+  public void mmapReadByteTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
@@ -139,7 +137,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileWriteByteTest() throws IOException {
+  public void fileWriteByteTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
@@ -164,8 +162,8 @@ public class RandomAccessObjectTest {
 
       try {
         obj.readByte();
-        assertWithMessage("Should've thrown an IOException").fail();
-      } catch (IOException expected) {
+        assertWithMessage("Should've thrown an Exception").fail();
+      } catch (Exception expected) {
       }
     } finally {
       tmpFile.delete();
@@ -173,7 +171,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileWriteByteToEmptyFileTest() throws IOException {
+  public void fileWriteByteToEmptyFileTest() throws Exception {
     File tmpFile = File.createTempFile("RandomAccessObjectTest", "temp");
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
@@ -193,7 +191,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArrayWriteByteTest() throws IOException {
+  public void byteArrayWriteByteTest() throws Exception {
     final int len = 13;
     try (RandomAccessObject obj =
         new RandomAccessObject.RandomAccessByteArrayObject(new byte[len])) {
@@ -222,7 +220,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapWriteByteTest() throws IOException {
+  public void mmapWriteByteTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
@@ -256,7 +254,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapWriteByteToEmptyFileTest() throws IOException {
+  public void mmapWriteByteToEmptyFileTest() throws Exception {
     File tmpFile = File.createTempFile("RandomAccessObjectTest", "temp");
 
     try (RandomAccessObject obj =
@@ -291,7 +289,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileSeekTest() throws IOException {
+  public void fileSeekTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -300,8 +298,8 @@ public class RandomAccessObjectTest {
 
       try {
         obj.seek(-1);
-        assertWithMessage("Should've thrown an IOException").fail();
-      } catch (IOException expected) {
+        assertWithMessage("Should've thrown an Exception").fail();
+      } catch (Exception expected) {
       }
 
       // This should not throw an exception.
@@ -312,7 +310,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArraySeekTest() throws IOException {
+  public void byteArraySeekTest() throws Exception {
     byte[] data = new byte[BLOB.length];
     System.arraycopy(BLOB, 0, data, 0, BLOB.length);
     RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(data);
@@ -336,7 +334,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapSeekTest() throws IOException {
+  public void mmapSeekTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -365,7 +363,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileReadIntTest() throws IOException {
+  public void fileReadIntTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -382,7 +380,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArrayReadIntTest() throws IOException {
+  public void byteArrayReadIntTest() throws Exception {
     RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(BLOB);
     readIntTest(obj);
     try {
@@ -393,7 +391,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapReadIntTest() throws IOException {
+  public void mmapReadIntTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -412,7 +410,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileWriteIntTest() throws IOException {
+  public void fileWriteIntTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj = new RandomAccessObject.RandomAccessFileObject(tmpFile, "rw")) {
@@ -430,7 +428,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArrayWriteIntTest() throws IOException {
+  public void byteArrayWriteIntTest() throws Exception {
     final int len = 13;
     try (RandomAccessObject obj =
         new RandomAccessObject.RandomAccessByteArrayObject(new byte[len])) {
@@ -446,7 +444,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapWriteIntTest() throws IOException {
+  public void mmapWriteIntTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try (RandomAccessObject obj =
@@ -465,7 +463,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileSeekToIntAlignedTest() throws IOException {
+  public void fileSeekToIntAlignedTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -477,7 +475,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void byteArraySeekToIntAlignedTest() throws IOException {
+  public void byteArraySeekToIntAlignedTest() throws Exception {
     byte[] data = new byte[BLOB.length];
     System.arraycopy(BLOB, 0, data, 0, BLOB.length);
     RandomAccessObject obj = new RandomAccessObject.RandomAccessByteArrayObject(data);
@@ -485,7 +483,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapSeekToIntAlignedTest() throws IOException {
+  public void mmapSeekToIntAlignedTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -498,7 +496,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void fileCloseTest() throws IOException {
+  public void fileCloseTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -524,7 +522,7 @@ public class RandomAccessObjectTest {
   }
 
   @Test
-  public void mmapCloseTest() throws IOException {
+  public void mmapCloseTest() throws Exception {
     File tmpFile = storeInTempFile(new ByteArrayInputStream(BLOB));
 
     try {
@@ -548,7 +546,7 @@ public class RandomAccessObjectTest {
     }
   }
 
-  private void seekTest(final RandomAccessObject obj) throws IOException {
+  private void seekTest(final RandomAccessObject obj) throws Exception {
     obj.seek(7);
     assertThat(obj.readByte()).isEqualTo(8);
     obj.seek(3);
@@ -572,13 +570,13 @@ public class RandomAccessObjectTest {
     }
   }
 
-  private void readIntTest(final RandomAccessObject obj) throws IOException {
+  private void readIntTest(final RandomAccessObject obj) throws Exception {
     assertThat(obj.readInt()).isEqualTo(0x01020304);
     assertThat(obj.readInt()).isEqualTo(0x05060708);
     assertThat(obj.readInt()).isEqualTo(0x090A0B0C);
   }
 
-  private void seekToIntAlignedTest(final RandomAccessObject obj) throws IOException {
+  private void seekToIntAlignedTest(final RandomAccessObject obj) throws Exception {
     obj.seekToIntAligned(3);
     assertThat(obj.readByte()).isEqualTo(3 * 4 + 1);
 
@@ -600,28 +598,5 @@ public class RandomAccessObjectTest {
     assertThat(obj.readInt()).isEqualTo(0x01020304);
     assertThat(obj.readInt()).isEqualTo(0x05060708);
     assertThat(obj.readInt()).isEqualTo(0x26391bd2);
-  }
-
-  private File storeInTempFile(InputStream content) throws IOException {
-    File tmpFile = null;
-    try {
-      tmpFile = File.createTempFile("RandomAccessObjectTest", "temp");
-      tmpFile.deleteOnExit();
-      FileOutputStream out = new FileOutputStream(tmpFile);
-      byte[] buffer = new byte[32768];
-      int numRead = 0;
-      while ((numRead = content.read(buffer)) >= 0) {
-        out.write(buffer, 0, numRead);
-      }
-      out.flush();
-      out.close();
-      return tmpFile;
-    } catch (IOException e) {
-      if (tmpFile != null) {
-        // Attempt immediate cleanup.
-        tmpFile.delete();
-      }
-      throw e;
-    }
   }
 }

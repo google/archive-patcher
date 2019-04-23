@@ -15,10 +15,12 @@
 package com.google.archivepatcher.shared.bytesource;
 
 import static com.google.archivepatcher.shared.TestUtils.assertThrows;
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.archivepatcher.shared.bytesource.ByteStreams.readFully;
 import static com.google.common.truth.Truth.assertThat;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -61,5 +63,14 @@ public class ByteStreamsTest {
   @Test
   public void readFully_outOfBounds() throws IOException {
     assertThrows(IndexOutOfBoundsException.class, () -> readFully(inputStream, dst, 45, 11));
+  }
+
+  @Test
+  public void copy_success() throws Exception {
+    byte[] testData = new byte[] {1, 2, 3, 4, 5, 6, 7, 8};
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    copy(new ByteArrayInputStream(testData), outputStream);
+
+    assertThat(outputStream.toByteArray()).isEqualTo(testData);
   }
 }

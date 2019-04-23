@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -240,11 +241,7 @@ public class UnitTestZipArchive {
               .isEqualTo(testEntry.getUncompressedBinaryContent().length);
         }
         ByteArrayOutputStream uncompressedData = new ByteArrayOutputStream();
-        byte[] buffer = new byte[4096];
-        int numRead = 0;
-        while ((numRead = zipIn.read(buffer)) >= 0) {
-          uncompressedData.write(buffer, 0, numRead);
-        }
+        copy(zipIn, uncompressedData);
         assertThat(uncompressedData.toByteArray())
             .isEqualTo(testEntry.getUncompressedBinaryContent());
         return;

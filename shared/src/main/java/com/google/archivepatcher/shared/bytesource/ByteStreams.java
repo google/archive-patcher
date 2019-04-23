@@ -16,9 +16,11 @@ package com.google.archivepatcher.shared.bytesource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /** This class contains utility methods related to IO. */
 public class ByteStreams {
+  public static final int COPY_BUFFER_SIZE = 32768;
 
   /**
    * Read exactly the specified number of bytes into the specified buffer.
@@ -51,5 +53,14 @@ public class ByteStreams {
    */
   public static void readFully(final InputStream in, final byte[] destination) throws IOException {
     readFully(in, destination, 0, destination.length);
+  }
+
+  /** Copies everything from an {@link InputStream} to an {@link OutputStream}. */
+  public static void copy(InputStream in, OutputStream out) throws IOException {
+    byte[] buffer = new byte[COPY_BUFFER_SIZE];
+    int numRead = 0;
+    while ((numRead = in.read(buffer)) >= 0) {
+      out.write(buffer, 0, numRead);
+    }
   }
 }

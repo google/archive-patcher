@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,11 +35,6 @@ public class PartiallyUncompressingPipe implements Closeable {
    * The output stream to write to.
    */
   private final CountingOutputStream out;
-
-  /**
-   * A buffer used when copying bytes.
-   */
-  private final byte[] copyBuffer;
 
   /**
    * Modes available for {@link PartiallyUncompressingPipe#pipe(InputStream, Mode)}.
@@ -63,14 +60,13 @@ public class PartiallyUncompressingPipe implements Closeable {
 
   /**
    * Constructs a new stream.
+   *
    * @param out the stream, to write to
-   * @param copyBufferSize the size of the buffer to use when copying instead of uncompressing
    */
-  public PartiallyUncompressingPipe(OutputStream out, int copyBufferSize) {
+  public PartiallyUncompressingPipe(OutputStream out) {
     this.out = new CountingOutputStream(out);
     uncompressor = new DeflateUncompressor();
     uncompressor.setCaching(true);
-    copyBuffer = new byte[copyBufferSize];
   }
 
   /**
@@ -84,10 +80,7 @@ public class PartiallyUncompressingPipe implements Closeable {
   public long pipe(InputStream in, Mode mode) throws IOException {
     long bytesWrittenBefore = out.getNumBytesWritten();
     if (mode == Mode.COPY) {
-      int numRead = 0;
-      while ((numRead = in.read(copyBuffer)) >= 0) {
-        out.write(copyBuffer, 0, numRead);
-      }
+      copy(in, out);
     } else {
       uncompressor.setNowrap(mode == Mode.UNCOMPRESS_NOWRAP);
       uncompressor.uncompress(in, out);

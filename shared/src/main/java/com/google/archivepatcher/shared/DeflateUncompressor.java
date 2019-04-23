@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.shared;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,12 +40,6 @@ public class DeflateUncompressor implements Uncompressor {
    * {@link #uncompress(InputStream, OutputStream)}.
    */
   private int inputBufferSize = 32768;
-
-  /**
-   * The size of the buffer used for writing data out during
-   * {@link #uncompress(InputStream, OutputStream)}.
-   */
-  private int outputBufferSize = 32768;
 
   /**
    * Cached {@link Inflater} to be used.
@@ -83,24 +79,6 @@ public class DeflateUncompressor implements Uncompressor {
    */
   public void setInputBufferSize(int inputBufferSize) {
     this.inputBufferSize = inputBufferSize;
-  }
-
-  /**
-   * Returns the size of the buffer used for writing to the output stream in
-   * {@link #uncompress(InputStream, OutputStream)}.
-   * @return the size (default is 32768)
-   */
-  public int getOutputBufferSize() {
-    return outputBufferSize;
-  }
-
-  /**
-   * Sets the size of the buffer used for writing to the output stream in
-   * {@link #uncompress(InputStream, OutputStream)}.
-   * @param outputBufferSize the size to set (default is 32768)
-   */
-  public void setOutputBufferSize(int outputBufferSize) {
-    this.outputBufferSize = outputBufferSize;
   }
 
   /**
@@ -168,11 +146,7 @@ public class DeflateUncompressor implements Uncompressor {
       throws IOException {
     InflaterInputStream inflaterIn =
         new InflaterInputStream(compressedIn, createOrResetInflater(), inputBufferSize);
-    byte[] buffer = new byte[outputBufferSize];
-    int numRead = 0;
-    while ((numRead = inflaterIn.read(buffer)) >= 0) {
-      uncompressedOut.write(buffer, 0, numRead);
-    }
+    copy(inflaterIn, uncompressedOut);
     if (!isCaching()) {
       release();
     }

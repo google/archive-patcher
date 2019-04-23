@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
+
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.Range;
@@ -163,11 +165,7 @@ public class PatchWriter {
       // Finally, the length of the delta and the delta itself.
       outputStream.writeLong(deltaFile.file.length());
       try (FileInputStream deltaIn = new FileInputStream(deltaFile.file)) {
-        byte[] buffer = new byte[32768];
-        int numRead = 0;
-        while ((numRead = deltaIn.read(buffer)) >= 0) {
-          outputStream.write(buffer, 0, numRead);
-        }
+        copy(deltaIn, outputStream);
       }
     }
   }
