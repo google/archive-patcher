@@ -16,29 +16,58 @@ package com.google.archivepatcher.shared.bytesource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import javax.annotation.Nullable;
 
 /**
  * An {@link InputStream} that redirects all operations to underlying input stream but does not
  * close the underlying stream if it is itself closed. Reading from a closed {@link
  * ShadowInputStream} will cause an {@link IOException}.
+ *
+ * @param <T> type of the underlying stream
  */
-public class ShadowInputStream extends InputStream {
+public class ShadowInputStream<T extends InputStream> extends InputStream {
 
-  private final InputStream in;
-  private final Runnable closeCallback;
+  private final T in;
+  // Normally we would use Optional<Runnable> for this. However, java.util.Optional is not available
+  // for Android so we have to use Nullable.
+  @Nullable private Runnable closeCallback = null;
 
   private boolean isOpen = true;
 
-  public ShadowInputStream(InputStream in, Runnable closeCallback) {
+  public ShadowInputStream(T in) {
     this.in = in;
+  }
+
+  /**
+   * Opens this stream.
+   *
+   * <p>Note that the state of underlying stream is not affected and will remain at the last time
+   * this is closed.
+   *
+   * @param closeCallback callback when the stream is closed
+   */
+  public void open(Runnable closeCallback) {
+    isOpen = true;
     this.closeCallback = closeCallback;
+  }
+
+  public void open() {
+    isOpen = true;
+  }
+
+  /** Returns the underlying stream. */
+  public T getStream() {
+    return in;
   }
 
   @Override
   public void close() throws IOException {
     if (isOpen) {
       isOpen = false;
-      closeCallback.run();
+      if (closeCallback != null) {
+        closeCallback.run();
+        closeCallback = null;
+      }
     }
   }
 

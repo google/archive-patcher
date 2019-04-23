@@ -29,17 +29,26 @@ public class ShadowInputStreamTest {
 
   private static final byte[] DATA = {1, 2, 3, 4, 5, 6, 7};
 
-  private ShadowInputStream inputStream;
+  private ShadowInputStream<ByteArrayInputStream> inputStream;
+
+  private ByteArrayInputStream underlyingStream = new ByteArrayInputStream(DATA);
 
   private boolean isClosed = false;
 
   @Before
   public void setUp() throws Exception {
-    inputStream = new ShadowInputStream(new ByteArrayInputStream(DATA), () -> isClosed = true);
+    inputStream = new ShadowInputStream<>(underlyingStream);
+  }
+
+  @Test
+  public void getStream() throws Exception {
+    assertThat(inputStream.getStream()).isSameAs(underlyingStream);
   }
 
   @Test
   public void close() throws Exception {
+    inputStream.open(() -> isClosed = true);
+
     inputStream.close();
 
     assertThat(isClosed).isTrue();
@@ -48,6 +57,18 @@ public class ShadowInputStreamTest {
     assertThrows(IOException.class, () -> inputStream.read(buffer, 0, 1));
     assertThrows(IOException.class, () -> inputStream.available());
     assertThrows(IOException.class, () -> inputStream.skip(4));
+  }
+
+  @Test
+  public void open() throws Exception {
+    inputStream.close();
+
+    inputStream.open();
+
+    // Here we do some random reading to test that the input stream is available again.
+    byte[] buffer = new byte[DATA.length];
+    assertThat(inputStream.read()).isEqualTo(DATA[0]);
+    assertThat(inputStream.read(buffer, 0, 1)).isEqualTo(1);
   }
 
   @Test

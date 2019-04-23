@@ -30,7 +30,8 @@ import java.util.Queue;
  */
 public class RandomAccessFileByteSource extends FileByteSource {
 
-  private final Queue<RandomAccessFileInputStream> unusedInputStreams = new ArrayDeque<>();
+  private final Queue<ShadowInputStream<RandomAccessFileInputStream>> unusedInputStreams =
+      new ArrayDeque<>();
   private final List<RandomAccessFileInputStream> allInputStreams = new ArrayList<>();
 
   public RandomAccessFileByteSource(File file) throws IOException {
@@ -39,18 +40,20 @@ public class RandomAccessFileByteSource extends FileByteSource {
 
   @Override
   protected InputStream openStream(long offset, long length) throws IOException {
-    RandomAccessFileInputStream rafis = getUnusedStream();
-    rafis.setRange(offset, length);
-    return new ShadowInputStream(rafis, () -> unusedInputStreams.add(rafis));
+    ShadowInputStream<RandomAccessFileInputStream> shadowInputStream = getUnusedStream();
+    shadowInputStream.getStream().setRange(offset, length);
+    shadowInputStream.open(() -> unusedInputStreams.add(shadowInputStream));
+    return shadowInputStream;
   }
 
-  private RandomAccessFileInputStream getUnusedStream() throws IOException {
-    RandomAccessFileInputStream rafis = unusedInputStreams.poll();
-    if (rafis == null) {
-      rafis = new RandomAccessFileInputStream(getFile());
+  private ShadowInputStream<RandomAccessFileInputStream> getUnusedStream() throws IOException {
+    ShadowInputStream<RandomAccessFileInputStream> shadowInputStream = unusedInputStreams.poll();
+    if (shadowInputStream == null) {
+      RandomAccessFileInputStream rafis = new RandomAccessFileInputStream(getFile());
       allInputStreams.add(rafis);
+      shadowInputStream = new ShadowInputStream<>(rafis);
     }
-    return rafis;
+    return shadowInputStream;
   }
 
   @Override
