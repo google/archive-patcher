@@ -17,13 +17,14 @@ package com.google.archivepatcher.applier;
 import com.google.archivepatcher.applier.bsdiff.BsDiffDeltaApplier;
 import com.google.archivepatcher.shared.DeltaFriendlyFile;
 import com.google.archivepatcher.shared.RandomAccessFileOutputStream;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 /** Applies patches. */
-public class FileByFileDeltaApplier implements DeltaApplier {
+public class FileByFileDeltaApplier extends DeltaApplier {
 
   /**
    * Default size of the buffer to use for copying bytes in the recompression stream.
@@ -58,7 +59,7 @@ public class FileByFileDeltaApplier implements DeltaApplier {
   }
 
   @Override
-  public void applyDelta(File oldBlob, InputStream deltaIn, OutputStream newBlobOut)
+  public void applyDelta(ByteSource oldBlob, InputStream deltaIn, OutputStream newBlobOut)
       throws IOException {
     if (!tempDir.exists()) {
       // Be nice, try to create the temp directory. Don't bother to check return value as the code
@@ -75,6 +76,7 @@ public class FileByFileDeltaApplier implements DeltaApplier {
 
   /**
    * Does the work for applying a delta.
+   *
    * @param oldBlob the old blob
    * @param deltaFriendlyOldBlob the location in which to store the delta-friendly old blob
    * @param deltaIn the patch stream
@@ -82,7 +84,7 @@ public class FileByFileDeltaApplier implements DeltaApplier {
    * @throws IOException if anything goes wrong
    */
   private void applyDeltaInternal(
-      File oldBlob, File deltaFriendlyOldBlob, InputStream deltaIn, OutputStream newBlobOut)
+      ByteSource oldBlob, File deltaFriendlyOldBlob, InputStream deltaIn, OutputStream newBlobOut)
       throws IOException {
 
     // First, read the patch plan from the patch stream.
@@ -117,7 +119,7 @@ public class FileByFileDeltaApplier implements DeltaApplier {
    * @throws IOException if anything goes wrong
    */
   private void writeDeltaFriendlyOldBlob(
-      PatchApplyPlan plan, File oldBlob, File deltaFriendlyOldBlob) throws IOException {
+      PatchApplyPlan plan, ByteSource oldBlob, File deltaFriendlyOldBlob) throws IOException {
     try (RandomAccessFileOutputStream deltaFriendlyOldFileOut =
         new RandomAccessFileOutputStream(
             deltaFriendlyOldBlob, plan.getDeltaFriendlyOldFileSize())) {

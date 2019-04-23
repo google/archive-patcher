@@ -75,12 +75,35 @@ public class DeltaFriendlyFile {
   public static void generateDeltaFriendlyFile(
       List<Range> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
       throws IOException {
+    generateDeltaFriendlyFile(rangesToUncompress, data, deltaFriendlyOut, DEFAULT_COPY_BUFFER_SIZE);
+  }
+
+  /**
+   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
+   * <code>
+   * generateInverse</code> set to <code>false</code> and a copy buffer size of {@link
+   * #DEFAULT_COPY_BUFFER_SIZE}.
+   *
+   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
+   *     delta-friendly form
+   * @param data the original archive
+   * @param deltaFriendlyOut a stream to write the delta-friendly file to
+   * @return the ranges in the delta-friendly file that correspond to the ranges in the original
+   *     file, with identical metadata and in the same order
+   * @throws IOException if anything goes wrong
+   */
+  public static void generateDeltaFriendlyFile(
+      List<Range> rangesToUncompress,
+      ByteSource data,
+      OutputStream deltaFriendlyOut,
+      int copyBufferSize)
+      throws IOException {
     generateDeltaFriendlyFile(
         wrapRanges(rangesToUncompress),
         data,
         deltaFriendlyOut,
         /* generateInverse= */ false,
-        DEFAULT_COPY_BUFFER_SIZE);
+        copyBufferSize);
   }
 
   /**
