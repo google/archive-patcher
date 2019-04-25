@@ -27,7 +27,12 @@ import java.nio.charset.StandardCharsets;
 /**
  * A helper class that handles the main BsDiff I/O and patch generation, by calling into the main
  * algorithm implementation in {@link BsDiff}
+ *
+ * @deprecated use {@link
+ *     com.google.archivepatcher.generator.bsdiff.wrapper.BsDiffNativePatchWriter} instead. In local
+ *     profiling, the native implementation is 10-100 times faster (depending on the file itself).
  */
+@Deprecated
 public class BsDiffPatchWriter {
 
   static final int DEFAULT_MINIMUM_MATCH_LENGTH = 16;
