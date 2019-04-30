@@ -111,39 +111,43 @@ public class PatchReader {
 
     // Read the delta metadata, but stop before the first byte of the actual delta.
     // V1 has exactly one delta and it must be bsdiff.
-    int numDeltaRecords = (int) checkRange(dataIn.readInt(), 1, 1, "num delta records");
-
-    List<DeltaDescriptor> deltaDescriptors = new ArrayList<>(numDeltaRecords);
-    for (int x = 0; x < numDeltaRecords; x++) {
-      byte deltaFormatByte = (byte)
-      checkRange(
-          dataIn.readByte(),
-          PatchConstants.DeltaFormat.BSDIFF.patchValue,
-          PatchConstants.DeltaFormat.BSDIFF.patchValue,
-          "delta format");
-      long deltaFriendlyOldFileWorkRangeOffset = checkNonNegative(
-          dataIn.readLong(), "delta-friendly old file work range offset");
-      long deltaFriendlyOldFileWorkRangeLength = checkNonNegative(
-          dataIn.readLong(), "delta-friendly old file work range length");
-      long deltaFriendlyNewFileWorkRangeOffset = checkNonNegative(
-          dataIn.readLong(), "delta-friendly new file work range offset");
-      long deltaFriendlyNewFileWorkRangeLength = checkNonNegative(
-          dataIn.readLong(), "delta-friendly new file work range length");
-      long deltaLength = checkNonNegative(dataIn.readLong(), "delta length");
-      DeltaDescriptor descriptor =
-          DeltaDescriptor.create(
-              PatchConstants.DeltaFormat.fromPatchValue(deltaFormatByte),
-              Range.of(deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength),
-              Range.of(deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength),
-              deltaLength);
-      deltaDescriptors.add(descriptor);
-    }
+    int numDeltaRecords = (int) checkNonNegative(dataIn.readInt(), "num delta records");
 
     return new PatchApplyPlan(
         Collections.unmodifiableList(oldFileUncompressionPlan),
         deltaFriendlyOldFileSize,
         Collections.unmodifiableList(deltaFriendlyNewFileRecompressionPlan),
-        Collections.unmodifiableList(deltaDescriptors));
+        numDeltaRecords);
+  }
+
+  public DeltaDescriptor readDeltaDescriptor(InputStream in) throws IOException {
+    // Use DataOutputStream for ease of writing. This is deliberately left open, as closing it would
+    // close the output stream that was passed in and that is not part of the method's documented
+    // behavior.
+    @SuppressWarnings("resource")
+    DataInputStream dataIn = new DataInputStream(in);
+
+    byte deltaFormatByte =
+        (byte)
+            checkRange(
+                dataIn.readByte(),
+                PatchConstants.DeltaFormat.BSDIFF.patchValue,
+                PatchConstants.DeltaFormat.BSDIFF.patchValue,
+                "delta format");
+    long deltaFriendlyOldFileWorkRangeOffset =
+        checkNonNegative(dataIn.readLong(), "delta-friendly old file work range offset");
+    long deltaFriendlyOldFileWorkRangeLength =
+        checkNonNegative(dataIn.readLong(), "delta-friendly old file work range length");
+    long deltaFriendlyNewFileWorkRangeOffset =
+        checkNonNegative(dataIn.readLong(), "delta-friendly new file work range offset");
+    long deltaFriendlyNewFileWorkRangeLength =
+        checkNonNegative(dataIn.readLong(), "delta-friendly new file work range length");
+    long deltaLength = checkNonNegative(dataIn.readLong(), "delta length");
+    return DeltaDescriptor.create(
+        PatchConstants.DeltaFormat.fromPatchValue(deltaFormatByte),
+        Range.of(deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength),
+        Range.of(deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength),
+        deltaLength);
   }
 
   /**

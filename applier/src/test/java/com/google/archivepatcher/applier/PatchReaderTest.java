@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -225,13 +226,19 @@ public class PatchReaderTest {
 
   @Test
   public void testReadPatchApplyPlan() throws IOException {
-    PatchApplyPlan plan =
-        new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+    PatchReader reader = new PatchReader();
+    InputStream in = new ByteArrayInputStream(writeTestPatch());
+    PatchApplyPlan plan = reader.readPatchApplyPlan(in);
     assertThat(plan.getDeltaFriendlyOldFileSize()).isEqualTo(DELTA_FRIENDLY_OLD_FILE_SIZE);
     assertThat(plan.getOldFileUncompressionPlan()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN);
     assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan())
         .isEqualTo(NEW_DELTA_FRIENDLY_RECOMPRESS_PLAN);
-    assertThat(plan.getDeltaDescriptors()).isEqualTo(DELTA_DESCRIPTORS);
+    assertThat(plan.getNumberOfDeltas()).isEqualTo(DELTA_DESCRIPTORS.size());
+
+    for (int i = 0; i < plan.getNumberOfDeltas(); i++) {
+      DeltaDescriptor descriptor = reader.readDeltaDescriptor(in);
+      assertThat(descriptor).isEqualTo(DELTA_DESCRIPTORS.get(i));
+    }
   }
 
   @Test
@@ -393,66 +400,62 @@ public class PatchReaderTest {
   }
 
   @Test
-  public void testReadPatchApplyPlan_CorruptDeltaType() throws IOException {
+  public void readDeltaDescriptor_CorruptDeltaType() throws IOException {
     corruption.corruptDeltaType = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
   @Test
-  public void testReadPatchApplyPlan_CorruptDeltaFriendlyOldFileWorkRangeOffset()
-      throws IOException {
+  public void readDeltaDescriptor_CorruptDeltaFriendlyOldFileWorkRangeOffset() throws IOException {
     corruption.corruptDeltaFriendlyOldFileWorkRangeOffset = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
   @Test
-  public void testReadPatchApplyPlan_CorruptDeltaFriendlyOldFileWorkRangeLength()
-      throws IOException {
+  public void readDeltaDescriptor_CorruptDeltaFriendlyOldFileWorkRangeLength() throws IOException {
     corruption.corruptDeltaFriendlyOldFileWorkRangeLength = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
   @Test
-  public void testReadPatchApplyPlan_CorruptDeltaFriendlyNewFileWorkRangeOffset()
-      throws IOException {
+  public void readDeltaDescriptor_CorruptDeltaFriendlyNewFileWorkRangeOffset() throws IOException {
     corruption.corruptDeltaFriendlyNewFileWorkRangeOffset = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
   @Test
-  public void testReadPatchApplyPlan_CorruptDeltaFriendlyNewFileWorkRangeLength()
-      throws IOException {
+  public void readDeltaDescriptor_CorruptDeltaFriendlyNewFileWorkRangeLength() throws IOException {
     corruption.corruptDeltaFriendlyNewFileWorkRangeLength = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
   @Test
-  public void testReadPatchApplyPlan_DeltaLength() throws IOException {
+  public void readDeltaDescriptor_DeltaLength() throws IOException {
     corruption.corruptDeltaLength = true;
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 }

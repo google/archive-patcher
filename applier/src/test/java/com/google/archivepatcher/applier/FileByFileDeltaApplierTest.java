@@ -19,6 +19,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.ByteArrayInputStream;
@@ -150,7 +151,7 @@ public class FileByFileDeltaApplierTest {
     fakeApplier =
         new FileByFileDeltaApplier(tempDir) {
           @Override
-          protected DeltaApplier getDeltaApplier() {
+          protected DeltaApplier getDeltaApplier(DeltaFormat deltaFormat) {
             return new FakeDeltaApplier();
           }
         };

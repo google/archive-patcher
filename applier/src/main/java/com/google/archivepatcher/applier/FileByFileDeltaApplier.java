@@ -16,7 +16,9 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.applier.bsdiff.BsDiffDeltaApplier;
 import com.google.archivepatcher.shared.DeltaFriendlyFile;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.RandomAccessFileOutputStream;
+import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
@@ -91,23 +93,44 @@ public class FileByFileDeltaApplier extends DeltaApplier {
     PatchReader patchReader = new PatchReader();
     PatchApplyPlan plan = patchReader.readPatchApplyPlan(deltaIn);
     writeDeltaFriendlyOldBlob(plan, oldBlob, deltaFriendlyOldBlob);
-    // Apply the delta. In v1 there is always exactly one delta descriptor, it is bsdiff, and it
-    // takes up the rest of the patch stream - so there is no need to examine the list of
-    // DeltaDescriptors in the patch at all.
-    long deltaLength = plan.getDeltaDescriptors().get(0).deltaLength();
-    DeltaApplier deltaApplier = getDeltaApplier();
-    // Don't close this stream, as it is just a limiting wrapper.
-    @SuppressWarnings("resource")
-    LimitedInputStream limitedDeltaIn = new LimitedInputStream(deltaIn, deltaLength);
-    // Don't close this stream, as it would close the underlying OutputStream (that we don't own).
-    @SuppressWarnings("resource")
-    PartiallyCompressingOutputStream recompressingNewBlobOut =
-        new PartiallyCompressingOutputStream(
-            plan.getDeltaFriendlyNewFileRecompressionPlan(),
-            newBlobOut,
-            DEFAULT_COPY_BUFFER_SIZE);
-    deltaApplier.applyDelta(deltaFriendlyOldBlob, limitedDeltaIn, recompressingNewBlobOut);
-    recompressingNewBlobOut.flush();
+    try (ByteSource oldBlobByteSource = ByteSource.fromFile(deltaFriendlyOldBlob)) {
+      // Don't close this stream, as it would close the underlying OutputStream (that we don't own).
+      @SuppressWarnings("resource")
+      PartiallyCompressingOutputStream recompressingNewBlobOut =
+          new PartiallyCompressingOutputStream(
+              plan.getDeltaFriendlyNewFileRecompressionPlan(),
+              newBlobOut,
+              DEFAULT_COPY_BUFFER_SIZE);
+      // Apply the delta.
+      Range previousNewBlobRange = Range.of(0, 0);
+      for (int i = 0; i < plan.getNumberOfDeltas(); i++) {
+        DeltaDescriptor descriptor = patchReader.readDeltaDescriptor(deltaIn);
+
+        // Validate that the delta-friendly new blob ranges are contiguous
+        // Note that the fact that we interleaved delta-descriptors with delta data means we might
+        // be doing wasted work if there is an error in later delta descriptors.
+        Range newBlobRange = descriptor.deltaFriendlyNewFileRange();
+        if (newBlobRange.offset() != previousNewBlobRange.endOffset()) {
+          throw new PatchFormatException(
+              String.format(
+                  "Gap in delta record. Previous delta-friendly new blob range: %s. Current"
+                      + " delta-friendly new blob range: %s",
+                  previousNewBlobRange, newBlobRange));
+        }
+        previousNewBlobRange = newBlobRange;
+
+        DeltaApplier deltaApplier = getDeltaApplier(descriptor.deltaFormat());
+        // Don't close this stream, as it is just a limiting wrapper.
+        @SuppressWarnings("resource")
+        LimitedInputStream limitedDeltaIn =
+            new LimitedInputStream(deltaIn, descriptor.deltaLength());
+        deltaApplier.applyDelta(
+            oldBlobByteSource.slice(descriptor.deltaFriendlyOldFileRange()),
+            limitedDeltaIn,
+            recompressingNewBlobOut);
+      }
+      recompressingNewBlobOut.flush();
+    }
   }
 
   /**
@@ -130,11 +153,14 @@ public class FileByFileDeltaApplier extends DeltaApplier {
 
   /**
    * Return an instance of a {@link DeltaApplier} suitable for applying the deltas within the patch
-   * stream.
-   * @return the applier
+   * stream for the {@link DeltaFormat} given.
    */
   // Visible for testing only
-  protected DeltaApplier getDeltaApplier() {
-    return new BsDiffDeltaApplier();
+  protected DeltaApplier getDeltaApplier(DeltaFormat deltaFormat) {
+    switch (deltaFormat) {
+      case BSDIFF:
+        return new BsDiffDeltaApplier();
+    }
+    throw new IllegalArgumentException("Unexpected delta format: " + deltaFormat);
   }
 }

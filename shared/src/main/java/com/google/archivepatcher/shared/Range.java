@@ -34,6 +34,11 @@ public abstract class Range {
   /** Length of the range. */
   public abstract long length();
 
+  /** Offset of the end of the range. */
+  public long endOffset() {
+    return offset() + length();
+  }
+
   /** Constructs a range from an offset and a length. */
   public static Range of(long offset, long length) {
     return new AutoValue_Range(offset, length);
