@@ -15,7 +15,9 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.Range;
 import com.google.auto.value.AutoValue;
+import java.util.Comparator;
 
 /**
  * An entry of {@link PreDiffPlan}, consisting of an {@link MinimalZipEntry} from the old file, a
@@ -25,6 +27,16 @@ import com.google.auto.value.AutoValue;
  */
 @AutoValue
 public abstract class PreDiffPlanEntry {
+
+  public static final Comparator<PreDiffPlanEntry> OLD_BLOB_OFFSET_COMPARATOR =
+      (o1, o2) ->
+          Range.offsetComparator()
+              .compare(o1.oldEntry().localEntryRange(), o2.oldEntry().localEntryRange());
+
+  public static final Comparator<PreDiffPlanEntry> NEW_BLOB_OFFSET_COMPARATOR =
+      (o1, o2) ->
+          Range.offsetComparator()
+              .compare(o1.newEntry().localEntryRange(), o2.newEntry().localEntryRange());
 
   /** The entry in the old file. */
   public abstract MinimalZipEntry oldEntry();

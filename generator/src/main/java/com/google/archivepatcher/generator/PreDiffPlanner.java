@@ -140,9 +140,9 @@ class PreDiffPlanner {
     }
 
     List<Range> oldFilePlanList = new ArrayList<>(oldFilePlan);
-    Collections.sort(oldFilePlanList, Range.getOffsetCompartor());
+    Collections.sort(oldFilePlanList, Range.offsetComparator());
     List<TypedRange<JreDeflateParameters>> newFilePlanList = new ArrayList<>(newFilePlan);
-    Collections.sort(newFilePlanList, Range.getOffsetCompartor());
+    Collections.sort(newFilePlanList, Range.offsetComparator());
     return new PreDiffPlan(
         Collections.unmodifiableList(defaultEntries),
         Collections.unmodifiableList(oldFilePlanList),

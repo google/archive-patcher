@@ -51,9 +51,9 @@ public class TypedRangeTest {
   public void testOffsetComparator() {
     TypedRange<String> range1 = TypedRange.of(1, 777, null);
     TypedRange<String> range2 = TypedRange.of(2, 777, null);
-    assertThat(Range.getOffsetCompartor().compare(range1, range2)).isLessThan(0);
-    assertThat(Range.getOffsetCompartor().compare(range2, range1)).isGreaterThan(0);
-    assertThat(Range.getOffsetCompartor().compare(range1, range1)).isEqualTo(0);
+    assertThat(Range.offsetComparator().compare(range1, range2)).isLessThan(0);
+    assertThat(Range.offsetComparator().compare(range2, range1)).isGreaterThan(0);
+    assertThat(Range.offsetComparator().compare(range1, range1)).isEqualTo(0);
   }
 
   @Test

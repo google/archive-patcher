@@ -24,7 +24,7 @@ public abstract class Range {
   /**
    * A comparator where comparison is performed based on the natural ordering of the offset field.
    */
-  public static <T extends Range> Comparator<T> getOffsetCompartor() {
+  public static <T extends Range> Comparator<T> offsetComparator() {
     return (o1, o2) -> Long.compare(o1.offset(), o2.offset());
   }
 
@@ -44,7 +44,33 @@ public abstract class Range {
     return new AutoValue_Range(offset, length);
   }
 
+  /** Attaches a metadata to {@link Range} to obtain a {@link TypedRange}. */
   public <T> TypedRange<T> withMetadata(T metadata) {
     return new TypedRange<>(this, metadata);
+  }
+
+  /**
+   * Combines two ranges together to form a new range.
+   *
+   * <p>The ranges must be adjacent to on another ({@link #isAdjacentTo(Range)} must return true).
+   * An {@link IllegalArgumentException} will be thrown otherwise.
+   */
+  public static Range combine(Range range1, Range range2) {
+    if (!range1.isAdjacentTo(range2)) {
+      throw new IllegalArgumentException(
+          range1 + " is not adjacent to " + range2 + " and cannot be combined");
+    }
+    return Range.of(Math.min(range1.offset(), range2.offset()), range1.length() + range2.length());
+  }
+
+  /**
+   * Returns if the current range is adjacent to the other range.
+   *
+   * <p>Two ranges are adjacent if one's end offset (offset + length) is equal to the other's start
+   * offset.
+   */
+  private boolean isAdjacentTo(Range otherRange) {
+    return offset() + length() == otherRange.offset()
+        || otherRange.offset() + otherRange.length() == offset();
   }
 }

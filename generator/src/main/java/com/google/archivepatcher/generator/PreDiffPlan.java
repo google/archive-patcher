@@ -112,7 +112,7 @@ public class PreDiffPlan {
       T lastEntry = iterator.next();
       while (iterator.hasNext()) {
         T nextEntry = iterator.next();
-        if (Range.getOffsetCompartor().compare(lastEntry, nextEntry) > 0) {
+        if (Range.offsetComparator().compare(lastEntry, nextEntry) > 0) {
           throw new IllegalArgumentException("List must be ordered");
         }
       }
