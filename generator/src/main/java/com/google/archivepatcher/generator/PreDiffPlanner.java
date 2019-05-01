@@ -15,6 +15,8 @@
 package com.google.archivepatcher.generator;
 
 import static com.google.archivepatcher.generator.DeltaFormatExplanation.DEFAULT;
+import static com.google.archivepatcher.generator.DeltaFormatExplanation.FILE_TYPE;
+import static com.google.archivepatcher.generator.DeltaFormatExplanation.UNCHANGED;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.BOTH_ENTRIES_UNCOMPRESSED;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_CHANGED;
 import static com.google.archivepatcher.generator.UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL;
@@ -30,6 +32,7 @@ import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.
 import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.STORED;
 import static com.google.archivepatcher.shared.PatchConstants.CompressionMethod.UNKNOWN;
 import static com.google.archivepatcher.shared.PatchConstants.DeltaFormat.BSDIFF;
+import static com.google.archivepatcher.shared.PatchConstants.DeltaFormat.FILE_BY_FILE;
 
 import com.google.archivepatcher.generator.similarity.Crc32SimilarityFinder;
 import com.google.archivepatcher.generator.similarity.SimilarityFinder;
@@ -42,6 +45,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +56,9 @@ import java.util.Set;
  * Plans archive transformations to be made prior to differencing.
  */
 class PreDiffPlanner {
+  private static final List<String> ARCHIVE_EXTENSIONS = Arrays.asList(".zip", ".apk", ".jar");
+
+  private static final DeltaFormat DEFAULT_DELTA_FORMAT = BSDIFF;
 
   /** The old archive. */
   private final ByteSource oldFile;
@@ -80,6 +87,8 @@ class PreDiffPlanner {
    */
   private final List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers;
 
+  private final Set<DeltaFormat> supportedDeltaFormats;
+
   /**
    * Constructs a new planner that will work on the specified inputs
    *
@@ -107,6 +116,7 @@ class PreDiffPlanner {
     this.newArchiveZipEntriesByPath = newArchiveZipEntriesByPath;
     this.newArchiveJreDeflateParametersByPath = newArchiveJreDeflateParametersByPath;
     this.preDiffPlanEntryModifiers = preDiffPlanEntryModifiers;
+    this.supportedDeltaFormats = supportedDeltaFormats;
   }
 
   /**
@@ -213,7 +223,7 @@ class PreDiffPlanner {
 
     setUncompressionOption(builder, oldEntry, newEntry);
 
-    setDeltaFormat(builder);
+    setDeltaFormat(builder, oldEntry, newEntry);
 
     return builder.build();
   }
@@ -266,8 +276,51 @@ class PreDiffPlanner {
     }
   }
 
-  private void setDeltaFormat(PreDiffPlanEntry.Builder builder) {
-    builder.deltaFormat(BSDIFF).deltaFormatExplanation(DEFAULT);
+  private void setDeltaFormat(
+      PreDiffPlanEntry.Builder builder, MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    if (shouldApplyFileByFile(oldEntry, newEntry)) {
+      setCustomDeltaFormat(builder, oldEntry, newEntry, FILE_BY_FILE);
+    } else {
+      builder.deltaFormat(DEFAULT_DELTA_FORMAT).deltaFormatExplanation(DEFAULT);
+    }
+  }
+
+  private static void setCustomDeltaFormat(
+      PreDiffPlanEntry.Builder builder,
+      MinimalZipEntry oldEntry,
+      MinimalZipEntry newEntry,
+      DeltaFormat deltaFormat) {
+    if (builder.uncompressionOptionExplanation() == UNSUITABLE) {
+      builder
+          .deltaFormat(DEFAULT_DELTA_FORMAT)
+          .deltaFormatExplanation(DeltaFormatExplanation.UNSUITABLE);
+    } else if (builder.uncompressionOptionExplanation() == DEFLATE_UNSUITABLE) {
+      builder
+          .deltaFormat(DEFAULT_DELTA_FORMAT)
+          .deltaFormatExplanation(DeltaFormatExplanation.DEFLATE_UNSUITABLE);
+    } else if (oldEntry.crc32OfUncompressedData() == newEntry.crc32OfUncompressedData()) {
+      // Note that here we are using CRC32 to detect if the bytes changed. If there is a collision,
+      // we will be using a less efficient delta algorithm (but still producing correct patch).
+      builder.deltaFormat(DEFAULT_DELTA_FORMAT).deltaFormatExplanation(UNCHANGED);
+    } else {
+      builder.deltaFormat(deltaFormat).deltaFormatExplanation(FILE_TYPE);
+    }
+  }
+
+  private boolean shouldApplyFileByFile(MinimalZipEntry oldEntry, MinimalZipEntry newEntry) {
+    return supportedDeltaFormats.contains(FILE_BY_FILE)
+        && isArchive(oldEntry)
+        && isArchive(newEntry);
+  }
+
+  private static boolean isArchive(MinimalZipEntry entry) {
+    // TODO: have a stronger validation than checking file name.
+    for (String extension : ARCHIVE_EXTENSIONS) {
+      if (entry.getFileName().endsWith(extension)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

@@ -69,9 +69,15 @@ public abstract class PreDiffPlanEntry {
     /** @see #zipEntryUncompressionOption() */
     abstract Builder zipEntryUncompressionOption(ZipEntryUncompressionOption option);
 
+    /** Getter for {@link #zipEntryUncompressionOption()} */
+    public abstract ZipEntryUncompressionOption zipEntryUncompressionOption();
+
     /** @see #uncompressionOptionExplanation(UncompressionOptionExplanation) */
     abstract Builder uncompressionOptionExplanation(
         UncompressionOptionExplanation uncompressionOptionExplanation);
+
+    /** Getter for {@link #uncompressionOptionExplanation()} ()} */
+    public abstract UncompressionOptionExplanation uncompressionOptionExplanation();
 
     /** @see #deltaFormat() */
     abstract Builder deltaFormat(DeltaFormat deltaFormat);

@@ -71,7 +71,7 @@ public class DeltaEntriesTest {
             // [0,50)
             entryWithNewBlobRange(Range.of(0, 50)),
             // [50,100)
-            entryWithNewBlobRange(Range.of(50, 50)),
+            fbfEntryWithNewBlobRange(Range.of(50, 50)),
             // [100, 200)
             entryWithNewBlobRange(Range.of(100, 100)),
             // [200,256)
@@ -106,6 +106,14 @@ public class DeltaEntriesTest {
   }
 
   private static DeltaEntry entryWithNewBlobRange(Range newBlobRange) {
+    return DeltaEntry.builder()
+        .newBlobRange(newBlobRange)
+        .deltaFormat(DeltaFormat.BSDIFF)
+        .oldBlobRange(Range.of(0, 0))
+        .build();
+  }
+
+  private static DeltaEntry fbfEntryWithNewBlobRange(Range newBlobRange) {
     return DeltaEntry.builder()
         .newBlobRange(newBlobRange)
         .deltaFormat(DeltaFormat.BSDIFF)

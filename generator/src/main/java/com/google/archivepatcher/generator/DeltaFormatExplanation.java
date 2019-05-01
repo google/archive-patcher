@@ -22,10 +22,30 @@ public enum DeltaFormatExplanation {
   /** The delta format is chosen because it is more efficient for this file type. */
   FILE_TYPE,
 
+  // ===============================================================================================
+  // The following are explanations for situations where more efficient delta formats exist but a
+  // sub-optimal delta format is chosen.
+
   /**
-   * This explanation is given in situations where more efficient delta formats exist but the
-   * current sub-optimal delta format chosen due to resource constraints (e.g., total recompression
-   * size limit).
+   * The delta format is chosen because the ZIP entries are unsuitable. See {@link
+   * UncompressionOptionExplanation#UNSUITABLE}
+   */
+  UNSUITABLE,
+
+  /**
+   * The delta format is chosen because the ZIP entries are deflate-unsuitable. See {@link
+   * UncompressionOptionExplanation#DEFLATE_UNSUITABLE}
+   */
+  DEFLATE_UNSUITABLE,
+
+  /**
+   * The delta format is chosen because the uncompressed bytes is not changed (so we do not need to
+   * perform custom delta algorithm).
+   */
+  UNCHANGED,
+
+  /**
+   * The delta format is chosen due to resource constraints (e.g., total recompression size limit).
    */
   RESOURCE_CONSTRAINED
 }

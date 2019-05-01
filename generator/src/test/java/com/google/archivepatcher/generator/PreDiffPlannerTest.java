@@ -34,6 +34,7 @@ import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,7 +43,6 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -76,6 +76,15 @@ public class PreDiffPlannerTest {
   private static final UnitTestZipEntry ENTRY_B_LEVEL_9 =
       UnitTestZipArchive.makeUnitTestZipEntry("/path B", 9, "entry B", null);
 
+  private static final UnitTestZipEntry ENTRY_ZIP =
+      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 0, "zip entry", null);
+  private static final UnitTestZipEntry ENTRY_ZIP_LEVEL_6 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 6, "zip entry", null);
+  private static final UnitTestZipEntry ENTRY_ZIP_CHANGED =
+      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 0, "zip entry changed", null);
+  private static final UnitTestZipEntry SHADOW_ENTRY_ZIP =
+      UnitTestZipArchive.makeUnitTestZipEntry("/new.path.zip", 0, "zip entry", null);
+
   /**
    * Entry C1 is a small entry WITHOUT the standard corpus of text from
    * {@link DefaultDeflateCompatibilityWindow} appended. It has exactly the same compressed length
@@ -106,8 +115,10 @@ public class PreDiffPlannerTest {
   private static final UnitTestZipEntry SHADOW_ENTRY_A_STORED =
       UnitTestZipArchive.makeUnitTestZipEntry("/same as A stored", 0, "entry A", null);
 
-  private static final List<PreDiffPlanEntryModifier> EMPTY_MODIFIERS = Collections.emptyList();
-  private static final Set<DeltaFormat> BSDIFF_ONLY = Collections.singleton(DeltaFormat.BSDIFF);
+  private static final ImmutableList<PreDiffPlanEntryModifier> EMPTY_MODIFIERS = ImmutableList.of();
+  private static final ImmutableSet<DeltaFormat> BSDIFF_ONLY = ImmutableSet.of(DeltaFormat.BSDIFF);
+  private static final ImmutableSet<DeltaFormat> BSDIFF_FBF =
+      ImmutableSet.of(DeltaFormat.BSDIFF, DeltaFormat.FILE_BY_FILE);
 
   private List<File> tempFilesCreated;
   private Map<File, Map<ByteArrayHolder, MinimalZipEntry>> entriesByPathByTempFile;
@@ -742,4 +753,132 @@ public class PreDiffPlannerTest {
             .build());
   }
 
+  @Test
+  public void generatePreDiffPlan_zipEntry_unchanged() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithBothEntriesUncompressed()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, ENTRY_ZIP))
+            .deltaFormatExplanation(DeltaFormatExplanation.UNCHANGED)
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_unsuitable() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    corruptCompressionMethod(oldFile, ENTRY_ZIP);
+    corruptCompressionMethod(newFile, ENTRY_ZIP);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithUnsuitable()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, ENTRY_ZIP))
+            .deltaFormatExplanation(DeltaFormatExplanation.UNSUITABLE)
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_deflateUnsuitable() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_LEVEL_6));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_LEVEL_6));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+    corruptEntryData(newFile, ENTRY_ZIP);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithDeflateUnsuitable()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP_LEVEL_6))
+            .newEntry(findEntry(newFile, ENTRY_ZIP_LEVEL_6))
+            .deltaFormatExplanation(DeltaFormatExplanation.DEFLATE_UNSUITABLE)
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_changed() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_CHANGED));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithBothEntriesUncompressed()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, ENTRY_ZIP_CHANGED))
+            .deltaFormat(DeltaFormat.FILE_BY_FILE)
+            .deltaFormatExplanation(DeltaFormatExplanation.FILE_TYPE)
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_changed_bsdiffOnly() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_CHANGED));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_ONLY);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithBothEntriesUncompressed()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, ENTRY_ZIP_CHANGED))
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_renamed() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(SHADOW_ENTRY_ZIP));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithBothEntriesUncompressed()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, SHADOW_ENTRY_ZIP))
+            .deltaFormatExplanation(DeltaFormatExplanation.UNCHANGED)
+            .build());
+  }
 }

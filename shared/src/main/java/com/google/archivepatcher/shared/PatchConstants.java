@@ -73,7 +73,10 @@ public class PatchConstants {
    */
   public enum DeltaFormat {
     /** The bsdiff delta format. */
-    BSDIFF((byte) 0, true);
+    BSDIFF((byte) 0, true),
+
+    /** The bsdiff delta format. */
+    FILE_BY_FILE((byte) 1, false);
 
     /** The representation of this enumerated constant in patch files. */
     public final byte patchValue;
