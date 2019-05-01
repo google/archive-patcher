@@ -18,14 +18,13 @@ import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
@@ -126,9 +125,8 @@ public class UnitTestZipArchive {
    * All of the entries in the zip file, in the order in which their local entries appear in the
    * file.
    */
-  public static final List<UnitTestZipEntry> allEntriesInFileOrder =
-      Collections.unmodifiableList(
-          Arrays.asList(new UnitTestZipEntry[] {entry1, entry2, entry3, entry4}));
+  public static final ImmutableList<UnitTestZipEntry> ALL_ENTRIES =
+      ImmutableList.of(entry1, entry2, entry3, entry4);
 
   // At class load time, ensure that it is safe to use this class for other tests.
   static {
@@ -146,7 +144,7 @@ public class UnitTestZipArchive {
    * @return the zip file described above, as a byte array
    */
   public static byte[] makeTestZip() {
-    return makeTestZip(allEntriesInFileOrder);
+    return makeTestZip(ALL_ENTRIES);
   }
 
   /**
@@ -199,7 +197,7 @@ public class UnitTestZipArchive {
    */
   private static void verifyTestZip(byte[] data) throws Exception {
     ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(data));
-    for (int x = 0; x < allEntriesInFileOrder.size(); x++) {
+    for (int x = 0; x < ALL_ENTRIES.size(); x++) {
       ZipEntry zipEntry = zipIn.getNextEntry();
       checkEntry(zipEntry, zipIn);
       zipIn.closeEntry();
@@ -231,7 +229,7 @@ public class UnitTestZipArchive {
   private static void checkEntry(ZipEntry entry, ZipInputStream zipIn) throws IOException {
     // NB: File comments cannot be verified because the comments are in the central directory, which
     // is later in the stream.
-    for (UnitTestZipEntry testEntry : allEntriesInFileOrder) {
+    for (UnitTestZipEntry testEntry : ALL_ENTRIES) {
       if (testEntry.path.equals(entry.getName())) {
         if (testEntry.level == 0) {
           // This entry should be uncompressed. So the "compressed" size should be the same as the

@@ -76,8 +76,8 @@ public class MinimalZipArchiveTest {
     // Ensure all entries are found, and that they are in file order.
     List<MinimalZipEntry> parsedEntries = MinimalZipArchive.listEntries(tempFile);
     long lastSeenHeaderOffset = -1;
-    for (int x = 0; x < UnitTestZipArchive.allEntriesInFileOrder.size(); x++) {
-      UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);
+    for (int x = 0; x < UnitTestZipArchive.ALL_ENTRIES.size(); x++) {
+      UnitTestZipEntry expected = UnitTestZipArchive.ALL_ENTRIES.get(x);
       MinimalZipEntry actual = parsedEntries.get(x);
       assertThat(actual.getFileName()).isEqualTo(expected.path);
       assertThat(actual.compressionMethod()).isEqualTo(expected.level == 0 ? STORED : DEFLATE);
@@ -114,7 +114,7 @@ public class MinimalZipArchiveTest {
 
       // For all but last entry, we require the length to be exact. For the last one, we just expect
       // it to contain the compressed data.
-      if (x != UnitTestZipArchive.allEntriesInFileOrder.size() - 1) {
+      if (x != UnitTestZipArchive.ALL_ENTRIES.size() - 1) {
         long expectedLength =
             parsedEntries.get(x + 1).localEntryRange().offset() - actual.localEntryRange().offset();
         assertThat(actual.localEntryRange().length()).isEqualTo(expectedLength);

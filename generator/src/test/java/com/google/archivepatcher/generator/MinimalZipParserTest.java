@@ -140,7 +140,7 @@ public class MinimalZipParserTest {
             + centralDirectoryMetadata.getLengthOfCentralDirectory();
     checkExpectedBytes(new byte[] {0x50, 0x4b, 0x05, 0x06}, (int) calculatedEndOfCentralDirectory);
     assertThat(centralDirectoryMetadata.getNumEntriesInCentralDirectory())
-        .isEqualTo(UnitTestZipArchive.allEntriesInFileOrder.size());
+        .isEqualTo(UnitTestZipArchive.ALL_ENTRIES.size());
   }
 
   @Test
@@ -156,7 +156,7 @@ public class MinimalZipParserTest {
 
     // Read each entry and verify all fields *except* the value returned by
     // fileOffsetOfCompressedData() and getLengthOfLocalEntry, as those have yet to be computed.
-    for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.allEntriesInFileOrder) {
+    for (UnitTestZipEntry expectedEntry : UnitTestZipArchive.ALL_ENTRIES) {
       MinimalZipEntry parsed =
           MinimalZipParser.parseCentralDirectoryEntry(in)
               .fileOffsetOfCompressedData(0)
@@ -200,12 +200,12 @@ public class MinimalZipParserTest {
     // Read each entry and verify all fields *except* the value returned by
     // MinimalZipEntry.fileOffsetOfCompressedData(), as that has yet to be computed.
     List<MinimalZipEntry.Builder> parsedEntryBuilders = new ArrayList<>();
-    for (int x = 0; x < UnitTestZipArchive.allEntriesInFileOrder.size(); x++) {
+    for (int x = 0; x < UnitTestZipArchive.ALL_ENTRIES.size(); x++) {
       parsedEntryBuilders.add(MinimalZipParser.parseCentralDirectoryEntry(in));
     }
 
-    for (int x = 0; x < UnitTestZipArchive.allEntriesInFileOrder.size(); x++) {
-      UnitTestZipEntry expectedEntry = UnitTestZipArchive.allEntriesInFileOrder.get(x);
+    for (int x = 0; x < UnitTestZipArchive.ALL_ENTRIES.size(); x++) {
+      UnitTestZipEntry expectedEntry = UnitTestZipArchive.ALL_ENTRIES.get(x);
       MinimalZipEntry.Builder parsedEntryBuilder = parsedEntryBuilders.get(x);
       in.reset();
       assertThat(in.skip(parsedEntryBuilder.fileOffsetOfLocalEntry()))

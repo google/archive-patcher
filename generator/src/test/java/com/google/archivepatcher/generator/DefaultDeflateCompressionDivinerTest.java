@@ -115,9 +115,9 @@ public class DefaultDeflateCompressionDivinerTest {
     try (ByteSource tempBlob = ByteSource.fromFile(tempFile)) {
       List<DivinationResult> results =
           DefaultDeflateCompressionDiviner.divineDeflateParameters(tempBlob);
-      assertThat(results).hasSize(UnitTestZipArchive.allEntriesInFileOrder.size());
+      assertThat(results).hasSize(UnitTestZipArchive.ALL_ENTRIES.size());
       for (int x = 0; x < results.size(); x++) {
-        UnitTestZipEntry expected = UnitTestZipArchive.allEntriesInFileOrder.get(x);
+        UnitTestZipEntry expected = UnitTestZipArchive.ALL_ENTRIES.get(x);
         DivinationResult actual = results.get(x);
         assertThat(actual.minimalZipEntry.getFileName()).isEqualTo(expected.path);
         int expectedLevel = expected.level;
