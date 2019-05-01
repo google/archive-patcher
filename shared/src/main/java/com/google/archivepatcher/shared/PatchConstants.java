@@ -33,6 +33,21 @@ public class PatchConstants {
   public static final boolean USE_NATIVE_BSDIFF_BY_DEFAULT = false;
 
   /**
+   * The total recompression size limit for the embedded archive.
+   *
+   * @see com.google.archivepatcher.generator.TotalRecompressionLimiter
+   */
+  public static final long TOTAL_RECOMPRESSION_LIMIT_EMBEDDED_ARCHIVE = 50 * 1024 * 1024; // 50 MB
+
+  /**
+   * The delta-friendly old blob size limit for the embedded archive.
+   *
+   * @see com.google.archivepatcher.generator.DeltaFriendlyOldBlobSizeLimiter
+   */
+  public static final long DELTA_FRIENDLY_OLD_BLOB_SIZE_LIMIT_EMBEDDED_ARCHIVE =
+      50 * 1024 * 1024; // 50 MB
+
+  /**
    * All available compatibility windows. The {@link #patchValue} field specifies the value for each
    * constant as represented in a patch file.
    */
