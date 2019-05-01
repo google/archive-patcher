@@ -90,8 +90,7 @@ public class FileByFileDeltaApplier extends DeltaApplier {
       throws IOException {
 
     // First, read the patch plan from the patch stream.
-    PatchReader patchReader = new PatchReader();
-    PatchApplyPlan plan = patchReader.readPatchApplyPlan(deltaIn);
+    PatchApplyPlan plan = PatchReader.readPatchApplyPlan(deltaIn);
     writeDeltaFriendlyOldBlob(plan, oldBlob, deltaFriendlyOldBlob);
     try (ByteSource oldBlobByteSource = ByteSource.fromFile(deltaFriendlyOldBlob)) {
       // Don't close this stream, as it would close the underlying OutputStream (that we don't own).
@@ -104,7 +103,7 @@ public class FileByFileDeltaApplier extends DeltaApplier {
       // Apply the delta.
       Range previousNewBlobRange = Range.of(0, 0);
       for (int i = 0; i < plan.getNumberOfDeltas(); i++) {
-        DeltaDescriptor descriptor = patchReader.readDeltaDescriptor(deltaIn);
+        DeltaDescriptor descriptor = PatchReader.readDeltaDescriptor(deltaIn);
 
         // Validate that the delta-friendly new blob ranges are contiguous
         // Note that the fact that we interleaved delta-descriptors with delta data means we might

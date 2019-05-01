@@ -31,6 +31,8 @@ import java.util.List;
  */
 public class PatchReader {
 
+  private PatchReader() {}
+
   /**
    * Reads patch data from the specified {@link InputStream} up to but not including the first byte
    * of delta bytes, and returns a {@link PatchApplyPlan} that describes all the operations that
@@ -41,7 +43,7 @@ public class PatchReader {
    * @return the plan for applying the patch
    * @throws IOException if anything goes wrong
    */
-  public PatchApplyPlan readPatchApplyPlan(InputStream in) throws IOException {
+  public static PatchApplyPlan readPatchApplyPlan(InputStream in) throws IOException {
     // Use DataOutputStream for ease of writing. This is deliberately left open, as closing it would
     // close the output stream that was passed in and that is not part of the method's documented
     // behavior.
@@ -120,7 +122,7 @@ public class PatchReader {
         numDeltaRecords);
   }
 
-  public DeltaDescriptor readDeltaDescriptor(InputStream in) throws IOException {
+  public static DeltaDescriptor readDeltaDescriptor(InputStream in) throws IOException {
     // Use DataOutputStream for ease of writing. This is deliberately left open, as closing it would
     // close the output stream that was passed in and that is not part of the method's documented
     // behavior.

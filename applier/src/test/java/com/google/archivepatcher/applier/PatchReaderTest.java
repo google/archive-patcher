@@ -14,6 +14,8 @@
 
 package com.google.archivepatcher.applier;
 
+import static com.google.archivepatcher.applier.PatchReader.readDeltaDescriptor;
+import static com.google.archivepatcher.applier.PatchReader.readPatchApplyPlan;
 import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 
@@ -226,9 +228,8 @@ public class PatchReaderTest {
 
   @Test
   public void testReadPatchApplyPlan() throws IOException {
-    PatchReader reader = new PatchReader();
     InputStream in = new ByteArrayInputStream(writeTestPatch());
-    PatchApplyPlan plan = reader.readPatchApplyPlan(in);
+    PatchApplyPlan plan = readPatchApplyPlan(in);
     assertThat(plan.getDeltaFriendlyOldFileSize()).isEqualTo(DELTA_FRIENDLY_OLD_FILE_SIZE);
     assertThat(plan.getOldFileUncompressionPlan()).isEqualTo(OLD_DELTA_FRIENDLY_UNCOMPRESS_PLAN);
     assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan())
@@ -236,7 +237,7 @@ public class PatchReaderTest {
     assertThat(plan.getNumberOfDeltas()).isEqualTo(DELTA_DESCRIPTORS.size());
 
     for (int i = 0; i < plan.getNumberOfDeltas(); i++) {
-      DeltaDescriptor descriptor = reader.readDeltaDescriptor(in);
+      DeltaDescriptor descriptor = readDeltaDescriptor(in);
       assertThat(descriptor).isEqualTo(DELTA_DESCRIPTORS.get(i));
     }
   }
@@ -247,7 +248,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -257,7 +258,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -268,7 +269,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -279,7 +280,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -290,7 +291,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -301,7 +302,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -312,7 +313,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -323,7 +324,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -334,7 +335,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -345,7 +346,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -355,7 +356,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -365,7 +366,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -375,7 +376,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -385,7 +386,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -395,7 +396,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
+          readPatchApplyPlan(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -405,7 +406,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -415,7 +416,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -425,7 +426,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -435,7 +436,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -445,7 +446,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 
@@ -455,7 +456,7 @@ public class PatchReaderTest {
     assertThrows(
         PatchFormatException.class,
         () -> {
-          new PatchReader().readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
+          readDeltaDescriptor(new ByteArrayInputStream(writeTestPatch()));
         });
   }
 }
