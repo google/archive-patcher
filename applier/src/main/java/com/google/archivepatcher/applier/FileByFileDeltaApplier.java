@@ -159,8 +159,9 @@ public class FileByFileDeltaApplier extends DeltaApplier {
     switch (deltaFormat) {
       case BSDIFF:
         return new BsDiffDeltaApplier();
-      default:
-        throw new IllegalArgumentException("Unexpected delta format: " + deltaFormat);
+      case FILE_BY_FILE:
+        return new FileByFileDeltaApplier(tempDir);
     }
+    throw new IllegalArgumentException("Unexpected delta format " + deltaFormat);
   }
 }

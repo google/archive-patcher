@@ -21,14 +21,17 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
+import com.google.archivepatcher.shared.bytesource.ByteStreams;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,23 +76,40 @@ public class PatchReaderTest {
 
   private static final long DELTA_FRIENDLY_NEW_FILE_SIZE = BIG + 75L;
 
-  private static final Range DELTA_FRIENDLY_OLD_FILE_WORK_RANGE =
-      Range.of(0, DELTA_FRIENDLY_OLD_FILE_SIZE);
+  private static final Range DELTA_FRIENDLY_OLD_FILE_BSDIFF_RANGE =
+      Range.of(0, DELTA_FRIENDLY_OLD_FILE_SIZE / 2);
 
-  private static final Range DELTA_FRIENDLY_NEW_FILE_WORK_RANGE =
-      Range.of(0, DELTA_FRIENDLY_NEW_FILE_SIZE);
+  private static final Range DELTA_FRIENDLY_NEW_FILE_BSDIFF_RANGE =
+      Range.of(0, DELTA_FRIENDLY_NEW_FILE_SIZE / 2);
+
+  private static final Range DELTA_FRIENDLY_OLD_FILE_FBF_RANGE =
+      Range.of(
+          DELTA_FRIENDLY_OLD_FILE_BSDIFF_RANGE.endOffset(),
+          DELTA_FRIENDLY_OLD_FILE_SIZE - DELTA_FRIENDLY_NEW_FILE_BSDIFF_RANGE.length());
+
+  private static final Range DELTA_FRIENDLY_NEW_FILE_FBF_RANGE =
+      Range.of(
+          DELTA_FRIENDLY_NEW_FILE_BSDIFF_RANGE.endOffset(),
+          DELTA_FRIENDLY_NEW_FILE_SIZE - DELTA_FRIENDLY_NEW_FILE_BSDIFF_RANGE.length());
 
   private static final String DELTA_CONTENT = "all your delta are belong to us";
 
-  private static final DeltaDescriptor DELTA_DESCRIPTOR =
+  private static final DeltaDescriptor BSDIFF_DELTA_DESCRIPTOR =
       DeltaDescriptor.create(
           PatchConstants.DeltaFormat.BSDIFF,
-          DELTA_FRIENDLY_OLD_FILE_WORK_RANGE,
-          DELTA_FRIENDLY_NEW_FILE_WORK_RANGE,
+          DELTA_FRIENDLY_OLD_FILE_BSDIFF_RANGE,
+          DELTA_FRIENDLY_NEW_FILE_BSDIFF_RANGE,
+          DELTA_CONTENT.length());
+
+  private static final DeltaDescriptor FBF_DELTA_DESCRIPTOR =
+      DeltaDescriptor.create(
+          DeltaFormat.FILE_BY_FILE,
+          DELTA_FRIENDLY_OLD_FILE_FBF_RANGE,
+          DELTA_FRIENDLY_NEW_FILE_FBF_RANGE,
           DELTA_CONTENT.length());
 
   private static final ImmutableList<DeltaDescriptor> DELTA_DESCRIPTORS =
-      ImmutableList.of(DELTA_DESCRIPTOR);
+      ImmutableList.of(BSDIFF_DELTA_DESCRIPTOR, FBF_DELTA_DESCRIPTOR);
 
   private Corruption corruption = null;
 
@@ -143,7 +163,7 @@ public class PatchReaderTest {
     patchOut.write(
         corruption.corruptIdentifier
             ? new byte[8]
-            : PatchConstants.IDENTIFIER.getBytes("US-ASCII")); // header
+            : PatchConstants.IDENTIFIER.getBytes(StandardCharsets.US_ASCII)); // header
     patchOut.writeInt(0); // Flags, all reserved in v1
     patchOut.writeLong(
         corruption.corruptDeltaFriendlyOldFileSize ? -1 : DELTA_FRIENDLY_OLD_FILE_SIZE);
@@ -200,6 +220,7 @@ public class PatchReaderTest {
         corruption.corruptNumDeltaRecords
             ? -1
             : DELTA_DESCRIPTORS.size()); // Number of difference records
+
     for (DeltaDescriptor descriptor : DELTA_DESCRIPTORS) {
       patchOut.write(corruption.corruptDeltaType ? 73 : descriptor.deltaFormat().patchValue);
       patchOut.writeLong(
@@ -219,10 +240,10 @@ public class PatchReaderTest {
               ? -1
               : descriptor.deltaFriendlyNewFileRange().length());
       patchOut.writeLong(corruption.corruptDeltaLength ? -1 : descriptor.deltaLength());
+
+      patchOut.write(DELTA_CONTENT.getBytes(StandardCharsets.US_ASCII));
     }
 
-    // Finally, the delta bytes
-    patchOut.write(DELTA_CONTENT.getBytes("US-ASCII"));
     return out.toByteArray();
   }
 
@@ -239,6 +260,9 @@ public class PatchReaderTest {
     for (int i = 0; i < plan.getNumberOfDeltas(); i++) {
       DeltaDescriptor descriptor = readDeltaDescriptor(in);
       assertThat(descriptor).isEqualTo(DELTA_DESCRIPTORS.get(i));
+      byte[] delta = new byte[(int) descriptor.deltaLength()];
+      ByteStreams.readFully(in, delta);
+      assertThat(delta).isEqualTo(DELTA_CONTENT.getBytes(StandardCharsets.US_ASCII));
     }
   }
 

@@ -117,9 +117,10 @@ public class PatchConstants {
       switch (patchValue) {
         case 0:
           return BSDIFF;
-        default:
-          return null;
+        case 1:
+          return FILE_BY_FILE;
       }
+      throw new IllegalArgumentException("Unknown patch value " + patchValue);
     }
   }
 

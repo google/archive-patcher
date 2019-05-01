@@ -16,6 +16,7 @@ package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import java.io.DataInputStream;
@@ -133,8 +134,8 @@ public class PatchReader {
         (byte)
             checkRange(
                 dataIn.readByte(),
-                PatchConstants.DeltaFormat.BSDIFF.patchValue,
-                PatchConstants.DeltaFormat.BSDIFF.patchValue,
+                DeltaFormat.BSDIFF.patchValue,
+                DeltaFormat.FILE_BY_FILE.patchValue,
                 "delta format");
     long deltaFriendlyOldFileWorkRangeOffset =
         checkNonNegative(dataIn.readLong(), "delta-friendly old file work range offset");
@@ -146,7 +147,7 @@ public class PatchReader {
         checkNonNegative(dataIn.readLong(), "delta-friendly new file work range length");
     long deltaLength = checkNonNegative(dataIn.readLong(), "delta length");
     return DeltaDescriptor.create(
-        PatchConstants.DeltaFormat.fromPatchValue(deltaFormatByte),
+        DeltaFormat.fromPatchValue(deltaFormatByte),
         Range.of(deltaFriendlyOldFileWorkRangeOffset, deltaFriendlyOldFileWorkRangeLength),
         Range.of(deltaFriendlyNewFileWorkRangeOffset, deltaFriendlyNewFileWorkRangeLength),
         deltaLength);
