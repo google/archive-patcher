@@ -20,6 +20,6 @@ subprojects {
     }
 
     dependencies {
-        implementation "com.google.truth:truth:0.43"
+        implementation "com.google.truth:truth:0.44"
     }
 }
