@@ -98,7 +98,7 @@ public class DefaultDeflateCompatibilityWindowTest {
     // mutable object returned is independent of the actual corpus).
     byte[] corpus2 = window.getCorpus();
     assertThat(corpus1).isEqualTo(corpus2);
-    assertThat(corpus1).isNotSameAs(corpus2);
+    assertThat(corpus1).isNotSameInstanceAs(corpus2);
   }
 
   @Test

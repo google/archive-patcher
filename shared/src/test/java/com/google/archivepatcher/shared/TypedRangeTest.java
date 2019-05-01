@@ -35,7 +35,7 @@ public class TypedRangeTest {
     TypedRange<String> range = TypedRange.of(555, 777, text);
     assertThat(range.offset()).isEqualTo(555);
     assertThat(range.length()).isEqualTo(777);
-    assertThat(text).isSameAs(range.getMetadata());
+    assertThat(text).isSameInstanceAs(range.getMetadata());
   }
 
   @Test

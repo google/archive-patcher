@@ -74,7 +74,7 @@ public class RandomAccessFileInputStreamFactoryTest {
     RandomAccessFileInputStream rafis1 = factory.newStream();
     RandomAccessFileInputStream rafis2 = factory.newStream();
     try {
-      assertThat(rafis1).isNotSameAs(rafis2);
+      assertThat(rafis1).isNotSameInstanceAs(rafis2);
       for (int x = 0; x < testData.length; x++) {
         assertThat(rafis1.read()).isEqualTo(x);
         assertThat(rafis2.read()).isEqualTo(x);

@@ -105,7 +105,7 @@ public class DeflateUncompressorTest {
     uncompressor.setCaching(false);
     Inflater inflater1 = uncompressor.createOrResetInflater();
     Inflater inflater2 = uncompressor.createOrResetInflater();
-    assertThat(inflater1).isNotSameAs(inflater2);
+    assertThat(inflater1).isNotSameInstanceAs(inflater2);
   }
 
   @Test
@@ -113,7 +113,7 @@ public class DeflateUncompressorTest {
     uncompressor.setCaching(true);
     Inflater inflater1 = uncompressor.createOrResetInflater();
     Inflater inflater2 = uncompressor.createOrResetInflater();
-    assertThat(inflater1).isSameAs(inflater2);
+    assertThat(inflater1).isSameInstanceAs(inflater2);
   }
 
   @Test
@@ -122,7 +122,7 @@ public class DeflateUncompressorTest {
     Inflater inflater1 = uncompressor.createOrResetInflater();
     uncompressor.release();
     Inflater inflater2 = uncompressor.createOrResetInflater();
-    assertThat(inflater1).isNotSameAs(inflater2);
+    assertThat(inflater1).isNotSameInstanceAs(inflater2);
   }
 
   @Test

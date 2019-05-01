@@ -42,7 +42,7 @@ public class ShadowInputStreamTest {
 
   @Test
   public void getStream() throws Exception {
-    assertThat(inputStream.getStream()).isSameAs(underlyingStream);
+    assertThat(inputStream.getStream()).isSameInstanceAs(underlyingStream);
   }
 
   @Test

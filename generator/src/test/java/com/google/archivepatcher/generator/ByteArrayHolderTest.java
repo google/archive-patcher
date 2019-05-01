@@ -31,7 +31,7 @@ public class ByteArrayHolderTest {
   public void testGetters() {
     byte[] data = "hello world".getBytes();
     ByteArrayHolder byteArrayHolder = new ByteArrayHolder(data);
-    assertThat(data).isSameAs(byteArrayHolder.getData());
+    assertThat(data).isSameInstanceAs(byteArrayHolder.getData());
   }
 
   @Test

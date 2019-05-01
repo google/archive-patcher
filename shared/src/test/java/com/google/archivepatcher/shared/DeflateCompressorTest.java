@@ -199,7 +199,7 @@ public class DeflateCompressorTest {
     compressor.setCaching(false);
     Deflater deflater1 = compressor.createOrResetDeflater();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    assertThat(deflater1).isNotSameAs(deflater2);
+    assertThat(deflater1).isNotSameInstanceAs(deflater2);
   }
 
   @Test
@@ -207,7 +207,7 @@ public class DeflateCompressorTest {
     compressor.setCaching(true);
     Deflater deflater1 = compressor.createOrResetDeflater();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    assertThat(deflater1).isSameAs(deflater2);
+    assertThat(deflater1).isSameInstanceAs(deflater2);
   }
 
   @Test
@@ -216,7 +216,7 @@ public class DeflateCompressorTest {
     Deflater deflater1 = compressor.createOrResetDeflater();
     compressor.release();
     Deflater deflater2 = compressor.createOrResetDeflater();
-    assertThat(deflater1).isNotSameAs(deflater2);
+    assertThat(deflater1).isNotSameInstanceAs(deflater2);
   }
 
   @Test
