@@ -167,8 +167,7 @@ public class DeltaFriendlyFile {
             blob.slice(rangeToUncompress.offset(), rangeToUncompress.length()).openStream()) {
           // TODO: Support nowrap=false here? Never encountered in practice.
           // This would involve catching the ZipException, checking if numBytesWritten is still
-          // zero,
-          // resetting the stream and trying again.
+          // zero, resetting the stream and trying again.
           filteredOut.pipe(in, PartiallyUncompressingPipe.Mode.UNCOMPRESS_NOWRAP);
         }
         lastReadOffset = rangeToUncompress.offset() + rangeToUncompress.length();

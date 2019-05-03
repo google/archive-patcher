@@ -176,7 +176,7 @@ public class PreDiffExecutorTest {
     assertThat(plan.getPreDiffPlanEntries()).hasSize(1);
     assertThat(plan.getPreDiffPlanEntries().get(0).deltaFormat()).isEqualTo(DeltaFormat.BSDIFF);
     assertThat(plan.getPreDiffPlanEntries().get(0).deltaFormatExplanation())
-        .isEqualTo(DeltaFormatExplanation.DEFAULT);
+        .isEqualTo(DeltaFormatExplanation.UNCHANGED);
 
     // Nitty-gritty, assert that the file content is exactly what is expected.
     // 1. Find the entry in the old file.

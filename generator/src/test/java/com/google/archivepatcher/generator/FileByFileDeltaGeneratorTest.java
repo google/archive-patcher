@@ -61,9 +61,9 @@ public class FileByFileDeltaGeneratorTest {
   }
 
   private static final UnitTestZipEntry OLD_ENTRY1 =
-      UnitTestZipArchive.makeUnitTestZipEntry("/entry1", 6, "entry 1", null);
+      UnitTestZipArchive.makeUnitTestZipEntry("/entry1", 6, "entry 1 old", null);
   private static final UnitTestZipEntry NEW_ENTRY1 =
-      UnitTestZipArchive.makeUnitTestZipEntry("/entry1", 6, "entry 1", null);
+      UnitTestZipArchive.makeUnitTestZipEntry("/entry1", 6, "entry 1 new", null);
   private static final UnitTestZipEntry OLD_ENTRY2 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry2", 6, "entry 2", null);
   private static final UnitTestZipEntry NEW_ENTRY2 =
@@ -72,6 +72,10 @@ public class FileByFileDeltaGeneratorTest {
       UnitTestZipArchive.makeUnitTestZipEntry("/entry3", 6, "entry 3A", null);
   private static final UnitTestZipEntry NEW_ENTRY3 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry3", 6, "entry 3B", null);
+  private static final UnitTestZipEntry OLD_ENTRY4 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/entry4", 0, "entry 4", null);
+  private static final UnitTestZipEntry NEW_ENTRY4 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/entry4", 6, "entry 4", null);
   private static final UnitTestZipEntry OLD_ARCHIVE_ENTRY_1 =
       UnitTestZipArchive.makeEmbeddedZipEntry(
           "/embedded-entry-1.zip", 0, ImmutableList.of(OLD_ENTRY1, OLD_ENTRY2), null);
@@ -80,10 +84,12 @@ public class FileByFileDeltaGeneratorTest {
           "/embedded-entry-1.zip", 0, ImmutableList.of(NEW_ENTRY1, NEW_ENTRY2), null);
   private static final UnitTestZipEntry OLD_ARCHIVE_ENTRY_2 =
       UnitTestZipArchive.makeEmbeddedZipEntry(
-          "/embedded-entry-2.apk", 6, ImmutableList.of(OLD_ENTRY2, OLD_ENTRY3), null);
+          "/embedded-entry-2.apk", 6, ImmutableList.of(OLD_ENTRY3), null);
   private static final UnitTestZipEntry NEW_ARCHIVE_ENTRY_2 =
       UnitTestZipArchive.makeEmbeddedZipEntry(
-          "/embedded-entry-2.apk", 9, ImmutableList.of(NEW_ENTRY2, NEW_ENTRY3), null);
+          "/embedded-entry-2.apk", 9, ImmutableList.of(NEW_ENTRY3), null);
+  private static final UnitTestZipEntry CORRUPTED_ARCHIVE_ENTRY_1 =
+      UnitTestZipArchive.makeUnitTestZipEntry("/embedded-entry-1.zip", 0, "abc", null);
 
   private final boolean useNativeBsDiff;
   private final String expectedCrc32;
@@ -126,12 +132,17 @@ public class FileByFileDeltaGeneratorTest {
     // We disable this test for java-implementation because it is REALLY SLOW (~300 times slower)
     assumeTrue(useNativeBsDiff);
 
+    // Note here we carefully constructed the archive so that the outer archive and embedded archive
+    // (and other embedded archive) do not share entries as that might result in BSDIFF
+    // out-performing FBF.
+    // This is a design choice that we made since it should be rare in real life to have multiple
+    // copies of the same file, one in outer archive and one in embedded archive.
     byte[] oldArchiveBytes =
         UnitTestZipArchive.makeTestZip(
-            ImmutableList.of(OLD_ENTRY1, OLD_ARCHIVE_ENTRY_1, OLD_ENTRY2, OLD_ARCHIVE_ENTRY_2));
+            ImmutableList.of(OLD_ARCHIVE_ENTRY_1, OLD_ENTRY4, OLD_ARCHIVE_ENTRY_2));
     byte[] newArchiveBytes =
         UnitTestZipArchive.makeTestZip(
-            ImmutableList.of(NEW_ENTRY1, NEW_ARCHIVE_ENTRY_1, NEW_ENTRY2, NEW_ARCHIVE_ENTRY_2));
+            ImmutableList.of(NEW_ARCHIVE_ENTRY_1, NEW_ENTRY4, NEW_ARCHIVE_ENTRY_2));
 
     byte[] bsdiffOnlyDelta =
         generateDelta(oldArchiveBytes, newArchiveBytes, ImmutableSet.of(BSDIFF));
@@ -139,7 +150,25 @@ public class FileByFileDeltaGeneratorTest {
         generateDelta(oldArchiveBytes, newArchiveBytes, ImmutableSet.of(BSDIFF, FILE_BY_FILE));
 
     // The savings in patch size is only seen after compression. The raw patch size might be larger.
-    assertThat(getGzippedSize(bsdiffWithFbfDelta)).isLessThan(getGzippedSize(bsdiffOnlyDelta));
+    // Here we assert the exact size instead of "X isLessThan Y" just so that we can have a rough
+    // estimate of the size savings.
+    assertThat(getGzippedSize(bsdiffOnlyDelta)).isEqualTo(1083);
+    assertThat(getGzippedSize(bsdiffWithFbfDelta)).isEqualTo(623);
+  }
+
+  @Test
+  public void generateDelta_withCorruptedEmbeddedArchive_identicalToBsdiffOnly() throws Exception {
+    byte[] oldArchiveBytes =
+        UnitTestZipArchive.makeTestZip(ImmutableList.of(OLD_ENTRY1, OLD_ARCHIVE_ENTRY_1));
+    byte[] newArchiveBytes =
+        UnitTestZipArchive.makeTestZip(ImmutableList.of(NEW_ENTRY1, CORRUPTED_ARCHIVE_ENTRY_1));
+
+    byte[] bsdiffOnlyDelta =
+        generateDelta(oldArchiveBytes, newArchiveBytes, ImmutableSet.of(BSDIFF));
+    byte[] bsdiffWithFbfDelta =
+        generateDelta(oldArchiveBytes, newArchiveBytes, ImmutableSet.of(BSDIFF, FILE_BY_FILE));
+
+    assertThat(bsdiffOnlyDelta).isEqualTo(bsdiffWithFbfDelta);
   }
 
   private byte[] generateDelta(

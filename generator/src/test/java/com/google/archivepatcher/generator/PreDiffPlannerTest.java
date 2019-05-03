@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.DeltaFormatExplanation.UNCHANGED;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithBothEntriesUncompressed;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesChanged;
 import static com.google.archivepatcher.generator.PreDiffPlanEntryTestUtils.builderWithCompressedBytesIdentical;
@@ -77,13 +78,19 @@ public class PreDiffPlannerTest {
       UnitTestZipArchive.makeUnitTestZipEntry("/path B", 9, "entry B", null);
 
   private static final UnitTestZipEntry ENTRY_ZIP =
-      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 0, "zip entry", null);
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/path.zip", 0, ImmutableList.of(ENTRY_A_LEVEL_6, ENTRY_B_LEVEL_6), null);
   private static final UnitTestZipEntry ENTRY_ZIP_LEVEL_6 =
-      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 6, "zip entry", null);
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/path.zip", 6, ImmutableList.of(ENTRY_A_LEVEL_6, ENTRY_B_LEVEL_6), null);
   private static final UnitTestZipEntry ENTRY_ZIP_CHANGED =
-      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 0, "zip entry changed", null);
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/path.zip", 0, ImmutableList.of(ENTRY_A_STORED, ENTRY_B_LEVEL_9), null);
   private static final UnitTestZipEntry SHADOW_ENTRY_ZIP =
-      UnitTestZipArchive.makeUnitTestZipEntry("/new.path.zip", 0, "zip entry", null);
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/new.path.zip", 0, ImmutableList.of(ENTRY_A_LEVEL_6, ENTRY_B_LEVEL_6), null);
+  private static final UnitTestZipEntry ENTRY_ZIP_CORRUPTED =
+      UnitTestZipArchive.makeUnitTestZipEntry("/path.zip", 0, "abc", null);
 
   /**
    * Entry C1 is a small entry WITHOUT the standard corpus of text from
@@ -372,6 +379,7 @@ public class PreDiffPlannerTest {
         builderWithCompressedBytesChanged()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_6))
             .newEntry(findEntry(newFile, ENTRY_A_LEVEL_9))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -421,6 +429,7 @@ public class PreDiffPlannerTest {
         builderWithBothEntriesUncompressed()
             .oldEntry(findEntry(oldFile, ENTRY_A_STORED))
             .newEntry(findEntry(newFile, ENTRY_A_STORED))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -444,6 +453,7 @@ public class PreDiffPlannerTest {
         builderWithCompressedToUncompressed()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_9))
             .newEntry(findEntry(newFile, ENTRY_A_STORED))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -467,6 +477,7 @@ public class PreDiffPlannerTest {
         builderWithUncompressedToCompressed()
             .oldEntry(findEntry(oldFile, ENTRY_A_STORED))
             .newEntry(findEntry(newFile, ENTRY_A_LEVEL_6))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -657,6 +668,7 @@ public class PreDiffPlannerTest {
         builderWithCompressedBytesChanged()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_6))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -696,10 +708,12 @@ public class PreDiffPlannerTest {
         builderWithCompressedBytesChanged()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_6))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_A_LEVEL_1))
+            .deltaFormatExplanation(UNCHANGED)
             .build(),
         builderWithCompressedBytesChanged()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_6))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_A_LEVEL_9))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -725,6 +739,7 @@ public class PreDiffPlannerTest {
         builderWithCompressedToUncompressed()
             .oldEntry(findEntry(oldFile, ENTRY_A_LEVEL_6))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_A_STORED))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -750,6 +765,7 @@ public class PreDiffPlannerTest {
         builderWithUncompressedToCompressed()
             .oldEntry(findEntry(oldFile, ENTRY_A_STORED))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_A_LEVEL_6))
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -770,7 +786,7 @@ public class PreDiffPlannerTest {
         builderWithBothEntriesUncompressed()
             .oldEntry(findEntry(oldFile, ENTRY_ZIP))
             .newEntry(findEntry(newFile, ENTRY_ZIP))
-            .deltaFormatExplanation(DeltaFormatExplanation.UNCHANGED)
+            .deltaFormatExplanation(UNCHANGED)
             .build());
   }
 
@@ -793,17 +809,16 @@ public class PreDiffPlannerTest {
         builderWithUnsuitable()
             .oldEntry(findEntry(oldFile, ENTRY_ZIP))
             .newEntry(findEntry(newFile, ENTRY_ZIP))
-            .deltaFormatExplanation(DeltaFormatExplanation.UNSUITABLE)
             .build());
   }
 
   @Test
   public void generatePreDiffPlan_zipEntry_deflateUnsuitable() throws Exception {
-    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_LEVEL_6));
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
     byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_LEVEL_6));
     File oldFile = storeAndMapArchive(oldBytes);
     File newFile = storeAndMapArchive(newBytes);
-    corruptEntryData(newFile, ENTRY_ZIP);
+    corruptEntryData(newFile, ENTRY_ZIP_LEVEL_6);
 
     PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
 
@@ -813,9 +828,8 @@ public class PreDiffPlannerTest {
     checkPreDiffPlanEntry(
         plan,
         builderWithDeflateUnsuitable()
-            .oldEntry(findEntry(oldFile, ENTRY_ZIP_LEVEL_6))
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
             .newEntry(findEntry(newFile, ENTRY_ZIP_LEVEL_6))
-            .deltaFormatExplanation(DeltaFormatExplanation.DEFLATE_UNSUITABLE)
             .build());
   }
 
@@ -878,7 +892,29 @@ public class PreDiffPlannerTest {
         builderWithBothEntriesUncompressed()
             .oldEntry(findEntry(oldFile, ENTRY_ZIP))
             .newEntry(findEntry(newFile, SHADOW_ENTRY_ZIP))
-            .deltaFormatExplanation(DeltaFormatExplanation.UNCHANGED)
+            .deltaFormatExplanation(UNCHANGED)
+            .build());
+  }
+
+  @Test
+  public void generatePreDiffPlan_zipEntry_corrupted() throws Exception {
+    byte[] oldBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP));
+    byte[] newBytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_ZIP_CORRUPTED));
+    File oldFile = storeAndMapArchive(oldBytes);
+    File newFile = storeAndMapArchive(newBytes);
+
+    PreDiffPlan plan = invokeGeneratePreDiffPlan(oldFile, newFile, EMPTY_MODIFIERS, BSDIFF_FBF);
+
+    assertThat(plan).isNotNull();
+    assertThat(plan.getOldFileUncompressionPlan()).isEmpty();
+    assertThat(plan.getNewFileUncompressionPlan()).isEmpty();
+    checkPreDiffPlanEntry(
+        plan,
+        builderWithBothEntriesUncompressed()
+            .oldEntry(findEntry(oldFile, ENTRY_ZIP))
+            .newEntry(findEntry(newFile, ENTRY_ZIP_CORRUPTED))
+            .deltaFormat(DeltaFormat.BSDIFF)
+            .deltaFormatExplanation(DeltaFormatExplanation.DEFAULT)
             .build());
   }
 }

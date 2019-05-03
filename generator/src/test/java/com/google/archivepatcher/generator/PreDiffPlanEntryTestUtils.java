@@ -49,7 +49,8 @@ public class PreDiffPlanEntryTestUtils {
   public static PreDiffPlanEntry.Builder builderWithCompressedBytesIdentical() {
     return PreDiffPlanEntry.builder()
         .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
-        .uncompressionOptionExplanation(UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL);
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.COMPRESSED_BYTES_IDENTICAL)
+        .deltaFormatExplanation(DeltaFormatExplanation.UNCHANGED);
   }
 
   /**
@@ -69,7 +70,8 @@ public class PreDiffPlanEntryTestUtils {
   public static PreDiffPlanEntry.Builder builderWithUnsuitable() {
     return PreDiffPlanEntry.builder()
         .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
-        .uncompressionOptionExplanation(UncompressionOptionExplanation.UNSUITABLE);
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.UNSUITABLE)
+        .deltaFormatExplanation(DeltaFormatExplanation.UNSUITABLE);
   }
 
   /**
@@ -79,7 +81,8 @@ public class PreDiffPlanEntryTestUtils {
   public static PreDiffPlanEntry.Builder builderWithDeflateUnsuitable() {
     return PreDiffPlanEntry.builder()
         .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
-        .uncompressionOptionExplanation(UncompressionOptionExplanation.DEFLATE_UNSUITABLE);
+        .uncompressionOptionExplanation(UncompressionOptionExplanation.DEFLATE_UNSUITABLE)
+        .deltaFormatExplanation(DeltaFormatExplanation.DEFLATE_UNSUITABLE);
   }
 
   /**
