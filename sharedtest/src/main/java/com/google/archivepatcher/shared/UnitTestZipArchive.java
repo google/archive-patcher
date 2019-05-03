@@ -16,7 +16,6 @@ package com.google.archivepatcher.shared;
 
 import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.common.truth.Truth.assertThat;
-import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
@@ -122,6 +121,17 @@ public class UnitTestZipArchive {
   }
 
   /**
+   * Makes a unit test entry that corresponds to an embedded archive containing the entries in
+   * {@code internalEntries}.
+   */
+  public static final UnitTestZipEntry makeEmbeddedZipEntry(
+      String path, int level, List<UnitTestZipEntry> internalEntries, String comment) {
+    byte[] zipData = makeTestZip(internalEntries);
+
+    return new UnitTestZipEntry(path, level, true, zipData, comment);
+  }
+
+  /**
    * All of the entries in the zip file, in the order in which their local entries appear in the
    * file.
    */
@@ -131,7 +141,10 @@ public class UnitTestZipArchive {
   // At class load time, ensure that it is safe to use this class for other tests.
   static {
     try {
-      verifyTestZip(makeTestZip());
+      verifyTestZip(makeTestZip(), ALL_ENTRIES);
+      verifyTestZip(
+          makeEmbeddedZipEntry("/abc", 0, ALL_ENTRIES, null).getUncompressedBinaryContent(),
+          ALL_ENTRIES);
     } catch (Exception e) {
       throw new RuntimeException("Core sanity test 1 has failed, unit tests are unreliable", e);
     }
@@ -192,14 +205,15 @@ public class UnitTestZipArchive {
    * the tests can safely rely upon them. The outputs may be slightly different from platform to
    * platform due to, e.g., filesystem differences that affect the choice of string encoding or
    * filesystem attributes that are preserved (eg, NTFS versus POSIX).
+   *
    * @param data the data to verify
    * @throws Exception if verification fails
    */
-  private static void verifyTestZip(byte[] data) throws Exception {
+  private static void verifyTestZip(byte[] data, List<UnitTestZipEntry> entries) throws Exception {
     ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(data));
-    for (int x = 0; x < ALL_ENTRIES.size(); x++) {
+    for (UnitTestZipEntry expectedEntry : entries) {
       ZipEntry zipEntry = zipIn.getNextEntry();
-      checkEntry(zipEntry, zipIn);
+      checkEntry(zipEntry, zipIn, expectedEntry);
       zipIn.closeEntry();
     }
     assertThat(zipIn.getNextEntry()).isNull();
@@ -219,32 +233,28 @@ public class UnitTestZipArchive {
   }
 
   /**
-   * Check that the specified entry is one of the test entries and that its content matches the
-   * expected content. If this is the entry that is uncompressed, also asserts that it is in fact
-   * uncompressed.
+   * Check that the entry's content matches the expected content. If this is the entry that is
+   * uncompressed, also asserts that it is in fact uncompressed.
+   *
    * @param entry the entry to check
    * @param zipIn the input stream to read from
    * @throws IOException if anything goes wrong
    */
-  private static void checkEntry(ZipEntry entry, ZipInputStream zipIn) throws IOException {
+  private static void checkEntry(
+      ZipEntry entry, ZipInputStream zipIn, UnitTestZipEntry expectedEntry) throws IOException {
     // NB: File comments cannot be verified because the comments are in the central directory, which
     // is later in the stream.
-    for (UnitTestZipEntry testEntry : ALL_ENTRIES) {
-      if (testEntry.path.equals(entry.getName())) {
-        if (testEntry.level == 0) {
-          // This entry should be uncompressed. So the "compressed" size should be the same as the
-          // uncompressed size.
-          assertThat(entry.getMethod()).isEqualTo(0);
-          assertThat(entry.getCompressedSize())
-              .isEqualTo(testEntry.getUncompressedBinaryContent().length);
-        }
-        ByteArrayOutputStream uncompressedData = new ByteArrayOutputStream();
-        copy(zipIn, uncompressedData);
-        assertThat(uncompressedData.toByteArray())
-            .isEqualTo(testEntry.getUncompressedBinaryContent());
-        return;
-      }
+    assertThat(entry.getName()).isEqualTo(expectedEntry.path);
+    if (expectedEntry.level == 0) {
+      // This entry should be uncompressed. So the "compressed" size should be the same as the
+      // uncompressed size.
+      assertThat(entry.getMethod()).isEqualTo(0);
+      assertThat(entry.getCompressedSize())
+          .isEqualTo(expectedEntry.getUncompressedBinaryContent().length);
     }
-    assertWithMessage("entry unknown: " + entry.getName()).fail();
+    ByteArrayOutputStream uncompressedData = new ByteArrayOutputStream();
+    copy(zipIn, uncompressedData);
+    assertThat(uncompressedData.toByteArray())
+        .isEqualTo(expectedEntry.getUncompressedBinaryContent());
   }
 }

@@ -17,7 +17,7 @@ package com.google.archivepatcher.shared;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Data for one entry in the zip returned by {@link UnitTestZipArchive#makeTestZip()}.
@@ -33,10 +33,8 @@ public class UnitTestZipEntry {
    */
   public final int level;
 
-  /**
-   * The binary content of the entry.
-   */
-  public final String content;
+  /** The binary content of the entry. */
+  public final byte[] content;
 
   /**
    * Optional comment, as an ASCII string.
@@ -50,6 +48,19 @@ public class UnitTestZipEntry {
 
   /**
    * Creates a new entry with nowrap=true.
+   *
+   * @param path the path under which the data is located in the archive
+   * @param level the compression level of the entry
+   * @param content the binary content of the entry
+   * @param comment optional comment, as an ASCII string
+   */
+  public UnitTestZipEntry(String path, int level, byte[] content, String comment) {
+    this(path, level, true, content, comment);
+  }
+
+  /**
+   * Creates a new entry with nowrap=true.
+   *
    * @param path the path under which the data is located in the archive
    * @param level the compression level of the entry
    * @param content the binary content of the entry, as an ASCII string
@@ -65,15 +76,28 @@ public class UnitTestZipEntry {
    * @param path the path under which the data is located in the archive
    * @param level the compression level of the entry
    * @param nowrap the wrapping mode (false to wrap the entry like gzip, true otherwise)
-   * @param content the binary content of the entry, as an ASCII string
+   * @param content the binary content of the entry
    * @param comment optional comment, as an ASCII string
    */
-  public UnitTestZipEntry(String path, int level, boolean nowrap, String content, String comment) {
+  public UnitTestZipEntry(String path, int level, boolean nowrap, byte[] content, String comment) {
     this.path = path;
     this.level = level;
     this.nowrap = nowrap;
     this.content = content;
     this.comment = comment;
+  }
+
+  /**
+   * Creates a new entry with nowrap=true.
+   *
+   * @param path the path under which the data is located in the archive
+   * @param level the compression level of the entry
+   * @param nowrap the wrapping mode (false to wrap the entry like gzip, true otherwise)
+   * @param content the binary content of the entry
+   * @param comment optional comment, as an ASCII string
+   */
+  public UnitTestZipEntry(String path, int level, boolean nowrap, String content, String comment) {
+    this(path, level, nowrap, content.getBytes(StandardCharsets.US_ASCII), comment);
   }
 
   /**
@@ -84,11 +108,7 @@ public class UnitTestZipEntry {
    * @return as described
    */
   public byte[] getUncompressedBinaryContent() {
-    try {
-      return content.getBytes("US-ASCII");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException("System doesn't support US-ASCII"); // Not likely
-    }
+    return content;
   }
 
   /**

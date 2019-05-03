@@ -15,6 +15,7 @@
 package com.google.archivepatcher.integrationtest;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 import com.google.archivepatcher.applier.FileByFileDeltaApplier;
 import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
@@ -45,7 +46,6 @@ import org.junit.runners.Parameterized.Parameters;
 public class FileByFileIntegrationTest {
   @Parameters
   public static Collection<Object[]> data() {
-    // Note that the order of the parameter is important for gradle to ignore the native test.
     return Arrays.asList(new Object[][] {{true}, {false}});
   }
 
@@ -125,6 +125,18 @@ public class FileByFileIntegrationTest {
       UnitTestZipArchive.makeUnitTestZipEntry("/entry13A", 0, "entry 13A", null);
   private static final UnitTestZipEntry NEW_ENTRY13 =
       UnitTestZipArchive.makeUnitTestZipEntry("/entry13B", 0, "entry 13B", null);
+  private static final UnitTestZipEntry OLD_ARCHIVE_ENTRY_1 =
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/embedded-entry-1.zip", 0, ImmutableList.of(OLD_ENTRY1, OLD_ENTRY2), null);
+  private static final UnitTestZipEntry NEW_ARCHIVE_ENTRY_1 =
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/embedded-entry-1.zip", 0, ImmutableList.of(NEW_ENTRY1, NEW_ENTRY2), null);
+  private static final UnitTestZipEntry OLD_ARCHIVE_ENTRY_2 =
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/embedded-entry-2.apk", 6, ImmutableList.of(OLD_ENTRY2, OLD_ENTRY3), null);
+  private static final UnitTestZipEntry NEW_ARCHIVE_ENTRY_2 =
+      UnitTestZipArchive.makeEmbeddedZipEntry(
+          "/embedded-entry-2.apk", 9, ImmutableList.of(NEW_ENTRY2, NEW_ENTRY3), null);
 
   public FileByFileIntegrationTest(boolean useNativeBsDiff) {
     this.useNativeBsDiff = useNativeBsDiff;
@@ -158,41 +170,95 @@ public class FileByFileIntegrationTest {
    */
   @Test
   public void testPatchAndApply() throws Exception {
-    // Write the old archive to disk.
-    byte[] oldArchiveBytes = UnitTestZipArchive.makeTestZip(Arrays.asList(
-        OLD_ENTRY1,
-        OLD_ENTRY2,
-        OLD_ENTRY3,
-        OLD_ENTRY4,
-        OLD_ENTRY5,
-        OLD_ENTRY6,
-        OLD_ENTRY7,
-        OLD_ENTRY8,
-        OLD_ENTRY9,
-        OLD_ENTRY10,
-        OLD_ENTRY11,
-        OLD_ENTRY12,
-        OLD_ENTRY13));
-    writeFile(oldFile, oldArchiveBytes);
+    byte[] oldArchiveBytes =
+        UnitTestZipArchive.makeTestZip(
+            ImmutableList.of(
+                OLD_ENTRY1,
+                OLD_ENTRY2,
+                OLD_ENTRY3,
+                OLD_ENTRY4,
+                OLD_ENTRY5,
+                OLD_ENTRY6,
+                OLD_ENTRY7,
+                OLD_ENTRY8,
+                OLD_ENTRY9,
+                OLD_ENTRY10,
+                OLD_ENTRY11,
+                OLD_ENTRY12,
+                OLD_ENTRY13));
 
-    // Write the new archive to disk. Flip the order around to fully exercise reordering logic where
-    // the offsets might otherwise be exactly the same by chance.
-    List<UnitTestZipEntry> newEntries = Arrays.asList(
-        NEW_ENTRY1,
-        NEW_ENTRY2,
-        NEW_ENTRY3,
-        NEW_ENTRY4,
-        NEW_ENTRY5,
-        NEW_ENTRY6,
-        NEW_ENTRY7,
-        NEW_ENTRY8,
-        NEW_ENTRY9,
-        NEW_ENTRY10,
-        NEW_ENTRY11,
-        NEW_ENTRY12,
-        NEW_ENTRY13);
+    // Flip the order around to fully exercise reordering logic where the offsets might otherwise be
+    // exactly the same by chance.
+    List<UnitTestZipEntry> newEntries =
+        Arrays.asList(
+            NEW_ENTRY1,
+            NEW_ENTRY2,
+            NEW_ENTRY3,
+            NEW_ENTRY4,
+            NEW_ENTRY5,
+            NEW_ENTRY6,
+            NEW_ENTRY7,
+            NEW_ENTRY8,
+            NEW_ENTRY9,
+            NEW_ENTRY10,
+            NEW_ENTRY11,
+            NEW_ENTRY12,
+            NEW_ENTRY13);
     Collections.reverse(newEntries);
     byte[] newArchiveBytes = UnitTestZipArchive.makeTestZip(newEntries);
+
+    verifyPatchApplication(oldArchiveBytes, newArchiveBytes);
+  }
+
+  @Test
+  public void testPatchAndApply_withFbf() throws Exception {
+    // We disable this test for java-implementation because it is REALLY SLOW (~300 times slower)
+    assumeTrue(useNativeBsDiff);
+
+    byte[] oldArchiveBytes =
+        UnitTestZipArchive.makeTestZip(
+            ImmutableList.of(
+                OLD_ENTRY1,
+                OLD_ENTRY2,
+                OLD_ENTRY3,
+                OLD_ENTRY4,
+                OLD_ARCHIVE_ENTRY_1,
+                OLD_ENTRY5,
+                OLD_ENTRY6,
+                OLD_ENTRY7,
+                OLD_ENTRY8,
+                OLD_ARCHIVE_ENTRY_2,
+                OLD_ENTRY9,
+                OLD_ENTRY10,
+                OLD_ENTRY11,
+                OLD_ENTRY12,
+                OLD_ENTRY13));
+
+    List<UnitTestZipEntry> newEntries =
+        Arrays.asList(
+            NEW_ENTRY1,
+            NEW_ENTRY2,
+            NEW_ENTRY3,
+            NEW_ENTRY4,
+            NEW_ARCHIVE_ENTRY_1,
+            NEW_ENTRY5,
+            NEW_ENTRY6,
+            NEW_ENTRY7,
+            NEW_ENTRY8,
+            NEW_ENTRY9,
+            NEW_ENTRY10,
+            NEW_ENTRY11,
+            NEW_ARCHIVE_ENTRY_2,
+            NEW_ENTRY12,
+            NEW_ENTRY13);
+    byte[] newArchiveBytes = UnitTestZipArchive.makeTestZip(newEntries);
+
+    verifyPatchApplication(oldArchiveBytes, newArchiveBytes);
+  }
+
+  private void verifyPatchApplication(byte[] oldArchiveBytes, byte[] newArchiveBytes)
+      throws Exception {
+    writeFile(oldFile, oldArchiveBytes);
     writeFile(newFile, newArchiveBytes);
 
     // Generate the patch.
