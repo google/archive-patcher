@@ -19,6 +19,7 @@ import static com.google.archivepatcher.generator.FileByFileDeltaGenerator.DEFAU
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,10 +35,20 @@ public class DeltaEntries {
    * implementation.
    *
    * @param entriesWithGaps the input {@link DeltaEntry}s
-   * @return a list of non-overlapping {@link DeltaEntry}s that covers the entire newBlob and sorted
-   *     using offset into delta-friendly new file.
+   * @return a list of non-empty non-overlapping {@link DeltaEntry}s that covers the entire newBlob
+   *     and sorted using offset into delta-friendly new file.
    */
-  public static List<DeltaEntry> fillGaps(List<DeltaEntry> entriesWithGaps, ByteSource newBlob) {
+  public static List<DeltaEntry> fillGaps(
+      List<DeltaEntry> entriesWithGaps, ByteSource oldBlob, ByteSource newBlob) {
+    if (entriesWithGaps.isEmpty()) {
+      return Arrays.asList(
+          DeltaEntry.builder()
+              .oldBlobRange(Range.of(0, oldBlob.length()))
+              .newBlobRange(Range.of(0, newBlob.length()))
+              .deltaFormat(DEFAULT_DELTA_FORMAT)
+              .build());
+    }
+
     // Make a copy so we can sort it later.
     entriesWithGaps = new ArrayList<>(entriesWithGaps);
 

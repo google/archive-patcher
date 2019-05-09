@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import static com.google.archivepatcher.generator.FileByFileDeltaGenerator.DEFAULT_DELTA_FORMAT;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
@@ -34,6 +35,7 @@ public class DeltaEntriesTest {
     // The behaviour of this method should not depend on the data itself.
     byte[] data = new byte[256];
     ByteSource newBlob = ByteSource.wrap(data);
+    ByteSource oldBlob = ByteSource.wrap(data);
     List<DeltaEntry> initialEntries =
         ImmutableList.of(
             // [100,200)
@@ -43,7 +45,7 @@ public class DeltaEntriesTest {
             // [210,220)
             entryWithNewBlobRange(Range.of(210, 10)));
 
-    List<DeltaEntry> entriesWithNoGaps = DeltaEntries.fillGaps(initialEntries, newBlob);
+    List<DeltaEntry> entriesWithNoGaps = DeltaEntries.fillGaps(initialEntries, oldBlob, newBlob);
     assertThat(entriesWithNoGaps).isNotEmpty();
 
     // We only verify the post condition instead of the entries themselves.
@@ -57,6 +59,25 @@ public class DeltaEntriesTest {
     }
     DeltaEntry lastEntry = entriesWithNoGaps.get(entriesWithNoGaps.size() - 1);
     assertThat(lastEntry.newBlobRange().endOffset()).isEqualTo(data.length);
+  }
+
+  @Test
+  public void fillGaps_emptyInput() throws Exception {
+    // The behaviour of this method should not depend on the data itself.
+    byte[] data = new byte[256];
+    ByteSource newBlob = ByteSource.wrap(data);
+    ByteSource oldBlob = ByteSource.wrap(data);
+    DeltaEntry expectedEntry =
+        DeltaEntry.builder()
+            .oldBlobRange(Range.of(0, oldBlob.length()))
+            .newBlobRange(Range.of(0, newBlob.length()))
+            .deltaFormat(DEFAULT_DELTA_FORMAT)
+            .build();
+
+    List<DeltaEntry> entriesWithNoGaps =
+        DeltaEntries.fillGaps(ImmutableList.of(), oldBlob, newBlob);
+
+    assertThat(entriesWithNoGaps).containsExactly(expectedEntry);
   }
 
   @Test

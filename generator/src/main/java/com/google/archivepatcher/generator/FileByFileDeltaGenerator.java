@@ -176,7 +176,7 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
 
     // Generate another list of DeltaEntry such that the entire new delta-friendly blob is covered
     // by all the newBlobRanges.
-    List<DeltaEntry> entriesWithoutGaps = fillGaps(rawEntries, newBlob);
+    List<DeltaEntry> entriesWithoutGaps = fillGaps(rawEntries, oldBlob, newBlob);
 
     // Combine entries where possible.
     List<DeltaEntry> combinedEntries = combineEntries(entriesWithoutGaps, oldBlob);
