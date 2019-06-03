@@ -20,6 +20,7 @@ subprojects {
     }
 
     dependencies {
-        implementation "com.google.truth:truth:0.44"
+        testCompile "com.google.truth:truth:0.44"
+        implementation "com.google.code.findbugs:jsr305:3.0.2"
     }
 }

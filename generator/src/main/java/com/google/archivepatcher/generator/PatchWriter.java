@@ -21,7 +21,6 @@ import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -129,7 +128,6 @@ public class PatchWriter {
   }
 
   /** Writes the metadata and delta data associated with this entry into the output stream. */
-  @VisibleForTesting
   void writeDeltaEntry(
       DeltaEntry deltaEntry,
       ByteSource oldBlob,

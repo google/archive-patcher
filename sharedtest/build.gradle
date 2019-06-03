@@ -3,5 +3,7 @@
 dependencies {
     compile 'junit:junit:4.12'
     compile project(':shared')
+
+    implementation "com.google.truth:truth:0.44"
 }
 // EOF
