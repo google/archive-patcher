@@ -59,7 +59,7 @@ public abstract class ByteSource implements Closeable {
 
   /** Convenience method to obtain a {@link ByteSource} from a {@link File}. */
   public static ByteSource fromFile(File file) throws IOException {
-    return new RandomAccessFileByteSource(file);
+    return MmapByteSource.create(file);
   }
 
   /**
