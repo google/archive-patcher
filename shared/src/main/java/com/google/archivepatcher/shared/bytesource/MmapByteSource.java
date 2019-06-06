@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 
 /**
@@ -28,18 +29,26 @@ import java.nio.channels.FileChannel.MapMode;
  * Android devices. For more context, see the doc for {@link #close()}.
  */
 public class MmapByteSource extends FileByteSource {
-  private final RandomAccessFile raf;
-  private ByteBuffer byteBuffer;
+  private MappedByteBuffer byteBuffer;
 
-  public MmapByteSource(File file) throws IOException {
+  MmapByteSource(File file) throws IOException {
     super(file);
     if (length() > Integer.MAX_VALUE) {
       throw new IllegalArgumentException(
-          "RandomAccessMmapObject only supports file sizes up to " + "Integer.MAX_VALUE.");
+          "MappedByteSource only supports file sizes up to " + "Integer.MAX_VALUE.");
     }
 
-    this.raf = new RandomAccessFile(file, "r");
-    this.byteBuffer = raf.getChannel().map(MapMode.READ_ONLY, 0, (int) length());
+    try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+      this.byteBuffer = raf.getChannel().map(MapMode.READ_ONLY, 0, (int) length());
+    }
+  }
+
+  public static ByteSource create(File file) throws IOException {
+    if (file.length() <= Integer.MAX_VALUE) {
+      return new MmapByteSource(file);
+    } else {
+      return new RandomAccessFileByteSource(file);
+    }
   }
 
   /**
@@ -56,22 +65,31 @@ public class MmapByteSource extends FileByteSource {
 
   /**
    * Closes the {@link ByteSource} and release any resource.
-   *
-   * <p>There is a long-standing bug with memory mapped objects in Java that requires the JVM to
-   * finalize the MappedByteBuffer reference before the unmap operation is performed. This leaks
-   * file handles and fills the virtual address space. Worse, on some systems (Windows for one) the
-   * active mmap prevents the temp file from being deleted - even if File.deleteOnExit() is used.
-   * The only safe way to ensure that file handles and actual files are not leaked by this class is
-   * to force an explicit full gc after explicitly nulling the MappedByteBuffer reference. This has
-   * to be done before attempting file deletion.
-   *
-   * <p>See https://github.com/andrewhayden/archive-patcher/issues/5 for more information. Also
-   * http://bugs.java.com/view_bug.do?bug_id=6417205.
    */
   @Override
   public void close() throws IOException {
-    raf.close();
+    if (MappedByteBufferUtils.canFreeMappedBuffers()) {
+      try {
+        MappedByteBufferUtils.freeBuffer(byteBuffer);
+        return;
+      } catch (ReflectiveOperationException e) {
+        // fall through to the default way for closing buffers.
+      }
+    }
 
+    // There is a long-standing bug with memory mapped objects in Java that requires the JVM to
+    // finalize the MappedByteBuffer reference before the unmap operation is performed. This leaks
+    // file handles and fills the virtual address space. Worse, on some systems (Windows for one)
+    // the
+    // active mmap prevents the temp file from being deleted - even if File.deleteOnExit() is used.
+    // The only safe way to ensure that file handles and actual files are not leaked by this class
+    // is
+    // to force an explicit full gc after explicitly nulling the MappedByteBuffer reference. This
+    // has
+    // to be done before attempting file deletion.
+    //
+    // See https://github.com/google/archive-patcher/issues/5 for more information. Also
+    // http://bugs.java.com/view_bug.do?bug_id=6417205.
     byteBuffer = null;
     System.gc();
     System.runFinalization();
