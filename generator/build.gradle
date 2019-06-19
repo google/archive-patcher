@@ -12,16 +12,6 @@ dependencies {
     annotationProcessor "com.google.auto.value:auto-value:1.6.2"
 }
 
-task copyTestResources(type: Copy) {
-    // AS/IntelliJ workaround: https://code.google.com/p/android/issues/detail?id=64887#c26
-    if (System.properties['idea.platform.prefix'] != null) {
-        from sourceSets.test.resources
-        into sourceSets.test.output.classesDirs
-    }
-}
-
-processTestResources.dependsOn copyTestResources
-
 test {
     // TODO: Get gradle to work with JNI
     exclude 'com/google/archivepatcher/generator/bsdiff/wrapper/*'

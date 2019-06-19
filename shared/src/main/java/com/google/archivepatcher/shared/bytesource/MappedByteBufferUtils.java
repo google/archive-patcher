@@ -14,7 +14,9 @@
 
 package com.google.archivepatcher.shared.bytesource;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import javax.annotation.Nullable;
 
@@ -23,61 +25,55 @@ public class MappedByteBufferUtils {
 
   private static final String TAG = "MappedByteBufferUtils";
 
-  @Nullable private static final Method directBufferFree;
-  @Nullable private static final Method directBufferCleaner;
-  @Nullable private static final Method cleanerClean;
+  @Nullable private static Method oldCleaner;
+  @Nullable private static Method oldClean;
+  @Nullable private static Method clean;
+  @Nullable private static Object theUnsafe;
 
   private MappedByteBufferUtils() {}
 
   /** Return true if we know how to unmap {@link MappedByteBuffer} instances on current platform. */
   public static boolean canFreeMappedBuffers() {
-    return cleanerClean != null || directBufferFree != null;
+    return (oldClean != null && oldCleaner != null) || (clean != null && theUnsafe != null);
   }
 
   /** Unmap specified {@link MappedByteBuffer} from memory. */
   public static void freeBuffer(MappedByteBuffer mappedByteBuffer)
       throws ReflectiveOperationException {
-    if (cleanerClean != null) { // OpenJDK
-      directBufferCleaner.setAccessible(true);
-      Object cleaner = directBufferCleaner.invoke(mappedByteBuffer);
-      cleanerClean.setAccessible(true);
-      cleanerClean.invoke(cleaner);
+    if (oldCleaner != null && oldClean != null) {
+      oldCleaner.setAccessible(true);
+      oldClean.setAccessible(true);
+      oldClean.invoke(oldCleaner.invoke(mappedByteBuffer));
+      return;
     }
 
-    if (directBufferFree != null) { // pre-OpenJDK
-      directBufferFree.setAccessible(true);
-      directBufferFree.invoke(mappedByteBuffer);
+    if (clean != null && theUnsafe != null) {
+      clean.setAccessible(true);
+      clean.invoke(theUnsafe, mappedByteBuffer);
     }
   }
 
   static {
-    Class<?> directBufferClass;
-
+    boolean isOldJDK = System.getProperty("java.specification.version", "99").startsWith("1.");
     try {
-      directBufferClass = Class.forName("java.nio.DirectByteBuffer");
-    } catch (Exception e) {
-      directBufferClass = null;
-    }
-
-    if (directBufferClass != null) {
-      directBufferFree = getMethodOrNull(directBufferClass, "free");
-      directBufferCleaner = getMethodOrNull(directBufferClass, "cleaner");
-      cleanerClean =
-          directBufferCleaner != null
-              ? getMethodOrNull(directBufferCleaner.getReturnType(), "clean")
-              : null;
-    } else {
-      directBufferFree = null;
-      directBufferCleaner = null;
-      cleanerClean = null;
-    }
-  }
-
-  private static Method getMethodOrNull(Class<?> cls, String name) {
-    try {
-      return cls.getMethod(name);
-    } catch (Exception e) {
-      return null;
+      if (isOldJDK) {
+        oldCleaner = ByteBuffer.class.getMethod("cleaner");
+        oldClean = Class.forName("sun.misc.Cleaner").getMethod("clean");
+      } else {
+        Class<?> unsafeClass;
+        try {
+          unsafeClass = Class.forName("sun.misc.Unsafe");
+        } catch (Exception ex) {
+          // jdk.internal.misc.Unsafe doesn't yet have an invokeCleaner() method,
+          // but that method should be added if sun.misc.Unsafe is removed.
+          unsafeClass = Class.forName("jdk.internal.misc.Unsafe");
+        }
+        clean = unsafeClass.getMethod("invokeCleaner", ByteBuffer.class);
+        Field theUnsafeField = unsafeClass.getDeclaredField("theUnsafe");
+        theUnsafeField.setAccessible(true);
+        theUnsafe = theUnsafeField.get(null);
+      }
+    } catch (Exception ex) {
     }
   }
 }
