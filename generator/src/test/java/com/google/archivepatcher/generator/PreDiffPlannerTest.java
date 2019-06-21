@@ -54,10 +54,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import static org.junit.Assume.assumeTrue;
+import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 
-/**
- * Tests for {@link PreDiffPlanner}.
- */
+/** Tests for {@link PreDiffPlanner}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class PreDiffPlannerTest {
@@ -674,6 +674,9 @@ public class PreDiffPlannerTest {
 
   @Test
   public void testGeneratePreDiffPlan_ClonedAndCompressionLevelChanged() throws IOException {
+    // TODO: fix compatibility in OpenJDK 1.8 (or higher)
+    assumeTrue(new DefaultDeflateCompatibilityWindow().isCompatible());
+
     // Test the case where an entry exists in both old and new APK with identical uncompressed
     // content but different compressed content ***AND*** additionally a new copy exists in the new
     // archive, also with identical uncompressed content and different compressed content, i.e.:

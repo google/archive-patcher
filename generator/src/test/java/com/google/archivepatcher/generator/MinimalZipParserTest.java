@@ -32,10 +32,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import static org.junit.Assume.assumeTrue;
+import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
 
-/**
- * Tests for {@link MinimalZipParser}.
- */
+/** Tests for {@link MinimalZipParser}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class MinimalZipParserTest {
@@ -43,6 +43,9 @@ public class MinimalZipParserTest {
 
   @Before
   public void setup() throws Exception {
+    // TODO: fix compatibility in OpenJDK 1.8 (or higher)
+    assumeTrue(new DefaultDeflateCompatibilityWindow().isCompatible());
+
     unitTestZipArchive = UnitTestZipArchive.makeTestZip();
   }
 

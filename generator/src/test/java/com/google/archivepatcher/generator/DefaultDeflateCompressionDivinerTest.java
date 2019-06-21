@@ -34,10 +34,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import static org.junit.Assume.assumeTrue;
 
-/**
- * Tests for {@link DefaultDeflateCompressionDiviner}.
- */
+/** Tests for {@link DefaultDeflateCompressionDiviner}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class DefaultDeflateCompressionDivinerTest {
@@ -49,6 +48,9 @@ public class DefaultDeflateCompressionDivinerTest {
 
   @Before
   public void setup() {
+    // TODO: fix compatibility in OpenJDK 1.8 (or higher)
+    assumeTrue(new DefaultDeflateCompatibilityWindow().isCompatible());
+
     testData = new DefaultDeflateCompatibilityWindow().getCorpus();
   }
 
