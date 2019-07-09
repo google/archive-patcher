@@ -19,10 +19,9 @@ import com.google.archivepatcher.shared.DeltaFriendlyFile;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.TypedRange;
+import com.google.archivepatcher.shared.bytesink.ByteSink;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +44,8 @@ public class PreDiffExecutor {
 
     private ByteSource originalOldBlob;
     private ByteSource originalNewBlob;
-    private File deltaFriendlyOldFile;
-    private File deltaFriendlyNewFile;
+    private ByteSink deltaFriendlyOldBlob;
+    private ByteSink deltaFriendlyNewBlob;
 
     /**
      * Sets the original, read-only input files to the patch generation process. This has to be
@@ -68,15 +67,16 @@ public class PreDiffExecutor {
      * Sets the output files that will hold the delta-friendly intermediate binaries used in patch
      * generation. If called, both arguments must be non-null.
      *
-     * @param deltaFriendlyOldFile the intermediate file to write (will be overwritten if it exists)
-     * @param deltaFriendlyNewFile the intermediate file to write (will be overwritten if it exists)
+     * @param deltaFriendlyOldBlob the intermediate file to write (will be overwritten if it exists)
+     * @param deltaFriendlyNewBlob the intermediate file to write (will be overwritten if it exists)
      */
-    public Builder writingDeltaFriendlyFiles(File deltaFriendlyOldFile, File deltaFriendlyNewFile) {
-      if (deltaFriendlyOldFile == null || deltaFriendlyNewFile == null) {
+    public Builder writingDeltaFriendlyFiles(
+        ByteSink deltaFriendlyOldBlob, ByteSink deltaFriendlyNewBlob) {
+      if (deltaFriendlyOldBlob == null || deltaFriendlyNewBlob == null) {
         throw new IllegalStateException("do not set null delta-friendly files");
       }
-      this.deltaFriendlyOldFile = deltaFriendlyOldFile;
-      this.deltaFriendlyNewFile = deltaFriendlyNewFile;
+      this.deltaFriendlyOldBlob = deltaFriendlyOldBlob;
+      this.deltaFriendlyNewBlob = deltaFriendlyNewBlob;
       return this;
     }
 
@@ -132,8 +132,8 @@ public class PreDiffExecutor {
       return new PreDiffExecutor(
           originalOldBlob,
           originalNewBlob,
-          deltaFriendlyOldFile,
-          deltaFriendlyNewFile,
+          deltaFriendlyOldBlob,
+          deltaFriendlyNewBlob,
           preDiffPlanEntryModifiers,
           supportedDeltaFormats);
     }
@@ -149,13 +149,13 @@ public class PreDiffExecutor {
    * Optional file to write the delta-friendly version of the original old file to (will be created,
    * overwriting if it already exists). If null, only the read-only planning step can be performed.
    */
-  private final File deltaFriendlyOldFile;
+  private final ByteSink deltaFriendlyOldBlob;
 
   /**
    * Optional file to write the delta-friendly version of the original new file to (will be created,
    * overwriting if it already exists). If null, only the read-only planning step can be performed.
    */
-  private final File deltaFriendlyNewFile;
+  private final ByteSink deltaFriendlyNewBlob;
 
   /**
    * Optional {@link PreDiffPlanEntryModifier}s to be used for modifying the patch to be generated.
@@ -169,14 +169,14 @@ public class PreDiffExecutor {
   private PreDiffExecutor(
       ByteSource originalOldBlob,
       ByteSource originalNewBlob,
-      File deltaFriendlyOldFile,
-      File deltaFriendlyNewFile,
+      ByteSink deltaFriendlyOldBlob,
+      ByteSink deltaFriendlyNewBlob,
       List<PreDiffPlanEntryModifier> preDiffPlanEntryModifiers,
       Set<DeltaFormat> supportedDeltaFormats) {
     this.originalOldBlob = originalOldBlob;
     this.originalNewBlob = originalNewBlob;
-    this.deltaFriendlyOldFile = deltaFriendlyOldFile;
-    this.deltaFriendlyNewFile = deltaFriendlyNewFile;
+    this.deltaFriendlyOldBlob = deltaFriendlyOldBlob;
+    this.deltaFriendlyNewBlob = deltaFriendlyNewBlob;
     this.preDiffPlanEntryModifiers = preDiffPlanEntryModifiers;
     this.supportedDeltaFormats = supportedDeltaFormats;
   }
@@ -189,7 +189,7 @@ public class PreDiffExecutor {
   public PreDiffPlan prepareForDiffing() throws IOException {
     PreDiffPlan preDiffPlan = generatePreDiffPlan();
     List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan = null;
-    if (deltaFriendlyOldFile != null) {
+    if (deltaFriendlyOldBlob != null) {
       // Builder.writingDeltaFriendlyFiles() ensures old and new are non-null when called, so a
       // check on either is sufficient.
       deltaFriendlyNewFileRecompressionPlan =
@@ -212,12 +212,12 @@ public class PreDiffExecutor {
   private List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(PreDiffPlan preDiffPlan)
       throws IOException {
     try (BufferedOutputStream bufferedOut =
-        new BufferedOutputStream(new FileOutputStream(deltaFriendlyOldFile))) {
+        new BufferedOutputStream(deltaFriendlyOldBlob.openStream())) {
       DeltaFriendlyFile.generateDeltaFriendlyFile(
           preDiffPlan.getOldFileUncompressionPlan(), originalOldBlob, bufferedOut);
     }
     try (BufferedOutputStream bufferedOut =
-        new BufferedOutputStream(new FileOutputStream(deltaFriendlyNewFile))) {
+        new BufferedOutputStream(deltaFriendlyNewBlob.openStream())) {
       return DeltaFriendlyFile.generateDeltaFriendlyFileWithInverse(
           preDiffPlan.getNewFileUncompressionPlan(), originalNewBlob, bufferedOut);
     }

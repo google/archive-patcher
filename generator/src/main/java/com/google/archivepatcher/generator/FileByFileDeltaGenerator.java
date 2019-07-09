@@ -20,6 +20,8 @@ import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_
 
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
+import com.google.archivepatcher.shared.bytesink.ByteSink;
+import com.google.archivepatcher.shared.bytesink.FileByteSink;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
@@ -99,8 +101,8 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   @Override
   public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream patchOut)
       throws IOException, InterruptedException {
-    try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
+    try (FileByteSink deltaFriendlyOldFile = new FileByteSink();
+        FileByteSink deltaFriendlyNewFile = new FileByteSink()) {
       PreDiffPlan preDiffPlan =
           generatePreDiffPlanAndPrepareBlobs(
               oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
@@ -132,8 +134,8 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
    */
   public PreDiffPlan generatePreDiffPlanAndPrepareBlobs(File oldFile, File newFile)
       throws IOException {
-    try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
+    try (FileByteSink deltaFriendlyOldFile = new FileByteSink();
+        FileByteSink deltaFriendlyNewFile = new FileByteSink();
         ByteSource oldBlob = ByteSource.fromFile(oldFile);
         ByteSource newBlob = ByteSource.fromFile(newFile)) {
       return generatePreDiffPlanAndPrepareBlobs(
@@ -144,14 +146,14 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   private PreDiffPlan generatePreDiffPlanAndPrepareBlobs(
       ByteSource oldFile,
       ByteSource newFile,
-      TempFileHolder deltaFriendlyOldFile,
-      TempFileHolder deltaFriendlyNewFile,
+      ByteSink deltaFriendlyOldFile,
+      ByteSink deltaFriendlyNewFile,
       Set<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     PreDiffExecutor executor =
         new PreDiffExecutor.Builder()
             .readingOriginalFiles(oldFile, newFile)
-            .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
+            .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
             .addPreDiffPlanEntryModifiers(preDiffPlanEntryModifiers)
             .addSupportedDeltaFormats(supportedDeltaFormats)
             .build();
