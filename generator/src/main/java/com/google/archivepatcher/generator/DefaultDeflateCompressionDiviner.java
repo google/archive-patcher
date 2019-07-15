@@ -19,6 +19,7 @@ import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 import static com.google.archivepatcher.shared.bytesource.ByteStreams.readFully;
 
 import com.google.archivepatcher.shared.DefaultDeflateCompatibilityWindow;
+import com.google.archivepatcher.shared.InflaterWrapper;
 import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.CompressionMethod;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
@@ -158,7 +159,7 @@ public class DefaultDeflateCompressionDiviner {
       throws IOException {
     // Iterate over all relevant combinations of nowrap, strategy and level.
     for (boolean nowrap : new boolean[] {true, false}) {
-      Inflater inflater = new Inflater(nowrap);
+      InflaterWrapper inflater = new InflaterWrapper(nowrap);
       Deflater deflater = new Deflater(0, nowrap);
 
       strategy_loop:
@@ -218,8 +219,8 @@ public class DefaultDeflateCompressionDiviner {
    * @see Inflater#end
    * @see Deflater#end
    */
-  private static void end(Inflater inflater, Deflater deflater) {
-    inflater.end();
+  private static void end(InflaterWrapper inflater, Deflater deflater) {
+    inflater.endInternal();
     deflater.end();
   }
 

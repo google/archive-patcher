@@ -41,10 +41,8 @@ public class DeflateUncompressor implements Uncompressor {
    */
   private int inputBufferSize = 32768;
 
-  /**
-   * Cached {@link Inflater} to be used.
-   */
-  private Inflater inflater = null;
+  /** Cached {@link Inflater} to be used. */
+  private InflaterWrapper inflater = null;
 
   /**
    * Whether or not to cache {@link Inflater} instances, which is a major performance tradeoff.
@@ -116,12 +114,13 @@ public class DeflateUncompressor implements Uncompressor {
   /**
    * Returns the {@link Inflater} to be used, creating a new one if necessary and caching it for
    * future use.
+   *
    * @return the inflater
    */
-  protected Inflater createOrResetInflater() {
-    Inflater result = inflater;
+  protected InflaterWrapper createOrResetInflater() {
+    InflaterWrapper result = inflater;
     if (result == null) {
-      result = new Inflater(nowrap);
+      result = new InflaterWrapper(nowrap);
       if (caching) {
         inflater = result;
       }
@@ -136,7 +135,7 @@ public class DeflateUncompressor implements Uncompressor {
    */
   public void release() {
     if (inflater != null) {
-      inflater.end();
+      inflater.endInternal();
       inflater = null;
     }
   }
