@@ -17,9 +17,12 @@ package com.google.archivepatcher.generator;
 import static com.google.archivepatcher.shared.TestUtils.assertThrows;
 import static com.google.common.truth.Truth.assertThat;
 
-import java.io.File;
+import com.google.archivepatcher.shared.bytesource.ByteSource;
+import com.google.common.io.ByteStreams;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Random;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -29,22 +32,9 @@ import org.junit.runners.JUnit4;
 @SuppressWarnings("javadoc")
 public class TempBlobTest {
 
-  byte[] expected = new byte[] {2, 4, 0, 8};
-
-  @Test
-  public void testConstructAndClose() throws IOException {
-    // Tests that a temp file can be created and that it is deleted upon close().
-    File allocated = null;
-    try (TempBlob blob = new TempBlob()) {
-      assertThat(blob.file).isNotNull();
-      assertThat(blob.file.exists()).isTrue();
-      allocated = blob.file;
-    }
-    assertThat(allocated.exists()).isFalse();
-  }
-
   @Test
   public void testLength() throws Exception {
+    byte[] expected = new byte[] {2, 4, 0, 8};
     TempBlob tempBlob = new TempBlob();
     writeToBlob(expected, tempBlob);
 
@@ -53,13 +43,11 @@ public class TempBlobTest {
 
   @Test
   public void testWriteAndRead() throws Exception {
+    byte[] expected = new byte[] {2, 4, 0, 8};
     TempBlob tempBlob = new TempBlob();
     writeToBlob(expected, tempBlob);
 
-    byte[] read = new byte[expected.length];
-    tempBlob.asByteSource().openStream().read(read);
-
-    assertThat(read).isEqualTo(expected);
+    assertThat(toByteArray(tempBlob)).isEqualTo(expected);
   }
 
   @Test
@@ -71,24 +59,21 @@ public class TempBlobTest {
     tempBlob.clear();
     writeToBlob(newData, tempBlob);
 
-    byte[] read = new byte[newData.length];
-    tempBlob.asByteSource().openStream().read(read);
-
-    assertThat(read).isEqualTo(newData);
+    assertThat(toByteArray(tempBlob)).isEqualTo(newData);
   }
 
   @Test
   public void testOpenStreamWithoutClosing() throws Exception {
     TempBlob tempBlob = new TempBlob();
-    tempBlob.openOutputStream();
+    tempBlob.openBufferedStream();
 
-    assertThrows(IOException.class, tempBlob::openOutputStream);
+    assertThrows(IOException.class, tempBlob::openBufferedStream);
   }
 
   @Test
   public void testClearWithoutClosing() throws Exception {
     TempBlob tempBlob = new TempBlob();
-    tempBlob.openOutputStream();
+    tempBlob.openBufferedStream();
 
     assertThrows(IOException.class, tempBlob::clear);
   }
@@ -96,14 +81,62 @@ public class TempBlobTest {
   @Test
   public void testAsByteSourceWithoutClosing() throws Exception {
     TempBlob tempBlob = new TempBlob();
-    tempBlob.openOutputStream();
+    tempBlob.openBufferedStream();
 
     assertThrows(IOException.class, tempBlob::asByteSource);
   }
 
-  private void writeToBlob(byte[] bytes, TempBlob tempBlob) throws IOException {
-    OutputStream outputStream = tempBlob.openOutputStream();
-    outputStream.write(bytes);
-    outputStream.close();
+  @Test
+  public void testWriteToMemory() throws Exception {
+    byte[] expected = new byte[] {2, 4, 0, 8};
+    TempBlob tempBlob = new TempBlob();
+    writeToBlob(expected, tempBlob);
+
+    assertThat(tempBlob.inMemory).isTrue();
+    assertThat(toByteArray(tempBlob)).isEqualTo(expected);
+  }
+
+  @Test
+  public void testWriteToDisk() throws Exception {
+    byte[] data = new byte[TempBlob.MAX_SIZE_IN_MEMORY_BYTES + 1];
+    new Random().nextBytes(data);
+    TempBlob tempBlob = new TempBlob();
+    writeToBlob(data, tempBlob);
+
+    assertThat(tempBlob.inMemory).isFalse();
+    assertThat(toByteArray(tempBlob)).isEqualTo(data);
+  }
+
+  @Test
+  public void testResetToInMemoryOnClear() throws Exception {
+    byte[] data = new byte[TempBlob.MAX_SIZE_IN_MEMORY_BYTES + 2];
+    new Random().nextBytes(data);
+    TempBlob tempBlob = new TempBlob();
+    writeToBlob(data, tempBlob);
+
+    // Verify that we switched from inMemory to onDisk.
+    assertThat(tempBlob.inMemory).isFalse();
+
+    // Clear and write again with size < TempBlob.MAX_SIZE_IN_MEMORY_BYTES.
+    byte[] expected = new byte[] {2, 4, 0, 8};
+    tempBlob.clear();
+    writeToBlob(expected, tempBlob);
+
+    // Verify that we are back from onDisk to inMemory.
+    assertThat(tempBlob.inMemory).isTrue();
+    assertThat(toByteArray(tempBlob)).isEqualTo(expected);
+  }
+
+  private static void writeToBlob(byte[] data, TempBlob tempBlob) throws IOException {
+    try (OutputStream outputStream = tempBlob.openBufferedStream()) {
+      outputStream.write(data);
+    }
+  }
+
+  private static byte[] toByteArray(TempBlob tempBlob) throws IOException {
+    try (ByteSource source = tempBlob.asByteSource();
+        InputStream is = source.openStream()) {
+      return ByteStreams.toByteArray(is);
+    }
   }
 }

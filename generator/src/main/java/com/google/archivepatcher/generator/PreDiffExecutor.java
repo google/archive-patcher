@@ -20,8 +20,8 @@ import com.google.archivepatcher.shared.JreDeflateParameters;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -210,13 +210,12 @@ public class PreDiffExecutor {
    */
   private List<TypedRange<JreDeflateParameters>> generateDeltaFriendlyFiles(PreDiffPlan preDiffPlan)
       throws IOException {
-    try (BufferedOutputStream bufferedOut =
-        new BufferedOutputStream(deltaFriendlyOldBlob.openOutputStream())) {
+    try (OutputStream bufferedOut =
+        deltaFriendlyOldBlob.openBufferedStream()) {
       DeltaFriendlyFile.generateDeltaFriendlyFile(
           preDiffPlan.getOldFileUncompressionPlan(), originalOldBlob, bufferedOut);
     }
-    try (BufferedOutputStream bufferedOut =
-        new BufferedOutputStream(deltaFriendlyNewBlob.openOutputStream())) {
+    try (OutputStream bufferedOut = deltaFriendlyNewBlob.openBufferedStream()) {
       return DeltaFriendlyFile.generateDeltaFriendlyFileWithInverse(
           preDiffPlan.getNewFileUncompressionPlan(), originalNewBlob, bufferedOut);
     }

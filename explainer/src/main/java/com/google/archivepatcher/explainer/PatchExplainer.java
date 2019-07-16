@@ -32,7 +32,6 @@ import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.Uncompressor;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import com.google.archivepatcher.shared.bytesource.ByteStreams;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -192,22 +191,19 @@ public class PatchExplainer {
 
         // File is actually changed (or transitioned between compressed and uncompressed forms).
         // Generate and compress a delta.
-        try (OutputStream deltaOut = deltaTemp.openOutputStream();
-            BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaOut);
+        try (OutputStream bufferedDeltaOut = deltaTemp.openBufferedStream();
             ByteSource oldTempSource = oldTemp.asByteSource();
             ByteSource newTempSource = newTemp.asByteSource()) {
           deltaGenerator.generateDelta(oldTempSource, newTempSource, bufferedDeltaOut);
-          bufferedDeltaOut.flush();
-          bufferedDeltaOut.close();
-          try (ByteSource deltaTempSource = deltaTemp.asByteSource()) {
-            long compressedDeltaSize =
-                getCompressedSize(deltaTempSource, 0, deltaTempSource.length(), compressor);
-            result.add(
-                EntryExplanation.forOld(
-                    new ByteArrayHolder(preDiffPlanEntry.oldEntry().fileNameBytes()),
-                    compressedDeltaSize,
-                    preDiffPlanEntry.uncompressionOptionExplanation()));
-          }
+        }
+        try (ByteSource deltaTempSource = deltaTemp.asByteSource()) {
+          long compressedDeltaSize =
+              getCompressedSize(deltaTempSource, 0, deltaTempSource.length(), compressor);
+          result.add(
+              EntryExplanation.forOld(
+                  new ByteArrayHolder(preDiffPlanEntry.oldEntry().fileNameBytes()),
+                  compressedDeltaSize,
+                  preDiffPlanEntry.uncompressionOptionExplanation()));
         }
       }
     }
@@ -286,9 +282,8 @@ public class PatchExplainer {
     try (RandomAccessFileInputStream rafis =
             new RandomAccessFileInputStream(
                 source, rangeToUncompress.offset(), rangeToUncompress.length());
-        OutputStream out = dest.openOutputStream();
-        BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
-      uncompressor.uncompress(rafis, bufferedOut);
+        OutputStream out = dest.openBufferedStream()) {
+      uncompressor.uncompress(rafis, out);
     }
   }
 
@@ -304,7 +299,7 @@ public class PatchExplainer {
     try (RandomAccessFileInputStream rafis =
             new RandomAccessFileInputStream(
                 source, rangeToExtract.offset(), rangeToExtract.length());
-        OutputStream outputStream = new BufferedOutputStream(dest.openOutputStream())) {
+        OutputStream outputStream = dest.openBufferedStream()) {
       ByteStreams.copy(rafis, outputStream);
     }
   }

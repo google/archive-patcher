@@ -21,7 +21,6 @@ import com.google.archivepatcher.shared.PatchConstants;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -153,18 +152,16 @@ public class PatchWriter {
     try (ByteSource inputBlobRange = oldBlob.slice(deltaEntry.oldBlobRange());
         ByteSource destBlobRange = newBlob.slice(deltaEntry.newBlobRange());
         TempBlob deltaFile = new TempBlob()) {
-      try (OutputStream deltaFileOut = deltaFile.openOutputStream();
-          BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
+      try (OutputStream bufferedDeltaOut = deltaFile.openBufferedStream()) {
         DeltaGenerator deltaGenerator = deltaGeneratorFactory.create(deltaEntry.deltaFormat());
         deltaGenerator.generateDelta(inputBlobRange, destBlobRange, bufferedDeltaOut);
       }
 
       // Finally, the length of the delta and the delta itself.
       outputStream.writeLong(deltaFile.length());
-      try (ByteSource deltaSource = deltaFile.asByteSource()) {
-        try (InputStream deltaIn = deltaSource.openStream()) {
-          copy(deltaIn, outputStream);
-        }
+      try (ByteSource deltaSource = deltaFile.asByteSource();
+          InputStream deltaIn = deltaSource.openStream()) {
+        copy(deltaIn, outputStream);
       }
     }
   }

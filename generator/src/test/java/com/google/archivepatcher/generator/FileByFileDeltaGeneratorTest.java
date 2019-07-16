@@ -186,9 +186,9 @@ public class FileByFileDeltaGeneratorTest {
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempBlob oldArchive = new TempBlob();
         TempBlob newArchive = new TempBlob()) {
-      OutputStream oldOutputStream = oldArchive.openOutputStream();
+      OutputStream oldOutputStream = oldArchive.openBufferedStream();
       ByteStreams.copy(new ByteArrayInputStream(oldArchiveBytes), oldOutputStream);
-      OutputStream newOutputStream = newArchive.openOutputStream();
+      OutputStream newOutputStream = newArchive.openBufferedStream();
       ByteStreams.copy(new ByteArrayInputStream(newArchiveBytes), newOutputStream);
       oldOutputStream.close();
       newOutputStream.close();

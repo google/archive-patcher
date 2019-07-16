@@ -15,6 +15,8 @@
 package com.google.archivepatcher.generator;
 
 import com.google.archivepatcher.shared.bytesource.ByteSource;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,78 +24,118 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * A closeable container for a temp file that deletes itself on {@link #close()}. This is convenient
- * for try-with-resources constructs that need to use temp files in scope.
+ * A closeable container for a temp blob that deletes itself on {@link #close()}. This is convenient
+ * for try-with-resources constructs that need to use temp files in scope. The blob is moved to disk
+ * from memory when it exceeds {@code MAX_SIZE_IN_MEMORY_BYTES} in size.
  */
 public class TempBlob implements Closeable {
   /** The file that is wrapped by this blob. */
-  File file;
+  private File file;
+
+  static final int MAX_SIZE_IN_MEMORY_BYTES = 5 * 1024 * 1024;
+
+  static final long BITS_IN_BYTE = 8;
+
+  boolean inMemory = true;
+
+  private ByteArrayOutputStream byteArrayOutputStream;
+  private BufferedOutputStream bufferedFileOutputStream;
 
   /** If the OutputStream to this blob is still open. */
   private boolean isWriting = false;
+
+  /** If the blob has been closed for read/write. */
+  private boolean isClosed = false;
 
   /**
    * Create a new temp file and wrap it in an instance of this class. The file is automatically
    * scheduled for deletion on JVM termination, so it is a serious error to rely on this file path
    * being a durable artifact.
-   *
-   * @throws IOException if unable to create the file.
    */
-  public TempBlob() throws IOException {
-    createNewFile();
+  public TempBlob() {
+    byteArrayOutputStream = new ByteArrayOutputStream();
   }
 
   /** Obtain the content of this blob as {@link ByteSource}. */
   public ByteSource asByteSource() throws IOException {
-    if (isWriting) {
-      throw new IOException("A previous stream is still open for writing.");
-    }
-    return ByteSource.fromFile(file);
+    throwIOExceptionIfClosed();
+    throwIOExceptionIfWriting();
+    return inMemory
+        ? ByteSource.wrap(byteArrayOutputStream.toByteArray())
+        : ByteSource.fromFile(file);
   }
 
-  /** Returns an {@link OutputStream} to write to this blob. */
-  public OutputStream openOutputStream() throws IOException {
-    if (isWriting) {
-      throw new IOException("A previous stream is still open for writing.");
-    }
+  /** Returns a buffered {@link OutputStream} to write to this blob. */
+  public OutputStream openBufferedStream() throws IOException {
+    throwIOExceptionIfClosed();
+    throwIOExceptionIfWriting();
     isWriting = true;
-    FileOutputStream fileOutputStream = new FileOutputStream(file);
+    if (inMemory && byteArrayOutputStream == null) {
+      byteArrayOutputStream = new ByteArrayOutputStream();
+    }
     return new OutputStream() {
       @Override
       public void write(int b) throws IOException {
-        fileOutputStream.write(b);
+        copyToDiskIfRequired(Integer.SIZE / BITS_IN_BYTE);
+        getOutputStream().write(b);
       }
 
       @Override
       public void write(byte[] b, int off, int len) throws IOException {
-        fileOutputStream.write(b, off, len);
+        copyToDiskIfRequired(b.length);
+        getOutputStream().write(b, off, len);
       }
 
       @Override
       public void close() throws IOException {
         isWriting = false;
-        fileOutputStream.close();
+        getOutputStream().close();
       }
 
       @Override
       public void flush() throws IOException {
-        fileOutputStream.flush();
+        getOutputStream().flush();
+      }
+
+      private OutputStream getOutputStream() {
+        return inMemory ? byteArrayOutputStream : bufferedFileOutputStream;
+      }
+
+      private void copyToDiskIfRequired(long bytesToBeWritten) throws IOException {
+        if (inMemory
+            && byteArrayOutputStream.size() + bytesToBeWritten > MAX_SIZE_IN_MEMORY_BYTES) {
+          createNewFile();
+          bufferedFileOutputStream = new BufferedOutputStream(new FileOutputStream(file));
+          byteArrayOutputStream.writeTo(bufferedFileOutputStream);
+          inMemory = false;
+          byteArrayOutputStream = null;
+        }
       }
     };
   }
 
   /** Returns the size of the content written to this blob. */
-  public long length() {
-    return file.length();
+  public long length() throws IOException {
+    throwIOExceptionIfClosed();
+    return inMemory ? byteArrayOutputStream.size() : file.length();
   }
 
   /** Clears the content of this blob. */
   public void clear() throws IOException {
-    if (isWriting) {
-      throw new IOException("A previous stream is still open for writing.");
+    throwIOExceptionIfClosed();
+    throwIOExceptionIfWriting();
+    if (byteArrayOutputStream != null) {
+      byteArrayOutputStream.reset();
     }
-    file.delete();
-    createNewFile();
+    deleteFile();
+    inMemory = true;
+  }
+
+  @Override
+  public void close() {
+    byteArrayOutputStream = null;
+    deleteFile();
+    isClosed = true;
   }
 
   private void createNewFile() throws IOException {
@@ -101,8 +143,22 @@ public class TempBlob implements Closeable {
     file.deleteOnExit();
   }
 
-  @Override
-  public void close() {
-    file.delete();
+  private void deleteFile() {
+    if (file != null) {
+      file.delete();
+      file = null;
+    }
+  }
+
+  private void throwIOExceptionIfWriting() throws IOException {
+    if (isWriting) {
+      throw new IOException("A previous stream is still open for writing.");
+    }
+  }
+
+  private void throwIOExceptionIfClosed() throws IOException {
+    if (isClosed) {
+      throw new IOException("The blob is has been closed.");
+    }
   }
 }
