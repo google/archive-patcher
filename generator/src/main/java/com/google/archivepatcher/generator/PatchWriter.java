@@ -23,9 +23,8 @@ import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
@@ -153,20 +152,21 @@ public class PatchWriter {
 
     try (ByteSource inputBlobRange = oldBlob.slice(deltaEntry.oldBlobRange());
         ByteSource destBlobRange = newBlob.slice(deltaEntry.newBlobRange());
-        TempFileHolder deltaFile = new TempFileHolder()) {
-      try (FileOutputStream deltaFileOut = new FileOutputStream(deltaFile.file);
+        TempBlob deltaFile = new TempBlob()) {
+      try (OutputStream deltaFileOut = deltaFile.openOutputStream();
           BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaFileOut)) {
         DeltaGenerator deltaGenerator = deltaGeneratorFactory.create(deltaEntry.deltaFormat());
         deltaGenerator.generateDelta(inputBlobRange, destBlobRange, bufferedDeltaOut);
       }
 
       // Finally, the length of the delta and the delta itself.
-      outputStream.writeLong(deltaFile.file.length());
-      try (FileInputStream deltaIn = new FileInputStream(deltaFile.file)) {
-        copy(deltaIn, outputStream);
+      outputStream.writeLong(deltaFile.length());
+      try (ByteSource deltaSource = deltaFile.asByteSource()) {
+        try (InputStream deltaIn = deltaSource.openStream()) {
+          copy(deltaIn, outputStream);
+        }
       }
     }
   }
-
 }
 

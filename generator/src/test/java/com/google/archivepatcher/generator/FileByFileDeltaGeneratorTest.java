@@ -22,12 +22,14 @@ import static org.junit.Assume.assumeTrue;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.UnitTestZipArchive;
 import com.google.archivepatcher.shared.UnitTestZipEntry;
+import com.google.archivepatcher.shared.bytesource.ByteStreams;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
@@ -182,11 +184,15 @@ public class FileByFileDeltaGeneratorTest {
         new FileByFileDeltaGenerator(
             /* preDiffPlanEntryModifiers= */ ImmutableList.of(), supportedFormats, useNativeBsDiff);
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    try (TempFileHolder oldArchive = new TempFileHolder();
-        TempFileHolder newArchive = new TempFileHolder()) {
-      Files.write(oldArchive.file.toPath(), oldArchiveBytes);
-      Files.write(newArchive.file.toPath(), newArchiveBytes);
-      generator.generateDelta(oldArchive.file, newArchive.file, buffer);
+    try (TempBlob oldArchive = new TempBlob();
+        TempBlob newArchive = new TempBlob()) {
+      OutputStream oldOutputStream = oldArchive.openOutputStream();
+      ByteStreams.copy(new ByteArrayInputStream(oldArchiveBytes), oldOutputStream);
+      OutputStream newOutputStream = newArchive.openOutputStream();
+      ByteStreams.copy(new ByteArrayInputStream(newArchiveBytes), newOutputStream);
+      oldOutputStream.close();
+      newOutputStream.close();
+      generator.generateDelta(oldArchive.asByteSource(), newArchive.asByteSource(), buffer);
     }
     return buffer.toByteArray();
   }

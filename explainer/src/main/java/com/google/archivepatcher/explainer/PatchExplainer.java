@@ -14,8 +14,6 @@
 
 package com.google.archivepatcher.explainer;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-
 import com.google.archivepatcher.generator.ByteArrayHolder;
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.MinimalZipArchive;
@@ -24,7 +22,7 @@ import com.google.archivepatcher.generator.PreDiffExecutor;
 import com.google.archivepatcher.generator.PreDiffPlan;
 import com.google.archivepatcher.generator.PreDiffPlanEntry;
 import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
-import com.google.archivepatcher.generator.TempFileHolder;
+import com.google.archivepatcher.generator.TempBlob;
 import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.CountingOutputStream;
@@ -33,12 +31,12 @@ import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.Uncompressor;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
+import com.google.archivepatcher.shared.bytesource.ByteStreams;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -135,9 +133,9 @@ public class PatchExplainer {
               .build();
       plan = executor.prepareForDiffing();
     }
-    try (TempFileHolder oldTemp = new TempFileHolder();
-        TempFileHolder newTemp = new TempFileHolder();
-        TempFileHolder deltaTemp = new TempFileHolder()) {
+    try (TempBlob oldTemp = new TempBlob();
+        TempBlob newTemp = new TempBlob();
+        TempBlob deltaTemp = new TempBlob()) {
       for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
 
         // Short-circuit for identical resources.
@@ -177,38 +175,39 @@ public class PatchExplainer {
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
         if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressOldEntry) {
           uncompress(
-              oldFile,
-              preDiffPlanEntry.oldEntry().compressedDataRange(),
-              uncompressor,
-              oldTemp.file);
+              oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), uncompressor, oldTemp);
         } else {
-          extractCopy(oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), oldTemp.file);
+          oldTemp.clear();
+          extractCopy(oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), oldTemp);
         }
 
         // Get the inputs ready for running a delta: uncompress/copy the *new* content as necessary.
         if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressNewEntry) {
           uncompress(
-              newFile,
-              preDiffPlanEntry.newEntry().compressedDataRange(),
-              uncompressor,
-              newTemp.file);
+              newFile, preDiffPlanEntry.newEntry().compressedDataRange(), uncompressor, newTemp);
         } else {
-          extractCopy(newFile, preDiffPlanEntry.newEntry().compressedDataRange(), newTemp.file);
+          newTemp.clear();
+          extractCopy(newFile, preDiffPlanEntry.newEntry().compressedDataRange(), newTemp);
         }
 
         // File is actually changed (or transitioned between compressed and uncompressed forms).
         // Generate and compress a delta.
-        try (FileOutputStream deltaOut = new FileOutputStream(deltaTemp.file);
-            BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaOut)) {
-          deltaGenerator.generateDelta(oldTemp.file, newTemp.file, bufferedDeltaOut);
+        try (OutputStream deltaOut = deltaTemp.openOutputStream();
+            BufferedOutputStream bufferedDeltaOut = new BufferedOutputStream(deltaOut);
+            ByteSource oldTempSource = oldTemp.asByteSource();
+            ByteSource newTempSource = newTemp.asByteSource()) {
+          deltaGenerator.generateDelta(oldTempSource, newTempSource, bufferedDeltaOut);
           bufferedDeltaOut.flush();
-          long compressedDeltaSize =
-              getCompressedSize(deltaTemp.file, 0, deltaTemp.file.length(), compressor);
-          result.add(
-              EntryExplanation.forOld(
-                  new ByteArrayHolder(preDiffPlanEntry.oldEntry().fileNameBytes()),
-                  compressedDeltaSize,
-                  preDiffPlanEntry.uncompressionOptionExplanation()));
+          bufferedDeltaOut.close();
+          try (ByteSource deltaTempSource = deltaTemp.asByteSource()) {
+            long compressedDeltaSize =
+                getCompressedSize(deltaTempSource, 0, deltaTempSource.length(), compressor);
+            result.add(
+                EntryExplanation.forOld(
+                    new ByteArrayHolder(preDiffPlanEntry.oldEntry().fileNameBytes()),
+                    compressedDeltaSize,
+                    preDiffPlanEntry.uncompressionOptionExplanation()));
+          }
         }
       }
     }
@@ -218,19 +217,58 @@ public class PatchExplainer {
 
   /**
    * Determines the size of the entry if it were compressed with the specified compressor.
+   *
    * @param file the file to read from
    * @param entry the entry to estimate the size of
    * @param compressor the compressor to use for compressing
    * @return the size of the entry if compressed with the specified compressor
    * @throws IOException if anything goes wrong
    */
-  private long getCompressedSize(File file, MinimalZipEntry entry, Compressor compressor)
+  private static long getCompressedSize(File file, MinimalZipEntry entry, Compressor compressor)
       throws IOException {
     return getCompressedSize(
         file,
         entry.compressedDataRange().offset(),
         entry.compressedDataRange().length(),
         compressor);
+  }
+
+  /**
+   * Compresses an arbitrary range of bytes in the given file and returns the compressed size.
+   *
+   * @param file the file to read from
+   * @param offset the offset in the file to start reading from
+   * @param length the number of bytes to read from the input file
+   * @param compressor the compressor to use for compressing
+   * @return the size of the entry if compressed with the specified compressor
+   * @throws IOException if anything goes wrong
+   */
+  private static long getCompressedSize(File file, long offset, long length, Compressor compressor)
+      throws IOException {
+    try (ByteSource byteSource = ByteSource.fromFile(file)) {
+      return getCompressedSize(byteSource, offset, length, compressor);
+    }
+  }
+
+  /**
+   * Compresses an arbitrary range of bytes from the given blob and returns the compressed size.
+   *
+   * @param byteSource the byte source to read from
+   * @param offset the offset in the file to start reading from
+   * @param length the number of bytes to read from the input file
+   * @param compressor the compressor to use for compressing
+   * @return the size of the entry if compressed with the specified compressor
+   * @throws IOException if anything goes wrong
+   */
+  private static long getCompressedSize(
+      ByteSource byteSource, long offset, long length, Compressor compressor) throws IOException {
+    try (OutputStream sink = new NullOutputStream();
+        CountingOutputStream counter = new CountingOutputStream(sink);
+        InputStream rafis = byteSource.slice(offset, length).openStream()) {
+      compressor.compress(rafis, counter);
+      counter.flush();
+      return counter.getNumBytesWritten();
+    }
   }
 
   /**
@@ -242,13 +280,13 @@ public class PatchExplainer {
    * @param dest the file to write the uncompressed bytes to
    * @throws IOException if anything goes wrong
    */
-  private void uncompress(
-      File source, Range rangeToUncompress, Uncompressor uncompressor, File dest)
+  private static void uncompress(
+      File source, Range rangeToUncompress, Uncompressor uncompressor, TempBlob dest)
       throws IOException {
     try (RandomAccessFileInputStream rafis =
             new RandomAccessFileInputStream(
                 source, rangeToUncompress.offset(), rangeToUncompress.length());
-        FileOutputStream out = new FileOutputStream(dest);
+        OutputStream out = dest.openOutputStream();
         BufferedOutputStream bufferedOut = new BufferedOutputStream(out)) {
       uncompressor.uncompress(rafis, bufferedOut);
     }
@@ -261,36 +299,20 @@ public class PatchExplainer {
    * @param dest the file to write the uncompressed bytes to
    * @throws IOException if anything goes wrong
    */
-  private void extractCopy(File source, Range rangeToExtract, File dest) throws IOException {
-    try (RandomAccessFileInputStream rafis =
-        new RandomAccessFileInputStream(source, rangeToExtract.offset(), rangeToExtract.length())) {
-      Files.copy(rafis, dest.toPath(), REPLACE_EXISTING);
-    }
-  }
-
-  /**
-   * Compresses an arbitrary range of bytes in the given file and returns the compressed size.
-   * @param file the file to read from
-   * @param offset the offset in the file to start reading from
-   * @param length the number of bytes to read from the input file
-   * @param compressor the compressor to use for compressing
-   * @return the size of the entry if compressed with the specified compressor
-   * @throws IOException if anything goes wrong
-   */
-  private long getCompressedSize(File file, long offset, long length, Compressor compressor)
+  private static void extractCopy(File source, Range rangeToExtract, TempBlob dest)
       throws IOException {
-    try (OutputStream sink = new NullOutputStream();
-        CountingOutputStream counter = new CountingOutputStream(sink);
-        RandomAccessFileInputStream rafis = new RandomAccessFileInputStream(file, offset, length)) {
-      compressor.compress(rafis, counter);
-      counter.flush();
-      return counter.getNumBytesWritten();
+    try (RandomAccessFileInputStream rafis =
+            new RandomAccessFileInputStream(
+                source, rangeToExtract.offset(), rangeToExtract.length());
+        OutputStream outputStream = new BufferedOutputStream(dest.openOutputStream())) {
+      ByteStreams.copy(rafis, outputStream);
     }
   }
 
   /**
    * Convert a file into a map whose keys are {@link ByteArrayHolder} objects containing the entry
    * paths and whose values are the corresponding {@link MinimalZipEntry} objects.
+   *
    * @param file the file to scan, which must be a valid zip archive
    * @return the mapping, as described
    * @throws IOException if anything goes wrong

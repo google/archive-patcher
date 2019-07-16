@@ -99,21 +99,21 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   @Override
   public void generateDelta(ByteSource oldBlob, ByteSource newBlob, OutputStream patchOut)
       throws IOException, InterruptedException {
-    try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder()) {
+    try (TempBlob deltaFriendlyOldFile = new TempBlob();
+        TempBlob deltaFriendlyNewFile = new TempBlob()) {
       PreDiffPlan preDiffPlan =
           generatePreDiffPlanAndPrepareBlobs(
               oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
 
-      try (ByteSource deltaFriendlyOldBlob = ByteSource.fromFile(deltaFriendlyOldFile.file);
-          ByteSource deltaFriendlyNewBlob = ByteSource.fromFile(deltaFriendlyNewFile.file)) {
+      try (ByteSource deltaFriendlyOldBlob = deltaFriendlyOldFile.asByteSource();
+          ByteSource deltaFriendlyNewBlob = deltaFriendlyNewFile.asByteSource()) {
         List<DeltaEntry> deltaEntries =
             getDeltaEntries(
                 preDiffPlan.getPreDiffPlanEntries(), deltaFriendlyOldBlob, deltaFriendlyNewBlob);
         PatchWriter patchWriter =
             new PatchWriter(
                 preDiffPlan,
-                deltaFriendlyOldFile.file.length(),
+                deltaFriendlyOldFile.length(),
                 deltaEntries,
                 deltaFriendlyOldBlob,
                 deltaFriendlyNewBlob,
@@ -132,8 +132,8 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
    */
   public PreDiffPlan generatePreDiffPlanAndPrepareBlobs(File oldFile, File newFile)
       throws IOException {
-    try (TempFileHolder deltaFriendlyOldFile = new TempFileHolder();
-        TempFileHolder deltaFriendlyNewFile = new TempFileHolder();
+    try (TempBlob deltaFriendlyOldFile = new TempBlob();
+        TempBlob deltaFriendlyNewFile = new TempBlob();
         ByteSource oldBlob = ByteSource.fromFile(oldFile);
         ByteSource newBlob = ByteSource.fromFile(newFile)) {
       return generatePreDiffPlanAndPrepareBlobs(
@@ -144,14 +144,14 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   private PreDiffPlan generatePreDiffPlanAndPrepareBlobs(
       ByteSource oldFile,
       ByteSource newFile,
-      TempFileHolder deltaFriendlyOldFile,
-      TempFileHolder deltaFriendlyNewFile,
+      TempBlob deltaFriendlyOldFile,
+      TempBlob deltaFriendlyNewFile,
       Set<DeltaFormat> supportedDeltaFormats)
       throws IOException {
     PreDiffExecutor executor =
         new PreDiffExecutor.Builder()
             .readingOriginalFiles(oldFile, newFile)
-            .writingDeltaFriendlyFiles(deltaFriendlyOldFile.file, deltaFriendlyNewFile.file)
+            .writingDeltaFriendlyFiles(deltaFriendlyOldFile, deltaFriendlyNewFile)
             .addPreDiffPlanEntryModifiers(preDiffPlanEntryModifiers)
             .addSupportedDeltaFormats(supportedDeltaFormats)
             .build();

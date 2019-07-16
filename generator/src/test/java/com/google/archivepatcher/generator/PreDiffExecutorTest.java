@@ -23,9 +23,7 @@ import com.google.archivepatcher.shared.UnitTestZipEntry;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -48,14 +46,14 @@ public class PreDiffExecutorTest {
       UnitTestZipArchive.makeUnitTestZipEntry("/for/great/justice", 9, "entry A", null);
 
   private List<File> tempFilesCreated;
-  private File deltaFriendlyOldFile;
-  private File deltaFriendlyNewFile;
+  private TempBlob deltaFriendlyOldFile;
+  private TempBlob deltaFriendlyNewFile;
 
   @Before
   public void setup() throws IOException {
     tempFilesCreated = new LinkedList<File>();
-    deltaFriendlyOldFile = newTempFile();
-    deltaFriendlyNewFile = newTempFile();
+    deltaFriendlyOldFile = new TempBlob();
+    deltaFriendlyNewFile = new TempBlob();
   }
 
   @After
@@ -106,22 +104,6 @@ public class PreDiffExecutorTest {
     return null; // Never executed
   }
 
-  private byte[] readFile(File file) throws IOException {
-    byte[] result = new byte[(int) file.length()];
-    try (FileInputStream fis = new FileInputStream(file);
-        DataInputStream dis = new DataInputStream(fis)) {
-      dis.readFully(result);
-    }
-    return result;
-  }
-
-  private void assertFileEquals(File file1, File file2) throws IOException {
-    assertThat(file2.length()).isEqualTo(file1.length());
-    byte[] content1 = readFile(file1);
-    byte[] content2 = readFile(file2);
-    assertThat(content2).isEqualTo(content1);
-  }
-
   @Test
   public void testPrepareForDiffing_OneCompressedEntry_Unchanged() throws IOException {
     byte[] bytes = UnitTestZipArchive.makeTestZip(ImmutableList.of(ENTRY_LEVEL_6));
@@ -144,8 +126,8 @@ public class PreDiffExecutorTest {
     assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan()).isEmpty();
     // Because nothing has changed, the delta-friendly files should be exact matches for the
     // original files.
-    assertFileEquals(oldFile, deltaFriendlyOldFile);
-    assertFileEquals(newFile, deltaFriendlyNewFile);
+    assertEqualBytes(bytes, deltaFriendlyOldFile);
+    assertEqualBytes(bytes, deltaFriendlyNewFile);
   }
 
   @Test
@@ -197,9 +179,8 @@ public class PreDiffExecutorTest {
           (int) (oldEntry.compressedDataRange().offset() + oldEntry.compressedDataRange().length());
       int oldRemainderLength = oldBytes.length - oldRemainderOffset;
       expectedDeltaFriendlyOldFileBytes.write(oldBytes, oldRemainderOffset, oldRemainderLength);
-      byte[] expectedOld = expectedDeltaFriendlyOldFileBytes.toByteArray();
-      byte[] actualOld = readFile(deltaFriendlyOldFile);
-      assertThat(actualOld).isEqualTo(expectedOld);
+      assertEqualBytes(
+          expectedDeltaFriendlyOldFileBytes.toByteArray(), deltaFriendlyOldFile);
     }
 
     // Now do the same for the new file and new entry
@@ -213,9 +194,8 @@ public class PreDiffExecutorTest {
           (int) (newEntry.compressedDataRange().offset() + newEntry.compressedDataRange().length());
       int newRemainderLength = newBytes.length - newRemainderOffset;
       expectedDeltaFriendlyNewFileBytes.write(newBytes, newRemainderOffset, newRemainderLength);
-      byte[] expectedNew = expectedDeltaFriendlyNewFileBytes.toByteArray();
-      byte[] actualNew = readFile(deltaFriendlyNewFile);
-      assertThat(actualNew).isEqualTo(expectedNew);
+      assertEqualBytes(
+          expectedDeltaFriendlyNewFileBytes.toByteArray(), deltaFriendlyNewFile);
     }
   }
 
@@ -246,7 +226,13 @@ public class PreDiffExecutorTest {
     assertThat(plan.getDeltaFriendlyNewFileRecompressionPlan()).isEmpty();
     // Because nothing has changed, the delta-friendly files should be exact matches for the
     // original files.
-    assertFileEquals(oldFile, deltaFriendlyOldFile);
-    assertFileEquals(newFile, deltaFriendlyNewFile);
+    assertEqualBytes(oldBytes, deltaFriendlyOldFile);
+    assertEqualBytes(newBytes, deltaFriendlyNewFile);
+  }
+
+  private static void assertEqualBytes(byte[] expected, TempBlob actual) throws IOException {
+    byte[] deltaFriendlyContent = new byte[(int) actual.length()];
+    actual.asByteSource().openStream().read(deltaFriendlyContent);
+    assertThat(deltaFriendlyContent).isEqualTo(expected);
   }
 }
