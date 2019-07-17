@@ -27,7 +27,6 @@ import com.google.archivepatcher.generator.UncompressionOptionExplanation;
 import com.google.archivepatcher.shared.Compressor;
 import com.google.archivepatcher.shared.CountingOutputStream;
 import com.google.archivepatcher.shared.DeflateUncompressor;
-import com.google.archivepatcher.shared.RandomAccessFileInputStream;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.Uncompressor;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
@@ -88,6 +87,15 @@ public class PatchExplainer {
     this.deltaGenerator = deltaGenerator;
   }
 
+  /** Wrapper around {@link #explainPatch(ByteSource, ByteSource, PreDiffPlanEntryModifier...)}. */
+  public List<EntryExplanation> explainPatch(
+      File oldFile, File newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
+      throws IOException, InterruptedException {
+    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
+        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+      return explainPatch(oldBlob, newBlob, preDiffPlanEntryModifiers);
+    }
+  }
   /**
    * Explains the patch that would be generated for the specified input files.
    *
@@ -100,7 +108,7 @@ public class PatchExplainer {
    * @throws InterruptedException if any thread interrupts this thread
    */
   public List<EntryExplanation> explainPatch(
-      File oldFile, File newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
+      ByteSource oldFile, ByteSource newFile, PreDiffPlanEntryModifier... preDiffPlanEntryModifiers)
       throws IOException, InterruptedException {
     if (preDiffPlanEntryModifiers == null) {
       throw new IllegalArgumentException("preDiffPlanEntryModifiers cannot be null");
@@ -122,16 +130,13 @@ public class PatchExplainer {
     }
 
     Uncompressor uncompressor = new DeflateUncompressor();
-    PreDiffPlan plan;
-    try (ByteSource oldBlob = ByteSource.fromFile(oldFile);
-        ByteSource newBlob = ByteSource.fromFile(newFile)) {
-      PreDiffExecutor executor =
-          new PreDiffExecutor.Builder()
-              .readingOriginalFiles(oldBlob, newBlob)
-              .addPreDiffPlanEntryModifiers(Arrays.asList(preDiffPlanEntryModifiers))
-              .build();
-      plan = executor.prepareForDiffing();
-    }
+    PreDiffExecutor executor =
+        new PreDiffExecutor.Builder()
+            .readingOriginalFiles(oldFile, newFile)
+            .addPreDiffPlanEntryModifiers(Arrays.asList(preDiffPlanEntryModifiers))
+            .build();
+    PreDiffPlan plan = executor.prepareForDiffing();
+
     try (TempBlob oldTemp = new TempBlob();
         TempBlob newTemp = new TempBlob();
         TempBlob deltaTemp = new TempBlob()) {
@@ -220,30 +225,13 @@ public class PatchExplainer {
    * @return the size of the entry if compressed with the specified compressor
    * @throws IOException if anything goes wrong
    */
-  private static long getCompressedSize(File file, MinimalZipEntry entry, Compressor compressor)
-      throws IOException {
+  private static long getCompressedSize(
+      ByteSource file, MinimalZipEntry entry, Compressor compressor) throws IOException {
     return getCompressedSize(
         file,
         entry.compressedDataRange().offset(),
         entry.compressedDataRange().length(),
         compressor);
-  }
-
-  /**
-   * Compresses an arbitrary range of bytes in the given file and returns the compressed size.
-   *
-   * @param file the file to read from
-   * @param offset the offset in the file to start reading from
-   * @param length the number of bytes to read from the input file
-   * @param compressor the compressor to use for compressing
-   * @return the size of the entry if compressed with the specified compressor
-   * @throws IOException if anything goes wrong
-   */
-  private static long getCompressedSize(File file, long offset, long length, Compressor compressor)
-      throws IOException {
-    try (ByteSource byteSource = ByteSource.fromFile(file)) {
-      return getCompressedSize(byteSource, offset, length, compressor);
-    }
   }
 
   /**
@@ -277,13 +265,11 @@ public class PatchExplainer {
    * @throws IOException if anything goes wrong
    */
   private static void uncompress(
-      File source, Range rangeToUncompress, Uncompressor uncompressor, TempBlob dest)
+      ByteSource source, Range rangeToUncompress, Uncompressor uncompressor, TempBlob dest)
       throws IOException {
-    try (RandomAccessFileInputStream rafis =
-            new RandomAccessFileInputStream(
-                source, rangeToUncompress.offset(), rangeToUncompress.length());
+    try (InputStream in = source.slice(rangeToUncompress).openStream();
         OutputStream out = dest.openBufferedStream()) {
-      uncompressor.uncompress(rafis, out);
+      uncompressor.uncompress(in, out);
     }
   }
 
@@ -294,13 +280,11 @@ public class PatchExplainer {
    * @param dest the file to write the uncompressed bytes to
    * @throws IOException if anything goes wrong
    */
-  private static void extractCopy(File source, Range rangeToExtract, TempBlob dest)
+  private static void extractCopy(ByteSource source, Range rangeToExtract, TempBlob dest)
       throws IOException {
-    try (RandomAccessFileInputStream rafis =
-            new RandomAccessFileInputStream(
-                source, rangeToExtract.offset(), rangeToExtract.length());
-        OutputStream outputStream = dest.openBufferedStream()) {
-      ByteStreams.copy(rafis, outputStream);
+    try (InputStream in = source.slice(rangeToExtract).openStream();
+        OutputStream out = dest.openBufferedStream()) {
+      ByteStreams.copy(in, out);
     }
   }
 
@@ -312,7 +296,8 @@ public class PatchExplainer {
    * @return the mapping, as described
    * @throws IOException if anything goes wrong
    */
-  private static Map<ByteArrayHolder, MinimalZipEntry> mapEntries(File file) throws IOException {
+  private static Map<ByteArrayHolder, MinimalZipEntry> mapEntries(ByteSource file)
+      throws IOException {
     List<MinimalZipEntry> allEntries = MinimalZipArchive.listEntries(file);
     Map<ByteArrayHolder, MinimalZipEntry> result = new HashMap<>(allEntries.size());
     for (MinimalZipEntry entry : allEntries) {
