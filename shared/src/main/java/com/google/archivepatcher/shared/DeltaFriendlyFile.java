@@ -15,7 +15,6 @@
 package com.google.archivepatcher.shared;
 
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,14 +27,8 @@ import java.util.List;
 public class DeltaFriendlyFile {
 
   /**
-   * The default size of the copy buffer to use for copying between streams.
-   */
-  public static final int DEFAULT_COPY_BUFFER_SIZE = 32768;
-
-  /**
    * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
-   * generateInverse</code> set to <code>true</code> and a copy buffer size of {@link
-   * #DEFAULT_COPY_BUFFER_SIZE}.
+   * generateInverse</code> set to <code>true</code>.
    *
    * @param <T> the type of the data associated with the ranges
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
@@ -55,8 +48,7 @@ public class DeltaFriendlyFile {
 
   /**
    * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
-   * generateInverse</code> set to <code>false</code> and a copy buffer size of {@link
-   * #DEFAULT_COPY_BUFFER_SIZE}.
+   * generateInverse</code> set to <code>false</code>.
    *
    * @param rangesToUncompress the ranges to be uncompressed during transformation to a
    *     delta-friendly form
@@ -69,54 +61,8 @@ public class DeltaFriendlyFile {
   public static void generateDeltaFriendlyFile(
       List<Range> rangesToUncompress, ByteSource data, OutputStream deltaFriendlyOut)
       throws IOException {
-    generateDeltaFriendlyFile(rangesToUncompress, data, deltaFriendlyOut, DEFAULT_COPY_BUFFER_SIZE);
-  }
-
-  /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean, int)} with
-   * <code>
-   * generateInverse</code> set to <code>false</code> and a copy buffer size of {@link
-   * #DEFAULT_COPY_BUFFER_SIZE}.
-   *
-   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
-   *     delta-friendly form
-   * @param data the original archive
-   * @param deltaFriendlyOut a stream to write the delta-friendly file to
-   * @return the ranges in the delta-friendly file that correspond to the ranges in the original
-   *     file, with identical metadata and in the same order
-   * @throws IOException if anything goes wrong
-   */
-  public static void generateDeltaFriendlyFile(
-      List<Range> rangesToUncompress,
-      ByteSource data,
-      OutputStream deltaFriendlyOut,
-      int copyBufferSize)
-      throws IOException {
     generateDeltaFriendlyFile(
         wrapRanges(rangesToUncompress), data, deltaFriendlyOut, /* generateInverse= */ false);
-  }
-
-  /**
-   * Invoke {@link #generateDeltaFriendlyFile(List, ByteSource, OutputStream, boolean)} with <code>
-   * generateInverse</code> set to <code>false</code> and the specified copy buffer size.
-   *
-   * @param rangesToUncompress the ranges to be uncompressed during transformation to a
-   *     delta-friendly form
-   * @param blob the original archive
-   * @param deltaFriendlyOut a stream to write the delta-friendly file to
-   * @return the ranges in the delta-friendly file that correspond to the ranges in the original
-   *     file, with identical metadata and in the same order
-   * @throws IOException if anything goes wrong
-   */
-  public static void generateDeltaFriendlyFile(
-      List<Range> rangesToUncompress, File blob, OutputStream deltaFriendlyOut) throws IOException {
-    try (ByteSource byteSource = ByteSource.fromFile(blob)) {
-      generateDeltaFriendlyFile(
-          wrapRanges(rangesToUncompress),
-          byteSource,
-          deltaFriendlyOut,
-          /* generateInverse= */ false);
-    }
   }
 
   /**
