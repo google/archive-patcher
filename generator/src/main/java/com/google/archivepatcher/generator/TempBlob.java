@@ -26,33 +26,40 @@ import java.io.OutputStream;
 /**
  * A closeable container for a temp blob that deletes itself on {@link #close()}. This is convenient
  * for try-with-resources constructs that need to use temp files in scope. The blob is moved to disk
- * from memory when it exceeds {@code MAX_SIZE_IN_MEMORY_BYTES} in size.
+ * from memory when it exceeds {@link #maxBytesInMemory} in size.
  */
 public class TempBlob implements Closeable {
+
+  private static final long BITS_IN_BYTE = 8;
+
+  private final int maxBytesInMemory;
   /** The file that is wrapped by this blob. */
   private File file;
-
-  static final int MAX_SIZE_IN_MEMORY_BYTES = 5 * 1024 * 1024;
-
-  static final long BITS_IN_BYTE = 8;
-
-  boolean inMemory = true;
-
+  private boolean inMemory = true;
   private ByteArrayOutputStream byteArrayOutputStream;
   private BufferedOutputStream bufferedFileOutputStream;
-
   /** If the OutputStream to this blob is still open. */
   private boolean isWriting = false;
-
   /** If the blob has been closed for read/write. */
   private boolean isClosed = false;
 
   /**
-   * Create a new temp file and wrap it in an instance of this class. The file is automatically
-   * scheduled for deletion on JVM termination, so it is a serious error to rely on this file path
-   * being a durable artifact.
+   * Create a new in-memory blob which is moved to a file on-disk when blob size exceeds 5MiB. All
+   * data files will be destroyed on {@link #close()}
    */
   public TempBlob() {
+    this(5 * 1024 * 1024);
+  }
+
+  /**
+   * Create a new in-memory blob which is moved to a file on-disk when blob size exceeds {@code
+   * maxBytesInMemory} bytes. All data files will be destroyed on {@link #close()}
+   *
+   * @param maxBytesInMemory Size in bytes exceeding which the data is moved from being in-memory to
+   *     on-disk.
+   */
+  public TempBlob(int maxBytesInMemory) {
+    this.maxBytesInMemory = maxBytesInMemory;
     byteArrayOutputStream = new ByteArrayOutputStream();
   }
 
@@ -63,6 +70,11 @@ public class TempBlob implements Closeable {
     return inMemory
         ? ByteSource.wrap(byteArrayOutputStream.toByteArray())
         : ByteSource.fromFile(file);
+  }
+
+  /** If the blob is stored in memory or on disk. */
+  public boolean isInMemory() {
+    return inMemory;
   }
 
   /** Returns a buffered {@link OutputStream} to write to this blob. */
@@ -102,8 +114,7 @@ public class TempBlob implements Closeable {
       }
 
       private void copyToDiskIfRequired(long bytesToBeWritten) throws IOException {
-        if (inMemory
-            && byteArrayOutputStream.size() + bytesToBeWritten > MAX_SIZE_IN_MEMORY_BYTES) {
+        if (inMemory && byteArrayOutputStream.size() + bytesToBeWritten > maxBytesInMemory) {
           createNewFile();
           bufferedFileOutputStream = new BufferedOutputStream(new FileOutputStream(file));
           byteArrayOutputStream.writeTo(bufferedFileOutputStream);
