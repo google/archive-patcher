@@ -21,7 +21,6 @@ import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -126,16 +125,14 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
   /**
    * Generate a V1 patch pre diffing plan.
    *
-   * @param oldFile the original old file to read (will not be modified)
-   * @param newFile the original new file to read (will not be modified)
+   * @param oldBlob the original old blob to read (will not be modified)
+   * @param newBlob the original new blob to read (will not be modified)
    * @throws IOException if unable to complete the operation due to an I/O error
    */
-  public PreDiffPlan generatePreDiffPlanAndPrepareBlobs(File oldFile, File newFile)
+  public PreDiffPlan generatePreDiffPlanAndPrepareBlobs(ByteSource oldBlob, ByteSource newBlob)
       throws IOException {
     try (TempBlob deltaFriendlyOldFile = new TempBlob();
-        TempBlob deltaFriendlyNewFile = new TempBlob();
-        ByteSource oldBlob = ByteSource.fromFile(oldFile);
-        ByteSource newBlob = ByteSource.fromFile(newFile)) {
+        TempBlob deltaFriendlyNewFile = new TempBlob()) {
       return generatePreDiffPlanAndPrepareBlobs(
           oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
     }

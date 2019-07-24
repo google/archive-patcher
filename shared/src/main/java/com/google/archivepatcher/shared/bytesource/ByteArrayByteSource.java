@@ -46,4 +46,12 @@ public class ByteArrayByteSource extends ByteSource {
   public void close() throws IOException {
     // Nothing needs to be done.
   }
+
+  /**
+   * Getter for the underlying byte array for cases where we absolutely needs it, e.g., passing file
+   * name to native API.
+   */
+  public byte[] getByteArray() {
+    return buffer;
+  }
 }

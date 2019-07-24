@@ -186,12 +186,11 @@ public class FileByFileDeltaGeneratorTest {
     ByteArrayOutputStream buffer = new ByteArrayOutputStream();
     try (TempBlob oldArchive = new TempBlob();
         TempBlob newArchive = new TempBlob()) {
-      OutputStream oldOutputStream = oldArchive.openBufferedStream();
-      ByteStreams.copy(new ByteArrayInputStream(oldArchiveBytes), oldOutputStream);
-      OutputStream newOutputStream = newArchive.openBufferedStream();
-      ByteStreams.copy(new ByteArrayInputStream(newArchiveBytes), newOutputStream);
-      oldOutputStream.close();
-      newOutputStream.close();
+      try (OutputStream oldOutputStream = oldArchive.openBufferedStream();
+          OutputStream newOutputStream = newArchive.openBufferedStream()) {
+        ByteStreams.copy(new ByteArrayInputStream(oldArchiveBytes), oldOutputStream);
+        ByteStreams.copy(new ByteArrayInputStream(newArchiveBytes), newOutputStream);
+      }
       generator.generateDelta(oldArchive.asByteSource(), newArchive.asByteSource(), buffer);
     }
     return buffer.toByteArray();
