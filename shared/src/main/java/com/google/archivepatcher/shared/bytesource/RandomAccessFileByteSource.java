@@ -16,6 +16,7 @@ package com.google.archivepatcher.shared.bytesource;
 
 import com.google.archivepatcher.shared.Closeables;
 import com.google.archivepatcher.shared.RandomAccessFileInputStream;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,6 +37,11 @@ public class RandomAccessFileByteSource extends FileByteSource {
 
   public RandomAccessFileByteSource(File file) throws IOException {
     super(file);
+  }
+
+  @Override
+  public InputStream openBufferedStream() throws IOException {
+    return new BufferedInputStream(openStream(0, length()));
   }
 
   @Override

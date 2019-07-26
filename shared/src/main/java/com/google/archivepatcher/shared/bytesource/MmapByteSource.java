@@ -51,6 +51,11 @@ public class MmapByteSource extends FileByteSource {
     }
   }
 
+  @Override
+  public InputStream openBufferedStream() throws IOException {
+    return openStream(0, length());
+  }
+
   /**
    * Note that this method is not thread safe since all streams will be sharing the same ByteBuffer.
    */

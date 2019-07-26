@@ -51,6 +51,9 @@ public abstract class ByteSource implements Closeable {
     return openStream(0, length());
   }
 
+  /** Returns a {@link java.io.BufferedInputStream} for reading from this {@link ByteSource}. */
+  public abstract InputStream openBufferedStream() throws IOException;
+
   /**
    * Opens an {@link InputStream} starting at byte offset {@code offset} with length {@code length}
    * in this {@link ByteSource}.

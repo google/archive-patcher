@@ -38,6 +38,11 @@ public class ByteArrayByteSource extends ByteSource {
   }
 
   @Override
+  public InputStream openBufferedStream() throws IOException {
+    return openStream(0, length());
+  }
+
+  @Override
   protected InputStream openStream(long offset, long length) throws IOException {
     return new ByteArrayInputStream(buffer, (int) offset, (int) length);
   }
