@@ -87,6 +87,14 @@ public class TempBlobTest {
   }
 
   @Test
+  public void testFinalizingClosesTempBlob() throws Exception {
+    TempBlob tempBlob = new TempBlob();
+    tempBlob.finalize();
+
+    assertThrows(IOException.class, tempBlob::asByteSource);
+  }
+
+  @Test
   public void testWriteToMemory() throws Exception {
     byte[] expected = new byte[] {2, 4, 0, 8};
     TempBlob tempBlob = new TempBlob();

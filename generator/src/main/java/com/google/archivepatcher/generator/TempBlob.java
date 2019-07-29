@@ -149,6 +149,13 @@ public class TempBlob implements Closeable {
     isClosed = true;
   }
 
+  @Override
+  protected void finalize() {
+    // Close TempBlob in case callers forgot to do so.
+    // There is a risk that we pile up temp file orphans without this.
+    close();
+  }
+
   private void createNewFile() throws IOException {
     file = File.createTempFile("archive_patcher", "tmp");
     file.deleteOnExit();
