@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.applier.gdiff;
 
+import static com.google.archivepatcher.shared.bytesource.ByteStreams.COPY_BUFFER_SIZE;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -22,6 +23,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.Random;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,39 +38,138 @@ import org.junit.runners.JUnit4;
  */
 @RunWith(JUnit4.class)
 public class GdiffTest {
+
+  private static final byte[] INPUT_1 =
+      new byte[] {
+          (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G'
+      };
+  private static final byte[] INPUT_2 =
+      new byte[] {
+          (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
+          (byte) 'H', (byte) 'I', (byte) 'J'
+      };
+  private static final byte[] INPUT_3 =
+      new byte[] {
+          (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
+          (byte) 'H'
+      };
+  private static final String INPUT_4_FILE_NAME = "source.zip";
+
+  /** Normal patch used for basic tests. */
+  private static final byte[] PATCH_1 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,  // magic + version
+          (byte) 249, 0, 0, 2,                                           // COPY_USHORT_UBYTE 0, 2
+          (byte) 2, (byte) 'X', (byte) 'Y',                              // DATA_2
+          (byte) 249, 0, 2, 2,                                           // COPY_USHORT_UBYTE 2, 2
+          (byte) 249, 0, 1, 4,                                           // COPY_USHORT_UBYTE 1, 4
+          0                                                              // EOF
+      };
   /**
-   * Very lightweight smoke test using example in http://www.w3.org/TR/NOTE-gdiff-19970901
+   * Used to test:
+   *
+   * <ul>
+   *   <li> Each opcode except for the full range of data opcodes.
+   *   <li> Input underruns (input terminates earlier than expected)
+   *   <li> Output overruns
+   * </ul>
    */
+  private static final byte[] PATCH_2 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,  // magic + version
+          (byte) 1, (byte) 'X',                                          // DATA_MIN (DATA_1)
+          (byte) 247, 0, 1, (byte) 'Y',                                  // DATA_USHORT
+          (byte) 248, 0, 0, 0, 1, (byte) 'Z',                            // DATA_INT
+          (byte) 249, 0, 0, 2,                                           // COPY_USHORT_UBYTE
+          (byte) 250, 0, 1, 0, 2,                                        // COPY_USHORT_USHORT
+          (byte) 251, 0, 2, 0, 0, 0, 2,                                  // COPY_USHORT_INT
+          (byte) 252, 0, 0, 0, 3, 2,                                     // COPY_INT_UBYTE
+          (byte) 253, 0, 0, 0, 4, 0, 2,                                  // COPY_INT_USHORT
+          (byte) 254, 0, 0, 0, 5, 0, 0, 0, 2,                            // COPY_INT_INT
+          (byte) 255, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 2,                // COPY_LONG_INT
+          0                                                              // EOF
+      };
+  /** Used to test patch underruns (patch terminates earlier than expected). */
+  private static final byte[] PATCH_3 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,  // magic + version
+          (byte) 249, 0, 0, 2,                                           // COPY_USHORT_UBYTE 0, 2
+          (byte) 2, (byte) 'X', (byte) 'Y',                              // DATA_2
+          (byte) 249, 0, 2, 2,                                           // COPY_USHORT_UBYTE 2, 2
+          (byte) 249, 0, 1, 4,                                           // COPY_USHORT_UBYTE 1, 4
+          0                                                              // EOF
+      };
+  /** Used to test a negative DATA_INT error. */
+  private static final byte[] PATCH_4 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,  // magic + version
+          (byte) 248, (byte) 255, (byte) 255, (byte) 255, (byte) 255,    // DATA_INT
+          (byte) 'Y',
+          0                                                              // EOF
+      };
+  /** Used to test a negative COPY_USHORT_INT error. */
+  private static final byte[] PATCH_5 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,      // magic + version
+          (byte) 251, 0, 0, (byte) 255, (byte) 255, (byte) 255, (byte) 255,  // COPY_USHORT_INT
+          0                                                                  // EOF
+      };
+  /** Used to test a negative COPY_INT_UBYTE error. */
+  private static final byte[] PATCH_6 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,   // magic + version
+          (byte) 252, (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0,  // COPY_INT_UBYTE
+          0                                                               // EOF
+      };
+  /** Used to test a negative COPY_LONG_INT error. */
+  private static final byte[] PATCH_7 =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,   // magic + version
+          (byte) 255, (byte) 255, (byte) 255, (byte) 255, (byte) 255,     // COPY_LONG_INT
+          (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0, 0, 0         // EOF
+      };
+  private static final String PATCH_8_FILE_NAME = "patch.gdiff";
+
+  private static final byte[] MAGIC_VERSION_PREFIX =
+      new byte[] {
+          (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4
+      };
+
+  private static final byte[] OUTPUT_1 =
+      new byte[] {
+          (byte) 'A', (byte) 'B', (byte) 'X', (byte) 'Y', (byte) 'C', (byte) 'D', (byte) 'B',
+          (byte) 'C', (byte) 'D', (byte) 'E'
+      };
+  private static final byte[] OUTPUT_2 =
+      new byte[] {
+          (byte) 'X', (byte) 'Y', (byte) 'Z', (byte) 'A', (byte) 'B', (byte) 'B', (byte) 'C',
+          (byte) 'C', (byte) 'D', (byte) 'D', (byte) 'E', (byte) 'E', (byte) 'F', (byte) 'F',
+          (byte) 'G', (byte) 'G', (byte) 'H'
+      };
+  private static final String OUTPUT_3_FILE_NAME = "target.zip";
+
+
+  /** Very lightweight smoke test using example in http://www.w3.org/TR/NOTE-gdiff-19970901 */
   @Test
   public void testExample() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G' };
-    byte[] newBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'X', (byte) 'Y', (byte) 'C', (byte) 'D',
-        (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E' };
-    byte[] patch = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,  // magic+version
-        (byte) 249, 0, 0, 2,                                           // COPY_USHORT_UBYTE 0, 2
-        (byte) 2, (byte) 'X', (byte) 'Y',                              // DATA_2
-        (byte) 249, 0, 2, 2,                                           // COPY_USHORT_UBYTE 2, 2
-        (byte) 249, 0, 1, 4,                                           // COPY_USHORT_UBYTE 1, 4
-        0 };                                                           // EOF
+    File input = createInputFile(INPUT_1);
+    ByteArrayInputStream patchStream = new ByteArrayInputStream(PATCH_1);
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(OUTPUT_1.length);
 
-    // Create "input file".
-    File inputFile = File.createTempFile("testExample", null);
-    FileOutputStream writeInputFile = new FileOutputStream(inputFile);
-    writeInputFile.write(oldBytes);
-    writeInputFile.close();
+    long outputLength = Gdiff.patch(input, patchStream, outputStream, OUTPUT_1.length);
+    assertThat(outputLength).isEqualTo(OUTPUT_1.length);
+    assertThat(outputStream.toByteArray()).isEqualTo(OUTPUT_1);
+  }
 
-    // Create "patch" file - this is just a stream
-    ByteArrayInputStream patchStream = new ByteArrayInputStream(patch);
+  @Test
+  public void testLargePatch() throws IOException {
+    InputStream patchStream = new ByteArrayInputStream(readTestData(PATCH_8_FILE_NAME));
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+    byte[] expectedNewDataBytes = readTestData(OUTPUT_3_FILE_NAME);
 
-    // Create "output" file - this is just a stream
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
-
-    long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, newBytes.length);
-    assertThat(outputLength).isEqualTo(newBytes.length);
-    assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
+    long outputLength = Gdiff.patch(createTempInputFile(INPUT_4_FILE_NAME), patchStream, outputStream, expectedNewDataBytes.length);
+    assertThat(outputLength).isEqualTo(expectedNewDataBytes.length);
+    assertThat(outputStream.toByteArray()).isEqualTo(expectedNewDataBytes);
   }
 
   /**
@@ -79,58 +182,20 @@ public class GdiffTest {
    */
   @Test
   public void testOpcodes() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
-        (byte) 'H', (byte) 'I', (byte) 'J' };
-    byte[] newBytes = new byte[] {
-        (byte) 'X', (byte) 'Y', (byte) 'Z',
-        (byte) 'A', (byte) 'B', (byte) 'B', (byte) 'C', (byte) 'C', (byte) 'D', (byte) 'D',
-        (byte) 'E', (byte) 'E', (byte) 'F', (byte) 'F', (byte) 'G', (byte) 'G', (byte) 'H' };
-    byte[] patch = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,    // magic+version
-        (byte) 1, (byte) 'X',                                            // DATA_MIN (DATA_1)
-        (byte) 247, 0, 1, (byte) 'Y',                                    // DATA_USHORT
-        (byte) 248, 0, 0, 0, 1, (byte) 'Z',                              // DATA_INT
-        (byte) 249, 0, 0, 2,                                             // COPY_USHORT_UBYTE
-        (byte) 250, 0, 1, 0, 2,                                          // COPY_USHORT_USHORT
-        (byte) 251, 0, 2, 0, 0, 0, 2,                                    // COPY_USHORT_INT
-        (byte) 252, 0, 0, 0, 3, 2,                                       // COPY_INT_UBYTE
-        (byte) 253, 0, 0, 0, 4, 0, 2,                                    // COPY_INT_USHORT
-        (byte) 254, 0, 0, 0, 5, 0, 0, 0, 2,                              // COPY_INT_INT
-        (byte) 255, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 2,                  // COPY_LONG_INT
-        0 };                                                             // EOF
+    File input = createInputFile(INPUT_2);
+    ByteArrayInputStream patchStream = new ByteArrayInputStream(PATCH_2);
+    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(OUTPUT_2.length);
 
-    // Create "input file".
-    File inputFile = File.createTempFile("testExample", null);
-    FileOutputStream writeInputFile = new FileOutputStream(inputFile);
-    writeInputFile.write(oldBytes);
-    writeInputFile.close();
-
-    // Create "patch" file - this is just a stream
-    ByteArrayInputStream patchStream = new ByteArrayInputStream(patch);
-
-    // Create "output" file - this is just a stream
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream(newBytes.length);
-
-    long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, newBytes.length);
-    assertThat(outputLength).isEqualTo(newBytes.length);
-    assertThat(outputStream.toByteArray()).isEqualTo(newBytes);
+    long outputLength = Gdiff.patch(input, patchStream, outputStream, OUTPUT_2.length);
+    assertThat(outputLength).isEqualTo(OUTPUT_2.length);
+    assertThat(outputStream.toByteArray()).isEqualTo(OUTPUT_2);
   }
 
-  /**
-   * A test to exercise all of the data inline opcodes (commands 1..246)
-   */
+  /** A test to exercise all of the data inline opcodes (commands 1..246). */
   @Test
   public void testInlineDataCommands() throws IOException {
     // We never read "input" so create an single, empty one.
-    File inputFile = File.createTempFile("testExample", null);
-    FileOutputStream writeInputFile = new FileOutputStream(inputFile);
-    writeInputFile.close();
-
-    // First 5 bytes for copying into each patch
-    byte[] magicAndVersion = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4 };
-
+    File input = createInputFile(new byte[]{});
     // Use a pseudo random source to fill each data stream differently
     Random random = new Random();
 
@@ -147,7 +212,7 @@ public class GdiffTest {
       //  EOF
       int patchLength = 5 + 1 + spanLength + 1;
       byte[] patch = new byte[patchLength];
-      System.arraycopy(magicAndVersion, 0, patch, 0, magicAndVersion.length);
+      System.arraycopy(MAGIC_VERSION_PREFIX, 0, patch, 0, MAGIC_VERSION_PREFIX.length);
       patch[5] = (byte) spanLength;
       System.arraycopy(data, 0, patch, 6, spanLength);
       patch[6 + spanLength] = 0;  // EOF
@@ -159,7 +224,8 @@ public class GdiffTest {
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream(data.length);
 
       // Run the patch and check the output file
-      long outputLength = Gdiff.patch(inputFile, patchStream, outputStream, data.length);
+      long outputLength = Gdiff.patch(input, patchStream, outputStream, data.length);
+
       assertThat(outputLength).isEqualTo(spanLength);
       assertThat(outputStream.toByteArray()).isEqualTo(data);
     }
@@ -175,22 +241,24 @@ public class GdiffTest {
    *          5. Missing EOF
    */
   @Test
-  public void testPatchUnderrun() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G' };
-    byte[] patch = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,        // magic+version
-        (byte) 249, 0, 0, 2,                // COPY_USHORT_UBYTE 0, 2
-        (byte) 2, (byte) 'X', (byte) 'Y',   // DATA_2
-        (byte) 249, 0, 2, 2,                // COPY_USHORT_UBYTE 2, 2
-        (byte) 249, 0, 1, 4,                // COPY_USHORT_UBYTE 1, 4
-        0 };                                // EOF
+  public void testPatchUnderrunFile() throws IOException {
+    int[] patchLimits =
+        new int[] {
+            3,    // Short magic bytes
+            4,    // No version
+            6,    // After an opcode
+            11,   // During inline data
+            20    // Missing EOF
+        };
 
-    checkExpectedIOException(oldBytes, -1, patch, 3, -1);       // Short magic bytes
-    checkExpectedIOException(oldBytes, -1, patch, 4, -1);       // No version
-    checkExpectedIOException(oldBytes, -1, patch, 6, -1);       // After an opcode
-    checkExpectedIOException(oldBytes, -1, patch, 11, -1);      // During inline data
-    checkExpectedIOException(oldBytes, -1, patch, 20, -1);      // Missing EOF
+    for (int patchLimit : patchLimits) {
+      checkExpectedIOException(
+          INPUT_1,
+          /* inputLimit= */-1,
+          PATCH_3,
+          patchLimit,
+          /* outputLimit= */ -1);
+    }
   }
 
   /**
@@ -199,27 +267,15 @@ public class GdiffTest {
    */
   @Test
   public void testInputUnderrun() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
-        (byte) 'H' };
-    byte[] patch = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,    // magic+version
-        (byte) 1, (byte) 'X',                                            // DATA_MIN (DATA_1)
-        (byte) 247, 0, 1, (byte) 'Y',                                    // DATA_USHORT
-        (byte) 248, 0, 0, 0, 1, (byte) 'Z',                              // DATA_INT
-        (byte) 249, 0, 0, 2,                                             // COPY_USHORT_UBYTE
-        (byte) 250, 0, 1, 0, 2,                                          // COPY_USHORT_USHORT
-        (byte) 251, 0, 2, 0, 0, 0, 2,                                    // COPY_USHORT_INT
-        (byte) 252, 0, 0, 0, 3, 2,                                       // COPY_INT_UBYTE
-        (byte) 253, 0, 0, 0, 4, 0, 2,                                    // COPY_INT_USHORT
-        (byte) 254, 0, 0, 0, 5, 0, 0, 0, 2,                              // COPY_INT_INT
-        (byte) 255, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 2,                  // COPY_LONG_INT
-        0 };                                                             // EOF
-
-    // The oldBytes array above is sufficient to satisfy the patch, but this loop terminates
+    // The {@link INPUT_3} array is sufficient to satisfy the patch, but this loop terminates
     // one byte short of using the entire input array.
-    for (int inputLimit = 0; inputLimit < oldBytes.length; inputLimit++) {
-      checkExpectedIOException(oldBytes, inputLimit, patch, -1, -1);
+    for (int inputLimit = 0; inputLimit < INPUT_3.length; inputLimit++) {
+      checkExpectedIOException(
+          INPUT_3,
+          inputLimit,
+          PATCH_2,
+          /* patchLimit= */ -1,
+          /* outputLimit= */ -1);
     }
   }
 
@@ -229,29 +285,8 @@ public class GdiffTest {
    */
   @Test
   public void testOutputOverrun() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
-        (byte) 'H', (byte) 'I', (byte) 'J' };
-    byte[] newBytes = new byte[] {
-        (byte) 'X', (byte) 'Y', (byte) 'Z',
-        (byte) 'A', (byte) 'B', (byte) 'B', (byte) 'C', (byte) 'C', (byte) 'D', (byte) 'D',
-        (byte) 'E', (byte) 'E', (byte) 'F', (byte) 'F', (byte) 'G', (byte) 'G', (byte) 'H' };
-    byte[] patch = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,    // magic+version
-        (byte) 1, (byte) 'X',                                            // DATA_MIN (DATA_1)
-        (byte) 247, 0, 1, (byte) 'Y',                                    // DATA_USHORT
-        (byte) 248, 0, 0, 0, 1, (byte) 'Z',                              // DATA_INT
-        (byte) 249, 0, 0, 2,                                             // COPY_USHORT_UBYTE
-        (byte) 250, 0, 1, 0, 2,                                          // COPY_USHORT_USHORT
-        (byte) 251, 0, 2, 0, 0, 0, 2,                                    // COPY_USHORT_INT
-        (byte) 252, 0, 0, 0, 3, 2,                                       // COPY_INT_UBYTE
-        (byte) 253, 0, 0, 0, 4, 0, 2,                                    // COPY_INT_USHORT
-        (byte) 254, 0, 0, 0, 5, 0, 0, 0, 2,                              // COPY_INT_INT
-        (byte) 255, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 2,                  // COPY_LONG_INT
-        0 };                                                             // EOF
-
-    for (int newBytesLimit = 0; newBytesLimit < newBytes.length; newBytesLimit++) {
-      checkExpectedIOException(oldBytes, -1, patch, -1, newBytesLimit);
+    for (int newBytesLimit = 0; newBytesLimit < OUTPUT_2.length; newBytesLimit++) {
+      checkExpectedIOException(INPUT_2, -1, PATCH_2, -1, newBytesLimit);
     }
   }
 
@@ -263,33 +298,15 @@ public class GdiffTest {
    */
   @Test
   public void testNegativeArgumentValues() throws IOException {
-    byte[] oldBytes = new byte[] {
-        (byte) 'A', (byte) 'B', (byte) 'C', (byte) 'D', (byte) 'E', (byte) 'F', (byte) 'G',
-        (byte) 'H', (byte) 'I', (byte) 'J' };
-
-    byte[] negativeDataInt = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,        // magic+version
-        (byte) 248, (byte) 255, (byte) 255, (byte) 255, (byte) 255,          // DATA_INT
-        (byte) 'Y',
-        0 };                                                                 // EOF
-    byte[] negativeCopyLengthInt = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,        // magic+version
-        (byte) 251, 0, 0, (byte) 255, (byte) 255, (byte) 255, (byte) 255,    // COPY_USHORT_INT
-        0 };                                                                 // EOF
-    byte[] negativeCopyOffsetInt = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,        // magic+version
-        (byte) 252, (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0,       // COPY_INT_UBYTE
-        0 };                                                                 // EOF
-    byte[] negativeCopyOffsetLong = new byte[] {
-        (byte) 0xd1, (byte) 0xff, (byte) 0xd1, (byte) 0xff, (byte) 4,        // magic+version
-        (byte) 255, (byte) 255, (byte) 255, (byte) 255, (byte) 255,          // COPY_LONG_INT
-        (byte) 255, (byte) 255, (byte) 255, (byte) 255, 0, 0, 0 };           // EOF
-
-    // All of these should throw exceptions due to negative numbers in the arguments
-    checkExpectedIOException(oldBytes, -1, negativeDataInt, -1, -1);
-    checkExpectedIOException(oldBytes, -1, negativeCopyLengthInt, -1, -1);
-    checkExpectedIOException(oldBytes, -1, negativeCopyOffsetInt, -1, -1);
-    checkExpectedIOException(oldBytes, -1, negativeCopyOffsetLong, -1, -1);
+    // All of these should throw exceptions due to negative numbers in the patch arguments
+    for (byte[] patch : Arrays.asList(PATCH_4, PATCH_5, PATCH_6, PATCH_7)) {
+      checkExpectedIOException(
+          INPUT_2,
+          /* inputLimit= */-1,
+          patch,
+          /* patchLimit= */ -1,
+          /* outputLimit= */ -1);
+    }
   }
 
   /**
@@ -327,5 +344,52 @@ public class GdiffTest {
     } catch (IOException expected) {
     }
     assertThat(outputStream.size()).isAtMost(outputLimit);
+  }
+
+  private byte[] readTestData(String testDataFileName) throws IOException {
+    InputStream in = getClass().getResourceAsStream("testdata/" + testDataFileName);
+    assertWithMessage("test data file doesn't exist: " + testDataFileName).that(in).isNotNull();
+    ByteArrayOutputStream result = new ByteArrayOutputStream();
+    copy(in, result);
+    return stripNewlineIfNecessary(result.toByteArray());
+  }
+
+  /** Copy the contents of the specified testdata asset into temporary file. */
+  private File createTempInputFile(String testDataFileName) throws IOException {
+    File tempFile = File.createTempFile("archive_patcher", "temp");
+    assertWithMessage("cant create file!").that(tempFile).isNotNull();
+    byte[] buffer = readTestData(testDataFileName);
+    try (FileOutputStream out = new FileOutputStream(tempFile)) {
+      out.write(buffer);
+    }
+    return tempFile;
+  }
+
+
+  private static File createInputFile(byte[] content) throws IOException {
+    File inputFile = File.createTempFile("testExample", null);
+    try (FileOutputStream writeInputFile = new FileOutputStream(inputFile)) {
+      writeInputFile.write(content);
+      writeInputFile.write(content);
+    }
+    return inputFile;
+  }
+
+  /** Copies everything from an {@link InputStream} to an {@link OutputStream}. */
+  public static void copy(InputStream in, OutputStream out) throws IOException {
+    byte[] buffer = new byte[COPY_BUFFER_SIZE];
+    int numRead;
+    while ((numRead = in.read(buffer)) >= 0) {
+      out.write(buffer, 0, numRead);
+    }
+  }
+
+  /** Some systems force all text files to end in a newline, which screws up this test. */
+  private static byte[] stripNewlineIfNecessary(byte[] b) {
+    if (b[b.length - 1] != (byte) '\n') {
+      return b;
+    }
+
+    return Arrays.copyOf(b, b.length - 1);
   }
 }
