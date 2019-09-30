@@ -235,7 +235,7 @@ public class Gdiff {
     if (copyLength > maxCopyLength) {
       throw new IOException("Output length overrun");
     }
-    try (InputStream inputStream = input.sliceFrom(inputOffset).openStream()) {
+    try (InputStream inputStream = input.slice(inputOffset, copyLength).openStream()) {
       while (copyLength > 0) {
         int spanLength = Math.min(copyLength, COPY_BUFFER_SIZE);
         readFully(inputStream, buffer, 0, spanLength);
