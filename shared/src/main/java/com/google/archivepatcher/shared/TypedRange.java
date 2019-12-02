@@ -21,6 +21,7 @@ import java.util.Objects;
  *
  * @param <T> the type of the metadata
  */
+@SuppressWarnings("ExtendsAutoValue")
 public class TypedRange<T> extends Range {
 
   /** Underlying range. */

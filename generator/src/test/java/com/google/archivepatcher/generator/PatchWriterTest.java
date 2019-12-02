@@ -220,6 +220,7 @@ public class PatchWriterTest {
   }
 
   /** A fake delta entry with pre-configured delta data. */
+  @SuppressWarnings("ExtendsAutoValue")
   private static class FakeDeltaEntry extends DeltaEntry {
     public final byte[] delta;
 
