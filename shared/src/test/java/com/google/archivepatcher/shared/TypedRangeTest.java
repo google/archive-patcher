@@ -61,7 +61,7 @@ public class TypedRangeTest {
     TypedRange<String> range1a = TypedRange.of(123, 456, "hi mom");
     TypedRange<String> range1b = TypedRange.of(123, 456, "hi mom");
     assertThat(range1b.hashCode()).isEqualTo(range1a.hashCode());
-    Set<Integer> hashCodes = new HashSet<Integer>();
+    Set<Integer> hashCodes = new HashSet<>();
     hashCodes.add(range1a.hashCode());
     hashCodes.add(TypedRange.of(123 + 1, 456, "hi mom").hashCode()); // offset changed
     hashCodes.add(TypedRange.of(123, 456 + 1, "hi mom").hashCode()); // length changed
@@ -72,10 +72,8 @@ public class TypedRangeTest {
   }
 
   @Test
-  @SuppressWarnings("TruthSelfEquals") // we are testing equals here.
   public void testEquals() {
     TypedRange<String> range1a = TypedRange.of(123, 456, "hi mom");
-    assertThat(range1a).isEqualTo(range1a); // identity case
     TypedRange<String> range1b = TypedRange.of(123, 456, "hi mom");
     assertThat(range1b).isEqualTo(range1a); // equality case
     assertThat(range1a).isNotEqualTo(TypedRange.of(123 + 1, 456, "hi mom")); // offset
@@ -85,7 +83,5 @@ public class TypedRangeTest {
     assertThat(TypedRange.of(123, 456, null)).isNotEqualTo(range1a); // other code branch
     assertThat(TypedRange.of(123, 456, null))
         .isEqualTo(TypedRange.of(123, 456, null)); // both with null metadata
-    assertThat(range1a).isNotEqualTo(null); // versus null
-    assertThat(range1a).isNotEqualTo("space channel 5"); // versus object of different class
   }
 }

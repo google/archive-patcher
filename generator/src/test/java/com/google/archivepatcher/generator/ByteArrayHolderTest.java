@@ -15,6 +15,7 @@
 package com.google.archivepatcher.generator;
 
 import static com.google.common.truth.Truth.assertThat;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,16 +30,16 @@ public class ByteArrayHolderTest {
 
   @Test
   public void testGetters() {
-    byte[] data = "hello world".getBytes();
+    byte[] data = "hello world".getBytes(UTF_8);
     ByteArrayHolder byteArrayHolder = new ByteArrayHolder(data);
     assertThat(data).isSameInstanceAs(byteArrayHolder.getData());
   }
 
   @Test
   public void testHashCode() {
-    byte[] data1a = "hello world".getBytes();
-    byte[] data1b = new String("hello world").getBytes();
-    byte[] data2 = "hello another world".getBytes();
+    byte[] data1a = "hello world".getBytes(UTF_8);
+    byte[] data1b = "hello world".getBytes(UTF_8);
+    byte[] data2 = "hello another world".getBytes(UTF_8);
     ByteArrayHolder rawText1a = new ByteArrayHolder(data1a);
     ByteArrayHolder rawText1b = new ByteArrayHolder(data1b);
     assertThat(rawText1b.hashCode()).isEqualTo(rawText1a.hashCode());
@@ -50,13 +51,11 @@ public class ByteArrayHolderTest {
   }
 
   @Test
-  @SuppressWarnings("TruthSelfEquals") // We are testing equals method.
   public void testEquals() {
-    byte[] data1a = "hello world".getBytes();
-    byte[] data1b = new String("hello world").getBytes();
-    byte[] data2 = "hello another world".getBytes();
+    byte[] data1a = "hello world".getBytes(UTF_8);
+    byte[] data1b = "hello world".getBytes(UTF_8);
+    byte[] data2 = "hello another world".getBytes(UTF_8);
     ByteArrayHolder rawText1a = new ByteArrayHolder(data1a);
-    assertThat(rawText1a).isEqualTo(rawText1a);
     ByteArrayHolder rawText1b = new ByteArrayHolder(data1b);
     assertThat(rawText1b).isEqualTo(rawText1a);
     ByteArrayHolder rawText2 = new ByteArrayHolder(data2);
@@ -64,7 +63,5 @@ public class ByteArrayHolderTest {
     ByteArrayHolder rawText3 = new ByteArrayHolder(null);
     assertThat(rawText3).isNotEqualTo(rawText1a);
     assertThat(rawText1a).isNotEqualTo(rawText3);
-    assertThat(rawText1a).isNotEqualTo(42);
-    assertThat(rawText1a).isNotEqualTo(null);
   }
 }
