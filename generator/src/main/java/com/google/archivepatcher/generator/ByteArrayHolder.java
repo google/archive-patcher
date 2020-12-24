@@ -18,8 +18,8 @@ import java.util.Arrays;
 
 /**
  * Holds an array of bytes, implementing {@link #equals(Object)}, {@link #hashCode()} with deep
- * comparisons. This is intended primarily to allow raw, uninterpreted paths from
- * {@link MinimalZipEntry#getFileNameBytes()} to be used as map keys safely.
+ * comparisons. This is intended primarily to allow raw, uninterpreted paths from {@link
+ * MinimalZipEntry#fileNameBytes()} to be used as map keys safely.
  */
 public class ByteArrayHolder {
   /**
@@ -50,10 +50,13 @@ public class ByteArrayHolder {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) return true;
-    if (obj == null) return false;
-    if (getClass() != obj.getClass()) return false;
-    ByteArrayHolder other = (ByteArrayHolder) obj;
-    return Arrays.equals(data, other.data);
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof ByteArrayHolder) {
+      ByteArrayHolder other = (ByteArrayHolder) obj;
+      return Arrays.equals(data, other.data);
+    }
+    return false;
   }
 }
