@@ -216,8 +216,8 @@ public class DefaultDeflateCompressionDiviner {
    * the (de)compressor is no longer being used. Once this method is called, the behavior
    * De/Inflater is undefined.
    *
-   * @see Inflater#end
-   * @see Deflater#end
+   * @see Inflater#end()
+   * @see Deflater#end()
    */
   private static void end(InflaterWrapper inflater, Deflater deflater) {
     inflater.endInternal();
@@ -231,7 +231,6 @@ public class DefaultDeflateCompressionDiviner {
    * @param inflater the inflater for uncompressing the stream
    * @param deflater the deflater for recompressing the output of the inflater
    * @param compressedData {@link ByteSource} containing the compressed data.
-   * @param copyBuffer buffer to use for copying bytes between the inflater and the deflater
    * @return true if the specified deflater reproduces the bytes in compressedDataIn, otherwise
    *     false
    * @throws IOException if anything goes wrong; in particular, {@link ZipException} is thrown if
