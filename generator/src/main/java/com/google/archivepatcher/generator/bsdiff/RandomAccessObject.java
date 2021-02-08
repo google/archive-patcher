@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 
 // TODO: clean up the implementations, we only really need two and they can be in
 // separate files.
@@ -389,7 +390,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
             "RandomAccessMmapObject only supports file sizes up to " + "Integer.MAX_VALUE.");
       }
 
-      mFile = File.createTempFile(tempFileName, "temp");
+      mFile = Files.createTempFile(tempFileName, "temp").toFile();
       mFile.deleteOnExit();
       mShouldDeleteFileOnRelease = true;
 
