@@ -17,7 +17,7 @@ package com.google.archivepatcher.generator.bsdiff;
 import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessByteArrayObject;
 import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessFileObject;
 import com.google.archivepatcher.generator.bsdiff.RandomAccessObject.RandomAccessMmapObject;
-import java.io.File;
+import com.google.archivepatcher.shared.SafeTempFiles;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 
@@ -59,7 +59,7 @@ public interface RandomAccessObjectFactory {
     @Override
     public RandomAccessObject create(int size) throws IOException {
       return new RandomAccessObject.RandomAccessFileObject(
-          File.createTempFile(FILE_NAME_PREFIX, "temp"), mMode, true);
+          SafeTempFiles.createTempFile(FILE_NAME_PREFIX, "temp"), mMode, true);
     }
   }
 

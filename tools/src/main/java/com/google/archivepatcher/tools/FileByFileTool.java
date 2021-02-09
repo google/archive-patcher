@@ -20,6 +20,7 @@ import com.google.archivepatcher.generator.FileByFileDeltaGenerator;
 import com.google.archivepatcher.generator.PreDiffPlanEntryModifier;
 import com.google.archivepatcher.generator.TotalRecompressionLimiter;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
+import com.google.archivepatcher.shared.SafeTempFiles;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -225,7 +226,7 @@ public class FileByFileTool extends AbstractTool {
    */
   public static void applyPatch(File oldFile, File patchFile, File newFile) throws IOException {
     // Figure out temp directory
-    File tempFile = File.createTempFile("fbftool", "tmp");
+    File tempFile = SafeTempFiles.createTempFile("fbftool", "tmp");
     File tempDir = tempFile.getParentFile();
     tempFile.delete();
     FileByFileDeltaApplier applier = new FileByFileDeltaApplier(tempDir);

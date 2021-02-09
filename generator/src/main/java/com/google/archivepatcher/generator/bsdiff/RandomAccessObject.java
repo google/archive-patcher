@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator.bsdiff;
 
+import com.google.archivepatcher.shared.SafeTempFiles;
 import java.io.Closeable;
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -389,7 +390,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
             "RandomAccessMmapObject only supports file sizes up to " + "Integer.MAX_VALUE.");
       }
 
-      mFile = File.createTempFile(tempFileName, "temp");
+      mFile = SafeTempFiles.createTempFile(tempFileName, "temp");
       mFile.deleteOnExit();
       mShouldDeleteFileOnRelease = true;
 

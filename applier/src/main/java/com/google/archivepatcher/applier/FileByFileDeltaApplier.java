@@ -19,6 +19,7 @@ import com.google.archivepatcher.shared.DeltaFriendlyFile;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.RandomAccessFileOutputStream;
 import com.google.archivepatcher.shared.Range;
+import com.google.archivepatcher.shared.SafeTempFiles;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.File;
 import java.io.IOException;
@@ -68,7 +69,7 @@ public class FileByFileDeltaApplier extends DeltaApplier {
       // will fail when it tries to create the file in a few more lines anyways.
       tempDir.mkdirs();
     }
-    File tempFile = File.createTempFile("gfbfv1", "old", tempDir);
+    File tempFile = SafeTempFiles.createTempFile("gfbfv1", "old", tempDir);
     try {
       applyDeltaInternal(oldBlob, tempFile, deltaIn, newBlobOut);
     } finally {

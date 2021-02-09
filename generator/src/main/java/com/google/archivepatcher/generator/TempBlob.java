@@ -14,6 +14,7 @@
 
 package com.google.archivepatcher.generator;
 
+import com.google.archivepatcher.shared.SafeTempFiles;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -157,7 +158,7 @@ public class TempBlob implements Closeable {
   }
 
   private void createNewFile() throws IOException {
-    file = File.createTempFile("archive_patcher", "tmp");
+    file = SafeTempFiles.createTempFile("archive_patcher", "tmp");
     file.deleteOnExit();
   }
 
