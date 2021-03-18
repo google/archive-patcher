@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -28,8 +29,6 @@
 #include "bsdiff/bsdiff.h"
 #include "bsdiff/patch_writer_factory.h"
 #include "third_party/absl/memory/memory.h"
-#include "third_party/java/jdk/include/jni.h"
-#include "third_party/java_src/archive_patcher/com_google_archivepatcher_generator_bsdiff_wrapper_BsDiffNativePatchWriter.h"
 #include "third_party/java_src/archive_patcher/com_google_archivepatcher_generator_bsdiff_wrapper_BsDiffNativePatchWriter.h"
 #include "util/java/jni_helper.h"
 
