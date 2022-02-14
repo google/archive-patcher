@@ -39,7 +39,7 @@ public class MmapByteSource extends FileByteSource {
     }
 
     try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-      this.byteBuffer = raf.getChannel().map(MapMode.READ_ONLY, 0, (int) length());
+      this.byteBuffer = raf.getChannel().map(MapMode.READ_ONLY, 0, length());
     }
   }
 

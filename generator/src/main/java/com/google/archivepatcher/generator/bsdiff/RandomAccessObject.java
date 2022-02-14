@@ -405,7 +405,7 @@ public interface RandomAccessObject extends DataInput, DataOutput, Closeable {
       try {
         file = new RandomAccessFile(mFile, mode);
         mFileChannel = file.getChannel();
-        mByteBuffer = mFileChannel.map(mapMode, 0, (int) length);
+        mByteBuffer = mFileChannel.map(mapMode, 0, length);
         mByteBuffer.position(0);
       } catch (IOException e) {
         if (file != null) {
