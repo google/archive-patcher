@@ -137,10 +137,10 @@ public class PatchExplainer {
             .build();
     PreDiffPlan plan = executor.prepareForDiffing();
 
-    try (TempBlob oldTemp = new TempBlob();
-        TempBlob newTemp = new TempBlob();
-        TempBlob deltaTemp = new TempBlob()) {
-      for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
+    for (PreDiffPlanEntry preDiffPlanEntry : plan.getPreDiffPlanEntries()) {
+      try (TempBlob oldTemp = new TempBlob();
+          TempBlob newTemp = new TempBlob();
+          TempBlob deltaTemp = new TempBlob()) {
 
         // Short-circuit for identical resources.
         if (preDiffPlanEntry.uncompressionOptionExplanation()
@@ -170,18 +170,16 @@ public class PatchExplainer {
 
         // Everything past here is a resource that has changed in some way.
         // NB: This magically takes care of UncompressionOptionExplanation.RESOURCE_CONSTRAINED. The
-        // logic
-        // below will keep the RESOURCE_CONSTRAINED entries compressed, running the delta on their
-        // compressed contents, and the resulting explanation will preserve the RESOURCE_CONSTRAINED
-        // reason. This will correctly attribute the size of these blobs to the RESOURCE_CONSTRAINED
-        // category.
+        // logic below will keep the RESOURCE_CONSTRAINED entries compressed, running the delta on
+        // their compressed contents, and the resulting explanation will preserve the
+        // RESOURCE_CONSTRAINED reason. This will correctly attribute the size of these blobs to the
+        // RESOURCE_CONSTRAINED category.
 
         // Get the inputs ready for running a delta: uncompress/copy the *old* content as necessary.
         if (preDiffPlanEntry.zipEntryUncompressionOption().uncompressOldEntry) {
           uncompress(
               oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), uncompressor, oldTemp);
         } else {
-          oldTemp.clear();
           extractCopy(oldFile, preDiffPlanEntry.oldEntry().compressedDataRange(), oldTemp);
         }
 
@@ -190,7 +188,6 @@ public class PatchExplainer {
           uncompress(
               newFile, preDiffPlanEntry.newEntry().compressedDataRange(), uncompressor, newTemp);
         } else {
-          newTemp.clear();
           extractCopy(newFile, preDiffPlanEntry.newEntry().compressedDataRange(), newTemp);
         }
 
