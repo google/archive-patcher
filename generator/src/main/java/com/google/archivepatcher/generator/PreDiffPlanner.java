@@ -61,7 +61,8 @@ import javax.annotation.Nullable;
 class PreDiffPlanner {
   private static final List<String> ARCHIVE_EXTENSIONS = Arrays.asList(".zip", ".apk", ".jar");
 
-  private static final DeltaFormat DEFAULT_DELTA_FORMAT = BSDIFF;
+  // Note that this is assumed to always be available in every client.
+  static final DeltaFormat DEFAULT_DELTA_FORMAT = BSDIFF;
 
   /** The old archive. */
   private final ByteSource oldFile;

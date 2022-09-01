@@ -110,6 +110,8 @@ public class PreDiffPlanEntryTestUtils {
                     .zipEntryUncompressionOption(ZipEntryUncompressionOption.UNCOMPRESS_NEITHER)
                     .uncompressionOptionExplanation(
                         UncompressionOptionExplanation.RESOURCE_CONSTRAINED)
+                    .deltaFormat(PreDiffPlanner.DEFAULT_DELTA_FORMAT)
+                    .deltaFormatExplanation(DeltaFormatExplanation.RESOURCE_CONSTRAINED)
                     .build())
         .collect(Collectors.toList());
   }
