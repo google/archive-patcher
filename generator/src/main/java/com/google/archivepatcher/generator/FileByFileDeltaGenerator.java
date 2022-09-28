@@ -21,6 +21,7 @@ import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -79,7 +80,16 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
       boolean useNativeBsDiff) {
     this.preDiffPlanEntryModifiers = getImmutableListCopy(preDiffPlanEntryModifiers);
     this.supportedDeltaFormats = getImmutableSetCopy(supportedDeltaFormats);
-    this.deltaGeneratorFactory = new DeltaGeneratorFactory(useNativeBsDiff);
+
+    // Here we think that apks containing apks containing apks is too rare a use case, so we disable
+    // recursive file-by-file for nested APKs.
+    this.deltaGeneratorFactory =
+        new DeltaGeneratorFactory(
+            ImmutableSet.copyOf(
+                supportedDeltaFormats.stream()
+                    .filter(fmt -> !fmt.equals(DeltaFormat.FILE_BY_FILE))
+                    .iterator()),
+            useNativeBsDiff);
   }
 
   /**
@@ -284,5 +294,4 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
       return Collections.emptySet();
     }
   }
-
 }

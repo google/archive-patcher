@@ -31,6 +31,7 @@ import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -45,9 +46,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-/**
- * Tests for {@link PatchWriter}.
- */
+/** Tests for {@link PatchWriter}. */
 @RunWith(JUnit4.class)
 @SuppressWarnings("javadoc")
 public class PatchWriterTest {
@@ -251,7 +250,7 @@ public class PatchWriterTest {
 
     public FakeDeltaGeneratorFactory(Map<DeltaFormat, DeltaGenerator> deltaGenerators) {
       // This doesn't matter since we will be returning the configured delta generators.
-      super(/* useNativeBsDiff= */ true);
+      super(ImmutableSet.of(), /* useNativeBsDiff= */ true);
       this.deltaGenerators = deltaGenerators;
     }
 
@@ -294,4 +293,3 @@ public class PatchWriterTest {
     }
   }
 }
-
