@@ -73,6 +73,7 @@ public class FileByFileDeltaApplier extends DeltaApplier {
     try {
       applyDeltaInternal(oldBlob, tempFile, deltaIn, newBlobOut);
     } finally {
+      newBlobOut.flush();
       tempFile.delete();
     }
   }
