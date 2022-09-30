@@ -50,14 +50,10 @@ public class PreDiffPlan {
   /** The plan for uncompressing the old file, in file order. */
   private final List<Range> oldFileUncompressionPlan;
 
-  /**
-   * The plan for uncompressing the new file, in file order.
-   */
+  /** The plan for uncompressing the new file, in file order. */
   private final List<TypedRange<JreDeflateParameters>> newFileUncompressionPlan;
 
-  /**
-   * The plan for recompressing the delta-friendly new file, in file order.
-   */
+  /** The plan for recompressing the delta-friendly new file, in file order. */
   private final List<TypedRange<JreDeflateParameters>> deltaFriendlyNewFileRecompressionPlan;
 
   /** The entries upon which the plans are based. */
@@ -130,6 +126,7 @@ public class PreDiffPlan {
 
   /**
    * Returns the plan for uncompressing the new file to create the delta-friendly new file.
+   *
    * @return the plan
    */
   public final List<TypedRange<JreDeflateParameters>> getNewFileUncompressionPlan() {
@@ -139,6 +136,7 @@ public class PreDiffPlan {
   /**
    * Returns the plan for recompressing the delta-friendly new file to regenerate the original new
    * file.
+   *
    * @return the plan
    */
   public final List<TypedRange<JreDeflateParameters>> getDeltaFriendlyNewFileRecompressionPlan() {

@@ -18,6 +18,7 @@ import static com.google.archivepatcher.generator.DeltaEntries.combineEntries;
 import static com.google.archivepatcher.generator.DeltaEntries.fillGaps;
 import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_BY_DEFAULT;
 
+import com.google.archivepatcher.DeltaEntryDiagnostics;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
@@ -127,7 +128,35 @@ public class FileByFileDeltaGenerator extends DeltaGenerator {
                 deltaFriendlyOldBlob,
                 deltaFriendlyNewBlob,
                 deltaGeneratorFactory);
-        patchWriter.writePatch(patchOut);
+        List<DeltaEntryDiagnostics> unused = patchWriter.writePatch(patchOut);
+      }
+    }
+  }
+
+  @Override
+  public List<DeltaEntryDiagnostics> generateDeltaWithDiagnostics(
+      ByteSource oldBlob, ByteSource newBlob, OutputStream patchOut)
+      throws IOException, InterruptedException {
+    try (TempBlob deltaFriendlyOldFile = new TempBlob();
+        TempBlob deltaFriendlyNewFile = new TempBlob()) {
+      PreDiffPlan preDiffPlan =
+          generatePreDiffPlanAndPrepareBlobs(
+              oldBlob, newBlob, deltaFriendlyOldFile, deltaFriendlyNewFile, supportedDeltaFormats);
+
+      try (ByteSource deltaFriendlyOldBlob = deltaFriendlyOldFile.asByteSource();
+          ByteSource deltaFriendlyNewBlob = deltaFriendlyNewFile.asByteSource()) {
+        List<DeltaEntry> deltaEntries =
+            getDeltaEntries(
+                preDiffPlan.getPreDiffPlanEntries(), deltaFriendlyOldBlob, deltaFriendlyNewBlob);
+        PatchWriter patchWriter =
+            new PatchWriter(
+                preDiffPlan,
+                deltaFriendlyOldFile.length(),
+                deltaEntries,
+                deltaFriendlyOldBlob,
+                deltaFriendlyNewBlob,
+                deltaGeneratorFactory);
+        return patchWriter.writePatch(patchOut);
       }
     }
   }

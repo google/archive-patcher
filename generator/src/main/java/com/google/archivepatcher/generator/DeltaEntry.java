@@ -17,6 +17,7 @@ package com.google.archivepatcher.generator;
 import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.auto.value.AutoValue;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * An encapsulation of delta entry in the patch generated. A {@link DeltaEntry} consists of both the
@@ -34,6 +35,8 @@ public abstract class DeltaEntry {
   /** The {@link Range} inside delta-friendly new blob to compute delta. */
   public abstract Range newBlobRange();
 
+  public abstract ImmutableSet<DiffPlanEntry> diffPlanEntries();
+
   /** Builder for {@link DeltaEntry}. */
   @AutoValue.Builder
   public abstract static class Builder {
@@ -45,6 +48,13 @@ public abstract class DeltaEntry {
 
     /** See {@link #newBlobRange()}. */
     public abstract Builder newBlobRange(Range newBlobRange);
+
+    abstract ImmutableSet.Builder<DiffPlanEntry> diffPlanEntriesBuilder();
+
+    public final Builder addDiffPlanEntry(DiffPlanEntry diffPlanEntry) {
+      diffPlanEntriesBuilder().add(diffPlanEntry);
+      return this;
+    }
 
     public abstract DeltaEntry build();
   }

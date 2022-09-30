@@ -153,10 +153,17 @@ public class DeltaEntries {
     // Here we greedily diff the range against the entire old archive.
     // This will not make a difference in V1 as we will always be diffing the entire file. In V2,
     // if this turns out to be too expensive on the patch application, we can reduce this range.
-    return DeltaEntry.builder()
-        .deltaFormat(entry1.deltaFormat())
-        .oldBlobRange(Range.of(0, oldBlob.length()))
-        .newBlobRange(Range.combine(entry1.newBlobRange(), entry2.newBlobRange()))
-        .build();
+    DeltaEntry.Builder builder =
+        DeltaEntry.builder()
+            .deltaFormat(entry1.deltaFormat())
+            .oldBlobRange(Range.of(0, oldBlob.length()))
+            .newBlobRange(Range.combine(entry1.newBlobRange(), entry2.newBlobRange()));
+    for (DiffPlanEntry diffPlanEntry : entry1.diffPlanEntries()) {
+      builder = builder.addDiffPlanEntry(diffPlanEntry);
+    }
+    for (DiffPlanEntry diffPlanEntry : entry2.diffPlanEntries()) {
+      builder = builder.addDiffPlanEntry(diffPlanEntry);
+    }
+    return builder.build();
   }
 }

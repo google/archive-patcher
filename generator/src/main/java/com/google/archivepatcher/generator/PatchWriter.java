@@ -16,24 +16,27 @@ package com.google.archivepatcher.generator;
 
 import static com.google.archivepatcher.shared.bytesource.ByteStreams.copy;
 
-import com.google.archivepatcher.shared.JreDeflateParameters;
-import com.google.archivepatcher.shared.PatchConstants;
+import com.google.archivepatcher.DeltaEntryDiagnostics;
+import com.google.archivepatcher.EntryDeltaFormat;
+import com.google.archivepatcher.EntryDeltaFormatExplanation;
+import com.google.archivepatcher.File;
+import com.google.archivepatcher.UncompressionOption;
+import com.google.archivepatcher.UncompressionOptionExplanation;
+import com.google.archivepatcher.shared.PatchConstants.DeltaFormat;
 import com.google.archivepatcher.shared.Range;
 import com.google.archivepatcher.shared.TypedRange;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
+import com.google.common.annotations.VisibleForTesting;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Writes patches.
- */
+/** Writes patches. */
 public class PatchWriter {
-  /**
-   * The patch plan.
-   */
+  /** The patch plan. */
   private final PreDiffPlan plan;
 
   /**
@@ -85,7 +88,8 @@ public class PatchWriter {
    * @param out the stream to write the patch to
    * @throws IOException if anything goes wrong
    */
-  public void writePatch(OutputStream out) throws IOException, InterruptedException {
+  public List<DeltaEntryDiagnostics> writePatch(OutputStream out)
+      throws IOException, InterruptedException {
     // Use DataOutputStream for ease of writing. This is deliberately left open, as closing it would
     // close the output stream that was passed in and that is not part of the method's documented
     // behavior.
@@ -119,14 +123,18 @@ public class PatchWriter {
     // First write the number of deltas present in the patch.
     dataOut.writeInt(deltaEntries.size());
 
+    List<DeltaEntryDiagnostics> diagnosticsList = new ArrayList<>();
+
     for (DeltaEntry deltaEntry : deltaEntries) {
-      writeDeltaEntry(deltaEntry, oldBlob, newBlob, deltaGeneratorFactory, dataOut);
+      diagnosticsList.add(
+          writeDeltaEntry(deltaEntry, oldBlob, newBlob, deltaGeneratorFactory, dataOut));
     }
     dataOut.flush();
+    return diagnosticsList;
   }
 
   /** Writes the metadata and delta data associated with this entry into the output stream. */
-  void writeDeltaEntry(
+  DeltaEntryDiagnostics writeDeltaEntry(
       DeltaEntry deltaEntry,
       ByteSource oldBlob,
       ByteSource newBlob,
@@ -149,20 +157,118 @@ public class PatchWriter {
     outputStream.writeLong(
         deltaEntry.newBlobRange().length()); // i.e., length of the working range in new
 
+    DeltaEntryDiagnostics.Builder diagnostics = DeltaEntryDiagnostics.newBuilder();
+
     try (ByteSource inputBlobRange = oldBlob.slice(deltaEntry.oldBlobRange());
         ByteSource destBlobRange = newBlob.slice(deltaEntry.newBlobRange());
         TempBlob deltaFile = new TempBlob()) {
       try (OutputStream bufferedDeltaOut = deltaFile.openBufferedStream()) {
         DeltaGenerator deltaGenerator = deltaGeneratorFactory.create(deltaEntry.deltaFormat());
-        deltaGenerator.generateDelta(inputBlobRange, destBlobRange, bufferedDeltaOut);
+        diagnostics.addAllChildren(
+            deltaGenerator.generateDeltaWithDiagnostics(
+                inputBlobRange, destBlobRange, bufferedDeltaOut));
       }
 
       // Finally, the length of the delta and the delta itself.
       outputStream.writeLong(deltaFile.length());
+
+      diagnostics.setTotalPatchSize(deltaFile.length());
+      getDiagnostics(deltaEntry, diagnostics);
+
       try (ByteSource deltaSource = deltaFile.asByteSource();
           InputStream deltaIn = deltaSource.openStream()) {
         copy(deltaIn, outputStream);
       }
+      return diagnostics.build();
+    }
+  }
+
+  public void getDiagnostics(DeltaEntry deltaEntry, DeltaEntryDiagnostics.Builder diagnostics) {
+    if (deltaEntry.deltaFormat() == DeltaFormat.BSDIFF) {
+      diagnostics.setDeltaFormat(EntryDeltaFormat.DF_BSDIFF);
+    } else if (deltaEntry.deltaFormat() == DeltaFormat.FILE_BY_FILE) {
+      diagnostics.setDeltaFormat(EntryDeltaFormat.DF_FILE_BY_FILE);
+    }
+
+    for (DiffPlanEntry diffPlanEntry : deltaEntry.diffPlanEntries()) {
+      PreDiffPlanEntry preDiffPlanEntry = diffPlanEntry.preDiffPlanEntry();
+      File.Builder file = File.newBuilder();
+      file.setOriginalFilename(preDiffPlanEntry.oldEntry().getFileName());
+      file.setNewFilename(preDiffPlanEntry.newEntry().getFileName());
+      file.setOriginalFileSize(preDiffPlanEntry.oldEntry().uncompressedSize());
+      file.setNewFileSize(preDiffPlanEntry.newEntry().uncompressedSize());
+
+      switch (preDiffPlanEntry.zipEntryUncompressionOption()) {
+        case UNCOMPRESS_OLD:
+          file.setUncompressionOption(UncompressionOption.UO_UNCOMPRESS_OLD);
+          break;
+        case UNCOMPRESS_NEW:
+          file.setUncompressionOption(UncompressionOption.UO_UNCOMPRESS_NEW);
+          break;
+        case UNCOMPRESS_BOTH:
+          file.setUncompressionOption(UncompressionOption.UO_UNCOMPRESS_BOTH);
+          break;
+        case UNCOMPRESS_NEITHER:
+          file.setUncompressionOption(UncompressionOption.UO_UNCOMPRESS_NEITHER);
+          break;
+      }
+
+      switch (preDiffPlanEntry.uncompressionOptionExplanation()) {
+        case DEFLATE_UNSUITABLE:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_DEFLATE_UNSUITABLE);
+          break;
+        case UNSUITABLE:
+          file.setUncompressionOptionExplanation(UncompressionOptionExplanation.UOE_UNSUITABLE);
+          break;
+        case BOTH_ENTRIES_UNCOMPRESSED:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_BOTH_ENTRIES_UNCOMPRESSED);
+          break;
+        case UNCOMPRESSED_CHANGED_TO_COMPRESSED:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_UNCOMPRESSED_CHANGED_TO_COMPRESSED);
+          break;
+        case COMPRESSED_CHANGED_TO_UNCOMPRESSED:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_COMPRESSED_CHANGED_TO_UNCOMPRESSED);
+          break;
+        case COMPRESSED_BYTES_CHANGED:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_COMPRESSED_BYTES_CHANGED);
+          break;
+        case COMPRESSED_BYTES_IDENTICAL:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_COMPRESSED_BYTES_IDENTICAL);
+          break;
+        case RESOURCE_CONSTRAINED:
+          file.setUncompressionOptionExplanation(
+              UncompressionOptionExplanation.UOE_RESOURCE_CONSTRAINED);
+          break;
+      }
+
+      switch (preDiffPlanEntry.deltaFormatExplanation()) {
+        case DEFAULT:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_DEFAULT);
+          break;
+        case FILE_TYPE:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_FILE_TYPE);
+          break;
+        case UNSUITABLE:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_UNSUITABLE);
+          break;
+        case DEFLATE_UNSUITABLE:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_DEFLATE_UNSUITABLE);
+          break;
+        case UNCHANGED:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_UNCHANGED);
+          break;
+        case RESOURCE_CONSTRAINED:
+          file.setDeltaFormatExplanation(EntryDeltaFormatExplanation.DFE_RESOURCE_CONSTRAINED);
+          break;
+      }
+
+      diagnostics.addFiles(file.build());
     }
   }
 }

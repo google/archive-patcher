@@ -16,20 +16,21 @@ package com.google.archivepatcher.generator.bsdiff;
 
 import static com.google.archivepatcher.shared.PatchConstants.USE_NATIVE_BSDIFF_BY_DEFAULT;
 
+import com.google.archivepatcher.DeltaEntryDiagnostics;
 import com.google.archivepatcher.generator.DeltaGenerator;
 import com.google.archivepatcher.generator.bsdiff.wrapper.BsDiffNativePatchWriter;
 import com.google.archivepatcher.shared.bytesource.ByteSource;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An implementation of {@link DeltaGenerator} that uses {@link BsDiffPatchWriter} to write a bsdiff
  * patch that represents the delta between given inputs.
  */
 public class BsDiffDeltaGenerator extends DeltaGenerator {
-  /**
-   * The minimum match length to use for bsdiff.
-   */
+  /** The minimum match length to use for bsdiff. */
   private static final int MATCH_LENGTH_BYTES = 16;
 
   /** Whether to use the native version of BsDiff for generating patches. */
@@ -51,6 +52,18 @@ public class BsDiffDeltaGenerator extends DeltaGenerator {
     } else {
       BsDiffPatchWriter.generatePatch(oldBlob, newBlob, deltaOut, MATCH_LENGTH_BYTES);
     }
+  }
+
+  @Override
+  public List<DeltaEntryDiagnostics> generateDeltaWithDiagnostics(
+      ByteSource oldBlob, ByteSource newBlob, OutputStream deltaOut)
+      throws IOException, InterruptedException {
+    if (useNativeBsDiff) {
+      BsDiffNativePatchWriter.generatePatch(oldBlob, newBlob, deltaOut);
+    } else {
+      BsDiffPatchWriter.generatePatch(oldBlob, newBlob, deltaOut, MATCH_LENGTH_BYTES);
+    }
+    return new ArrayList<>();
   }
 
   public static void generateDelta(
