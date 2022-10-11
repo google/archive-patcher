@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+package archive_patcher;
+
+option java_package = "com.google.archivepatcher";
+option java_multiple_files = true;
+
+enum EntryDeltaFormat {
+  DF_UNSPECIFIED = 0;
+  DF_BSDIFF = 1;
+  DF_FILE_BY_FILE = 2;
+}
+
+enum EntryDeltaFormatExplanation {
+  DFE_UNSPECIFIED = 0;
+  DFE_DEFAULT = 1;
+  DFE_FILE_TYPE = 2;
+  DFE_UNSUITABLE = 3;
+  DFE_DEFLATE_UNSUITABLE = 4;
+  DFE_UNCHANGED = 5;
+  DFE_RESOURCE_CONSTRAINED = 6;
+}
+
+enum UncompressionOption {
+  UO_UNSPECIFIED = 0;
+  UO_UNCOMPRESS_OLD = 1;
+  UO_UNCOMPRESS_NEW = 2;
+  UO_UNCOMPRESS_BOTH = 3;
+  UO_UNCOMPRESS_NEITHER = 4;
+}
+
+enum UncompressionOptionExplanation {
+  UOE_UNSPECIFIED = 0;
+  UOE_DEFLATE_UNSUITABLE = 1;
+  UOE_UNSUITABLE = 2;
+  UOE_BOTH_ENTRIES_UNCOMPRESSED = 3;
+  UOE_UNCOMPRESSED_CHANGED_TO_COMPRESSED = 4;
+  UOE_COMPRESSED_CHANGED_TO_UNCOMPRESSED = 5;
+  UOE_COMPRESSED_BYTES_CHANGED = 6;
+  UOE_COMPRESSED_BYTES_IDENTICAL = 7;
+  UOE_RESOURCE_CONSTRAINED = 8;
+}
+
+message DeltaEntryDiagnostics {
+  repeated File files = 1;
+  optional int64 total_patch_size = 2;
+  // Which patch generation algorithm was used.
+  optional EntryDeltaFormat delta_format = 3;
+  // Entries for a recursive archive, if relevant for the given delta_format.
+  repeated DeltaEntryDiagnostics children = 4;
+}
+
+message File {
+  optional string original_filename = 1;
+  optional int64 original_file_size = 2;
+  optional string new_filename = 3;
+  optional int64 new_file_size = 4;
+  // How compression was handled (and why).
+  optional UncompressionOption uncompression_option = 7;
+  optional UncompressionOptionExplanation uncompression_option_explanation = 8;
+  optional EntryDeltaFormatExplanation delta_format_explanation = 9;
+}

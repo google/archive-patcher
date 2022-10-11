@@ -48,6 +48,7 @@ public abstract class DiffPlanEntry {
         .deltaFormat(preDiffPlanEntry().deltaFormat())
         .oldBlobRange(oldDeltaFriendlyEntryRange())
         .newBlobRange(newDeltaFriendlyEntryRange())
+        .addDiffPlanEntry(this)
         .build();
   }
 }
