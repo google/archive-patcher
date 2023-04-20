@@ -15,6 +15,7 @@
 package com.google.archivepatcher.applier;
 
 import com.google.archivepatcher.shared.JreDeflateParameters;
+import com.google.archivepatcher.applier.zip.CustomDeflater;
 import com.google.archivepatcher.shared.TypedRange;
 
 import java.io.FilterOutputStream;
@@ -135,11 +136,11 @@ public class PartiallyCompressingOutputStream extends FilterOutputStream {
       // Compression will begin immediately.
       JreDeflateParameters parameters = nextCompressedRange.getMetadata();
       if (deflater == null) {
-        deflater = new Deflater(parameters.level, parameters.nowrap);
+        deflater = new CustomDeflater(parameters.level, parameters.nowrap);
       } else if (lastDeflateParameters.nowrap != parameters.nowrap) {
         // Last deflater must be destroyed because nowrap settings do not match.
         deflater.end();
-        deflater = new Deflater(parameters.level, parameters.nowrap);
+        deflater = new CustomDeflater(parameters.level, parameters.nowrap);
       }
       // Deflater will already have been reset at the end of this method, no need to do it again.
       // Just set up the right parameters.
